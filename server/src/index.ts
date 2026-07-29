@@ -23,7 +23,9 @@ import { renderPcmTable } from './console-view.js';
 import { NdjsonHistoryStore } from './history/ndjson-store.js';
 import { SqliteHistoryStore } from './history/sqlite-store.js';
 import { NullHistoryStore, type HistoryRecord, type HistoryStore } from './history/store.js';
+import { SessionStore } from './session-store.js';
 import { StreamHub } from './stream.js';
+import path from 'node:path';
 import type { LoxoneSource } from './loxone/source.js';
 import { LoxoneClient } from './loxone/client.js';
 import { HttpPollSource } from './loxone/http-poll-source.js';
@@ -117,9 +119,23 @@ async function main(): Promise<void> {
       ? new SqliteHistoryStore({ file: cfg.historyDbAbs, logger })
       : new NdjsonHistoryStore({ dir: cfg.historyDirAbs, logger });
 
+  // Odczyt historii istnieje tylko przy backendzie SQLite. Przy ndjson
+  // /api/history odpowiada kontraktem "niedostepne" — frontend ma na to
+  // gotowa sciezke od pierwszej wersji.
+  const historyReader = history instanceof SqliteHistoryStore ? history : null;
+
+  // Sesje badawcze zyja w osobnym pliku JSON — patrz komentarz w SessionStore.
+  const sessionStore = new SessionStore(
+    path.join(path.dirname(cfg.historyDbAbs), 'sesje.json'),
+    logger,
+  );
+
 
   // --- Zrodlo danych -------------------------------------------------------
-  const material = MATERIALS[DEFAULT_MATERIAL];
+  // Material bierzemy z biezacej sesji, jesli jakas trwa — zrodlo syntetyczne
+  // symuluje wtedy wlasciwy zakres temperatur, a tabela w konsoli podpisuje
+  // sie wlasciwym materialem.
+  const material = MATERIALS[sessionStore.current()?.material ?? DEFAULT_MATERIAL];
   const sourceKind: SourceKind = cfg.isMock ? 'mock' : 'http-poll';
 
   const healthTracker = new HealthTracker({
@@ -274,11 +290,18 @@ async function main(): Promise<void> {
     logController: new LogController({ disableRequestLogging: true }),
   });
 
-  // Krok 1 nie zarzadza sesjami badawczymi — null jest realnym stanem
-  // "zaden test nie jest uruchomiony" i frontend musi go obslugiwac od poczatku.
-  const getSession = (): Session | null => null;
+  const getSession = (): Session | null => sessionStore.currentAsSession();
 
-  await registerApi(app, { registry, cache, health: healthTracker, stream, getSession });
+  await registerApi(app, {
+    registry,
+    cache,
+    health: healthTracker,
+    stream,
+    sessions: sessionStore,
+    historyReader,
+    cfg,
+    getSession,
+  });
   await app.listen({ host: cfg.HOST, port: cfg.PORT });
 
   // --- Start zrodla --------------------------------------------------------

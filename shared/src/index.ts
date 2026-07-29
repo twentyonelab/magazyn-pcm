@@ -165,6 +165,35 @@ export interface Session {
   note: string | null;
 }
 
+/**
+ * Znacznik zdarzenia w sesji: "napelniono", "start ladowania",
+ * "zauwazono kawerne". Bez adnotacji dane po dwoch tygodniach sa nieczytelne
+ * — to jest realna wartosc dla R&D.
+ */
+export interface SessionEvent {
+  ts: string;
+  label: string;
+}
+
+/** Pelny zapis sesji — to, co przechowuje serwer i pokazuje widok Sesje. */
+export interface SessionRecord extends Session {
+  id: number;
+  endedAt: string | null;
+  events: SessionEvent[];
+}
+
+/** POST /api/session — rozpoczecie sesji. */
+export interface StartSessionBody {
+  material: PcmMaterial;
+  label: string;
+  note?: string | null;
+}
+
+/** POST /api/session/events — dodanie znacznika. */
+export interface AddEventBody {
+  label: string;
+}
+
 // ---------------------------------------------------------------------------
 // Kontrakt API
 // ---------------------------------------------------------------------------
@@ -202,6 +231,36 @@ export interface Snapshot {
 export interface ValuesEvent {
   ts: string;
   values: PointValues;
+}
+
+/**
+ * GET /api/config — konfiguracja aplikacji do podgladu w widoku Ustawienia.
+ * Tylko do odczytu. NIGDY nie zawiera danych logowania.
+ */
+export interface PointMapping {
+  id: string;
+  label: string;
+  /** UUID z Loxone Config; null = jeszcze nieprzypisany. */
+  uuid: string | null;
+  group: PointGroup;
+  kind: PointKind;
+  unit: string;
+  available: boolean;
+}
+
+export interface ConfigResponse {
+  sourceKind: SourceKind;
+  loxoneHost: string;
+  pollIntervalMs: number;
+  staleFactor: number;
+  staleAfterMs: number;
+  historyEnabled: boolean;
+  historyBackend: 'sqlite' | 'ndjson';
+  historyPath: string;
+  /** Liczba rekordow w bazie; null gdy backend nie umie policzyc. */
+  historyRecords: number | null;
+  historyHeartbeatS: number;
+  mappings: PointMapping[];
 }
 
 /** GET /api/history — odpowiedz, gdy odczyt historii jeszcze nie jest gotowy. */

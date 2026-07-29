@@ -1,16 +1,21 @@
 /**
  * Powloka aplikacji: naglowek, nawigacja, wskaznik zywosci danych.
  *
- * W tym kroku dziala jeden widok — Diagnostyka. Pozostale wejda w krokach
- * 6 i 7 (Magazyn PCM ze schematem SVG, potem zaslepki). Nawigacja pokazuje
- * je od razu jako nieaktywne, zeby bylo widac, gdzie idziemy.
+ * Wszystkie widoki dzialaja. Nawigacje mozna przycinac w Ustawieniach —
+ * np. wylaczenie widoku 3D sprawia, ze modul Three.js w ogole sie nie pobiera.
  */
 
 import { Suspense, lazy, useState } from 'react';
 import { useLiveData } from './useLiveData.js';
 import { Diagnostyka } from './views/Diagnostyka.js';
 import { Magazyn } from './views/Magazyn.js';
+import { Przebiegi } from './views/Przebiegi.js';
+import { Sesje } from './views/Sesje.js';
+import { Bilans } from './views/Bilans.js';
+import { Ustawienia } from './views/Ustawienia.js';
 import { formatClock } from './format.js';
+import { useSettings } from './settings.js';
+import { BladWidoku } from './components/BladWidoku.js';
 
 /**
  * Widok 3D wczytywany na żądanie.
@@ -32,21 +37,24 @@ type ViewId =
   | 'sesje'
   | 'ustawienia';
 
-const VIEWS: Array<{ id: ViewId; label: string; ready: boolean }> = [
-  { id: 'magazyn', label: 'Magazyn', ready: true },
-  { id: 'magazyn3d', label: 'Magazyn 3D', ready: true },
-  { id: 'przebiegi', label: 'Przebiegi', ready: false },
-  { id: 'bilans', label: 'Bilans', ready: false },
-  { id: 'diagnostyka', label: 'Diagnostyka', ready: true },
-  { id: 'sesje', label: 'Sesje', ready: false },
-  { id: 'ustawienia', label: 'Ustawienia', ready: false },
+const VIEWS: Array<{ id: ViewId; label: string }> = [
+  { id: 'magazyn', label: 'Magazyn' },
+  { id: 'magazyn3d', label: 'Magazyn 3D' },
+  { id: 'przebiegi', label: 'Przebiegi' },
+  { id: 'bilans', label: 'Bilans' },
+  { id: 'sesje', label: 'Sesje' },
+  { id: 'diagnostyka', label: 'Diagnostyka' },
+  { id: 'ustawienia', label: 'Ustawienia' },
 ];
 
 export function App() {
   const [view, setView] = useState<ViewId>('magazyn');
   const data = useLiveData();
+  const settings = useSettings();
 
-  const material = data.session?.material ?? null;
+  // Widok 3D da sie wylaczyc w opcjach — takze wtedy, gdy jest otwarty.
+  const views = VIEWS.filter((item) => item.id !== 'magazyn3d' || settings.widok3d);
+  const activeView = views.some((item) => item.id === view) ? view : 'magazyn';
 
   return (
     <div className="app">
@@ -57,16 +65,12 @@ export function App() {
         </div>
 
         <nav className="nav" aria-label="Widoki">
-          {VIEWS.map((item) => (
+          {views.map((item) => (
             <button
               key={item.id}
               type="button"
-              className={`nav__item${view === item.id ? ' is-active' : ''}${
-                item.ready ? '' : ' is-soon'
-              }`}
-              onClick={() => item.ready && setView(item.id)}
-              aria-disabled={!item.ready}
-              title={item.ready ? undefined : 'Widok powstanie w kolejnym kroku'}
+              className={`nav__item${activeView === item.id ? ' is-active' : ''}`}
+              onClick={() => setView(item.id)}
             >
               {item.label}
             </button>
@@ -87,21 +91,27 @@ export function App() {
             21 zmysłów · stanowisko badawcze
             {data.health?.sourceKind === 'mock' ? ' · DANE SYNTETYCZNE' : ''}
           </p>
-          <h1>{VIEWS.find((v) => v.id === view)?.label}</h1>
+          <h1>{views.find((v) => v.id === activeView)?.label}</h1>
           <p className="page-sub">
             {data.session
-              ? `Sesja: ${data.session.label} · materiał ${material}`
+              ? `Sesja: ${data.session.label} · materiał ${data.session.material}`
               : 'Żadna sesja badawcza nie jest uruchomiona'}
           </p>
         </div>
 
-        {view === 'magazyn' ? <Magazyn data={data} /> : null}
-        {view === 'magazyn3d' ? (
-          <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
-            <Magazyn3D data={data} />
-          </Suspense>
-        ) : null}
-        {view === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
+        <BladWidoku resetKey={activeView}>
+          {activeView === 'magazyn' ? <Magazyn data={data} /> : null}
+          {activeView === 'magazyn3d' ? (
+            <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
+              <Magazyn3D data={data} />
+            </Suspense>
+          ) : null}
+          {activeView === 'przebiegi' ? <Przebiegi data={data} /> : null}
+          {activeView === 'bilans' ? <Bilans data={data} /> : null}
+          {activeView === 'sesje' ? <Sesje data={data} /> : null}
+          {activeView === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
+          {activeView === 'ustawienia' ? <Ustawienia data={data} /> : null}
+        </BladWidoku>
       </main>
     </div>
   );

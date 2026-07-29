@@ -115,6 +115,80 @@ export class SqliteHistoryStore implements HistoryStore {
     return row.c;
   }
 
+  /**
+   * Odczyt szeregu czasowego z usrednianiem do kubelkow czasowych.
+   *
+   * Kubelek bez ani jednego odczytu po prostu NIE ISTNIEJE w wyniku —
+   * na wykresie robi się dziura. To celowe: dziura mowi "nie mierzylismy",
+   * a zero czy interpolacja by klamaly.
+   */
+  queryBuckets(
+    pointId: string,
+    fromMs: number,
+    toMs: number,
+    bucketMs: number,
+  ): Array<{ ts: string; v: number | null }> {
+    // UWAGA na typ parametru: better-sqlite3 wiaze liczby JS jako REAL,
+    // wiec `ts / @bucket` byloby dzieleniem zmiennoprzecinkowym — kazdy
+    // wiersz dostawalby unikalny "kubelek" i GROUP BY nie grupowalby NICZEGO.
+    // CAST na INTEGER wymusza dzielenie calkowite niezaleznie od wiazania.
+    const rows = this.db
+      .prepare(
+        `SELECT CAST(ts / @bucket AS INTEGER) * CAST(@bucket AS INTEGER) AS bucket_ts,
+                AVG(v)                 AS avg_v,
+                COUNT(v)               AS with_value,
+                COUNT(*)               AS total
+           FROM readings
+          WHERE point_id = @id AND ts >= @from AND ts < @to
+          GROUP BY bucket_ts
+          ORDER BY bucket_ts`,
+      )
+      .all({ id: pointId, from: fromMs, to: toMs, bucket: bucketMs }) as Array<{
+      bucket_ts: number;
+      avg_v: number | null;
+      with_value: number;
+      total: number;
+    }>;
+
+    return rows.map((row) => ({
+      ts: new Date(row.bucket_ts).toISOString(),
+      // Kubelek, w ktorym byly wylacznie zapisy NULL (czujnik nie odpowiadal,
+      // ale heartbeat to odnotowal), zwraca null — nie znika z wyniku.
+      v: row.with_value > 0 ? row.avg_v : null,
+    }));
+  }
+
+  /** Surowe rekordy — do eksportu CSV. Iterator, zeby nie ladowac wszystkiego naraz. */
+  *iterateRaw(
+    pointIds: readonly string[],
+    fromMs: number,
+    toMs: number,
+  ): IterableIterator<{ ts: number; point_id: string; v: number | null }> {
+    const placeholders = pointIds.map(() => '?').join(',');
+    const stmt = this.db.prepare(
+      `SELECT ts, point_id, v FROM readings
+        WHERE point_id IN (${placeholders}) AND ts >= ? AND ts < ?
+        ORDER BY ts, point_id`,
+    );
+    yield* stmt.iterate(...pointIds, fromMs, toMs) as IterableIterator<{
+      ts: number;
+      point_id: string;
+      v: number | null;
+    }>;
+  }
+
+  /** Liczba surowych rekordow w zakresie — do walidacji przed odczytem raw. */
+  countRaw(pointIds: readonly string[], fromMs: number, toMs: number): number {
+    const placeholders = pointIds.map(() => '?').join(',');
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM readings
+          WHERE point_id IN (${placeholders}) AND ts >= ? AND ts < ?`,
+      )
+      .get(...pointIds, fromMs, toMs) as { c: number };
+    return row.c;
+  }
+
   async close(): Promise<void> {
     this.db.close();
   }

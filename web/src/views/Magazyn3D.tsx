@@ -29,6 +29,7 @@ import { extractScene, type Scene, type SvgBox } from '../schema/extractScene.js
 import type { LiveData } from '../useLiveData.js';
 import { FALLBACK_STALE_AFTER_MS, NO_DATA, formatValue, pointState } from '../format.js';
 import { isInPhaseBand, temperatureFill } from '../scale.js';
+import { getSettings } from '../settings.js';
 
 /* --- Stałe scenografii ---------------------------------------------------- */
 
@@ -128,8 +129,9 @@ interface DeviceHandle {
 
 export function Magazyn3D({ data }: { data: LiveData }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [autoRotate, setAutoRotate] = useState(true);
-  const [showLabels, setShowLabels] = useState(true);
+  // Stany poczatkowe z opcji aplikacji; przyciski w widoku dzialaja dalej.
+  const [autoRotate, setAutoRotate] = useState(() => getSettings().obrot3d);
+  const [showLabels, setShowLabels] = useState(() => getSettings().podpisy3d);
   const [ready, setReady] = useState(false);
   const [webglError, setWebglError] = useState<string | null>(null);
 

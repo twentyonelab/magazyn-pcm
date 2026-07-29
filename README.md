@@ -85,11 +85,21 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
   zaznaczone pasmo przemiany fazowej
 - Widok **Magazyn 3D**: ta sama instalacja przestrzennie (Three.js), układ
   czytany z tego samego pliku schematu
+- Widok **Przebiegi**: wykres historii z pasmem przemiany i znacznikami
+  zdarzeń sesji, tabela statystyk, eksport CSV
+- Widok **Sesje**: start/koniec sesji badawczej, materiał, notatki, znaczniki
+  zdarzeń („napełniono", „start ładowania", „zauważono kawernę")
+- Widok **Bilans**: świadoma zaślepka — mówi, czego brakuje (mapa rejestrów
+  Modbus, zasilanie 24 VDC) i policzy COP, gdy ciepłomierz zacznie raportować
 - Widok **Diagnostyka**: stany łączności, surowe wartości, punkty przestarzałe
+- Widok **Ustawienia**: konfiguracja serwera (odczyt), mapowanie id → UUID,
+  profile materiałów, przełączniki opcji interfejsu
+- Bariera błędów: awaria jednego widoku nie wygasza aplikacji
 - Endpointy: `/api/points`, `/api/snapshot`, `/api/stream`, `/api/materials`,
-  `/api/health`
+  `/api/health`, `/api/config`, `/api/session` (+ `end`, `events`),
+  `/api/sessions`, `/api/history`, `/api/history.csv`
 
-### Kolejne kroki
+### Plan bazowy — zrealizowany w całości
 
 | # | Krok | Stan |
 |---|---|---|
@@ -99,8 +109,19 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
 | 4 | Zapis do SQLite | gotowe |
 | 5 | Widok Diagnostyka | gotowe |
 | 6 | Warstwa wiążąca SVG i widok Magazyn PCM | gotowe |
-| 7 | Zaślepki pozostałych widoków | — |
-| 8 | `/api/history` | — |
+| 7 | Pozostałe widoki | gotowe |
+| 8 | `/api/history` | gotowe (odczyt z SQLite, nie zaślepka) |
+
+Do pierwszych prawdziwych danych brakuje wyłącznie kroków w laboratorium:
+konto tylko-do-odczytu w Loxone Config, `npm run uuid`, wpisanie UUID-ów
+do rejestru punktów.
+
+### Sesje badawcze
+
+Materiał (RT8HC / RT57HC) jest atrybutem **sesji**, nie punktu pomiarowego.
+Sesje i ich znaczniki zapisują się w `data/sesje.json` (osobno od bazy
+pomiarów, celowo — plik czyta się i naprawia ręcznie). Znaczniki zdarzeń
+pojawiają się na wykresach w Przebiegach.
 
 ### Jak podmienić schemat instalacji
 

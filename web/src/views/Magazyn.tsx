@@ -26,6 +26,7 @@ import {
   pointState,
 } from '../format.js';
 import { isInPhaseBand, phaseBandBounds, rampColor, temperatureFill } from '../scale.js';
+import { useSettings } from '../settings.js';
 
 const ZOOM_STEP = 0.15;
 const ZOOM_MIN = 0.6;
@@ -43,6 +44,7 @@ function useTicker(intervalMs: number): number {
 
 export function Magazyn({ data }: { data: LiveData }) {
   const now = useTicker(1000);
+  const settings = useSettings();
   const hostRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -169,7 +171,9 @@ export function Magazyn({ data }: { data: LiveData }) {
       </aside>
 
       {/* ------------------------- Schemat ------------------------- */}
-      <section className="canvas">
+      {/* Wylaczenie animacji w opcjach zatrzymuje ruch kreski na rurach —
+          niezaleznie od tego zerowy przeplyw i tak nigdy sie nie animuje. */}
+      <section className={`canvas${settings.animacjePrzeplywu ? '' : ' no-flow-anim'}`}>
         <div className="canvas__tools">
           <button
             type="button"

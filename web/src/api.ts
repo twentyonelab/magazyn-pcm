@@ -4,10 +4,15 @@
  */
 
 import type {
+  AddEventBody,
+  ConfigResponse,
   HistoryResponse,
   MaterialsResponse,
   PublicPoint,
+  SessionEvent,
+  SessionRecord,
   Snapshot,
+  StartSessionBody,
 } from '@magazyn-pcm/shared';
 
 /** Komunikat o niedostepnym serwerze — po ludzku, z podpowiedzia co zrobic. */
@@ -51,22 +56,89 @@ export function fetchMaterials(): Promise<MaterialsResponse> {
   return getJson<MaterialsResponse>('/api/materials');
 }
 
-/**
- * Historia pomiarow. W tej wersji serwer odpowiada `available: false` —
- * cala sciezka po stronie frontendu jest jednak gotowa, wiec wlaczenie
- * historii bedzie zmiana wylacznie po stronie serwera.
- */
-export function fetchHistory(params: {
+export interface HistoryParams {
   ids: string[];
   from: string;
   to: string;
   resolution: string;
-}): Promise<HistoryResponse> {
-  const query = new URLSearchParams({
+}
+
+function historyQuery(params: HistoryParams): string {
+  return new URLSearchParams({
     ids: params.ids.join(','),
     from: params.from,
     to: params.to,
     resolution: params.resolution,
+  }).toString();
+}
+
+/**
+ * Historia pomiarow. Gdy serwer zapisuje do pliku tekstowego zamiast bazy,
+ * odpowiada `available: false` — ta sciezka jest obslugiwana od pierwszej
+ * wersji aplikacji.
+ */
+export async function fetchHistory(params: HistoryParams): Promise<HistoryResponse> {
+  const response = await fetch(`/api/history?${historyQuery(params)}`, {
+    headers: { Accept: 'application/json' },
   });
-  return getJson<HistoryResponse>(`/api/history?${query.toString()}`);
+
+  // 400 niesie czytelny komunikat (np. "za duzo punktow") — pokazujemy go
+  // czlowiekowi zamiast ogolnego bledu.
+  if (response.status === 400) {
+    const body = (await response.json()) as { error?: string };
+    throw new Error(body.error ?? 'Serwer odrzucił zapytanie o historię.');
+  }
+  if (!response.ok) throw new Error('Nie mogę pobrać historii z serwera.');
+
+  return (await response.json()) as HistoryResponse;
+}
+
+/** Adres eksportu CSV — do pobrania przez zwykly link. */
+export function historyCsvUrl(params: HistoryParams): string {
+  return `/api/history.csv?${historyQuery(params)}`;
+}
+
+export function fetchConfig(): Promise<ConfigResponse> {
+  return getJson<ConfigResponse>('/api/config');
+}
+
+// ---------------------------------------------------------------------------
+// Sesje badawcze
+// ---------------------------------------------------------------------------
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (T & { error?: string })
+    | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? `Serwer odrzucił operację (HTTP ${response.status}).`);
+  }
+  return payload as T;
+}
+
+export function fetchCurrentSession(): Promise<SessionRecord | null> {
+  return getJson<SessionRecord | null>('/api/session');
+}
+
+export function fetchSessions(): Promise<SessionRecord[]> {
+  return getJson<SessionRecord[]>('/api/sessions');
+}
+
+export function startSession(body: StartSessionBody): Promise<SessionRecord> {
+  return postJson<SessionRecord>('/api/session', body);
+}
+
+export function endSession(): Promise<SessionRecord> {
+  return postJson<SessionRecord>('/api/session/end', {});
+}
+
+export function addSessionEvent(body: AddEventBody): Promise<SessionEvent> {
+  return postJson<SessionEvent>('/api/session/events', body);
 }
