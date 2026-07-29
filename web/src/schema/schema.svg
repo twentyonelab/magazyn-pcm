@@ -23,6 +23,16 @@
       data-stale-hide              element chowany, gdy punkt jest przestarzały
       data-unit                    jednostka dopisywana po wartości
 
+    KONTRAKT DLA WIDOKU 3D
+    Widok trójwymiarowy nie ma własnego układu — CZYTA TEN PLIK i przelicza
+    współrzędne SVG na współrzędne świata. Dzięki temu oba widoki są 1:1
+    i nie ma dwóch źródeł prawdy. Bryły opisują:
+      data-object="storage"        bryła w scenie 3D (identyfikator)
+      data-label="Magazyn PCM"     podpis bryły
+      data-h="6.4"                 wysokość bryły w jednostkach świata
+      data-sensor="A1"             blok sondy (także wewnątrz zbiorników)
+    Prostokąt bez data-object jest w 3D pomijany — jest tylko dekoracją rysunku.
+
     UKŁAD SOND — dlaczego dwa pionowe pręty, a nie krzyż:
     sondy siedzą na dwóch prętach ustawionych po PRZEKĄTNYCH ZBIORNIKA
     (widok z góry), a każdy pręt ma trzy sondy na trzech wysokościach.
@@ -107,7 +117,17 @@
        ===================================================================== -->
 
   <g class="device" data-state="HP_STATE" filter="url(#soft)">
-    <rect x="60" y="316" width="136" height="76" rx="18" fill="url(#device)" />
+    <rect
+      x="60"
+      y="316"
+      width="136"
+      height="76"
+      rx="18"
+      fill="url(#device)"
+      data-object="heatpump"
+      data-label="Pompa ciepła"
+      data-h="2.4"
+    />
     <rect x="60" y="316" width="136" height="76" rx="18" fill="url(#grid-dark)" />
     <rect class="device__bar" x="74" y="336" width="108" height="10" rx="5" />
     <circle class="device__led" cx="176" cy="376" r="6" />
@@ -119,18 +139,29 @@
        ===================================================================== -->
 
   <g class="device" filter="url(#soft)">
-    <rect x="236" y="250" width="120" height="180" rx="22" fill="url(#tank)" />
+    <rect
+      x="236"
+      y="250"
+      width="120"
+      height="180"
+      rx="22"
+      fill="url(#tank)"
+      data-object="buffer"
+      data-label="Bufor"
+      data-h="4.4"
+      data-vessel="true"
+    />
     <rect x="236" y="250" width="120" height="180" rx="22" fill="url(#grid-dark)" />
     <text class="label" x="250" y="276">Bufor</text>
 
-    <g class="sensor sensor--sm">
-      <rect class="sensor__cell" data-fill-point="BUFFER_TOP" x="252" y="288" width="88" height="52" rx="12" />
+    <g class="sensor sensor--sm" data-sensor="BUFFER_TOP">
+      <rect class="sensor__cell" data-fill-point="BUFFER_TOP" x="252" y="288" width="88" height="52" rx="12" data-h="1.1" />
       <text class="sensor__id" x="262" y="306">góra</text>
       <text class="sensor__value" data-point="BUFFER_TOP" data-unit="°C" x="330" y="326">—</text>
     </g>
 
-    <g class="sensor sensor--sm">
-      <rect class="sensor__cell" data-fill-point="BUFFER_BOTTOM" x="252" y="352" width="88" height="52" rx="12" />
+    <g class="sensor sensor--sm" data-sensor="BUFFER_BOTTOM">
+      <rect class="sensor__cell" data-fill-point="BUFFER_BOTTOM" x="252" y="352" width="88" height="52" rx="12" data-h="1.1" />
       <text class="sensor__id" x="262" y="370">dół</text>
       <text class="sensor__value" data-point="BUFFER_BOTTOM" data-unit="°C" x="330" y="390">—</text>
     </g>
@@ -142,7 +173,17 @@
        ===================================================================== -->
 
   <g class="device" filter="url(#soft)">
-    <rect x="430" y="126" width="144" height="140" rx="20" fill="url(#device)" />
+    <rect
+      x="430"
+      y="126"
+      width="144"
+      height="140"
+      rx="20"
+      fill="url(#device)"
+      data-object="meter"
+      data-label="Ciepłomierz"
+      data-h="2.6"
+    />
     <rect x="430" y="126" width="144" height="140" rx="20" fill="url(#grid-dark)" />
     <text class="label" x="444" y="150">Ciepłomierz</text>
 
@@ -165,7 +206,17 @@
        ===================================================================== -->
 
   <g class="valve" data-state="VALVE_STATE" filter="url(#soft-sm)">
-    <rect x="636" y="172" width="48" height="48" rx="14" fill="url(#device)" />
+    <rect
+      x="636"
+      y="172"
+      width="48"
+      height="48"
+      rx="14"
+      fill="url(#device)"
+      data-object="valve"
+      data-label="Zawór"
+      data-h="1.3"
+    />
     <path class="valve__glyph" d="M652 196 h16 M660 188 v16" />
     <text class="label label--sm" x="660" y="240">Zawór</text>
   </g>
@@ -175,7 +226,17 @@
        ===================================================================== -->
 
   <g class="valve" data-state="PUMP_STATE" filter="url(#soft-sm)">
-    <rect x="500" y="588" width="48" height="48" rx="14" fill="url(#device)" />
+    <rect
+      x="500"
+      y="588"
+      width="48"
+      height="48"
+      rx="14"
+      fill="url(#device)"
+      data-object="pump"
+      data-label="Pompa obiegowa"
+      data-h="1.3"
+    />
     <circle class="valve__glyph-dot" cx="524" cy="612" r="8" />
     <text class="label label--sm" x="524" y="656">Pompa obieg.</text>
   </g>
@@ -194,6 +255,10 @@
       rx="30"
       fill="url(#tank)"
       filter="url(#soft)"
+      data-object="storage"
+      data-label="Magazyn PCM"
+      data-h="8"
+      data-vessel="true"
     />
     <rect class="storage__grain" x="744" y="110" width="424" height="480" rx="30" fill="url(#grid-dark)" />
 
@@ -214,7 +279,7 @@
       <text class="level__label" x="762" y="496">1</text>
     </g>
 
-    <!-- ---------------- Przekątna A ---------------- -->
+    <!-- Przekątna A · poziomy 3, 2, 1 -->
 
     <g class="sensor" data-sensor="A3">
       <rect class="sensor__cell" data-fill-point="A3" x="792" y="176" width="108" height="72" rx="16" />
@@ -240,7 +305,7 @@
       <circle class="sensor__phase" cx="890" cy="472" r="5" />
     </g>
 
-    <!-- ---------------- Przekątna B ---------------- -->
+    <!-- Przekątna B · poziomy 3, 2, 1 -->
 
     <g class="sensor" data-sensor="B3">
       <rect class="sensor__cell" data-fill-point="B3" x="1012" y="176" width="108" height="72" rx="16" />

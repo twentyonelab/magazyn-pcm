@@ -83,6 +83,8 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
 - Strumień zmian do przeglądarki (SSE) z automatycznym wznawianiem
 - Widok **Magazyn PCM**: schemat instalacji, sondy barwione według temperatury,
   zaznaczone pasmo przemiany fazowej
+- Widok **Magazyn 3D**: ta sama instalacja przestrzennie (Three.js), układ
+  czytany z tego samego pliku schematu
 - Widok **Diagnostyka**: stany łączności, surowe wartości, punkty przestarzałe
 - Endpointy: `/api/points`, `/api/snapshot`, `/api/stream`, `/api/materials`,
   `/api/health`
@@ -120,6 +122,33 @@ aplikacji się nie zmienia. Warunek jest jeden: zachować atrybuty `data-*`.
 Warstwa wiążąca ([`web/src/schema/bindSchema.ts`](web/src/schema/bindSchema.ts))
 po każdym zdarzeniu SSE odnajduje te elementy i aktualizuje im tekst,
 wypełnienie i klasy. Rysunek nie jest przerysowywany.
+
+#### Widok 3D czyta ten sam plik
+
+Scena trójwymiarowa **nie ma własnego układu** — bierze współrzędne z tego
+samego SVG ([`web/src/schema/extractScene.ts`](web/src/schema/extractScene.ts)),
+więc oba widoki nie mogą się rozjechać. Bryły opisują dodatkowe atrybuty:
+
+| Atrybut | Co robi |
+|---|---|
+| `data-object="storage"` | prostokąt staje się bryłą w scenie 3D |
+| `data-label="Magazyn PCM"` | podpis bryły |
+| `data-h="8"` | wysokość bryły w jednostkach świata |
+| `data-vessel="true"` | zbiornik: przejrzysty, z sondami w środku |
+
+Prostokąt bez `data-object` jest w 3D pomijany — jest tylko dekoracją rysunku.
+
+Jedno celowe odstępstwo: rysunek 2D jest **przekrojem**, więc pionowa pozycja
+sondy oznacza tam poziom. W 3D pion jest prawdziwą wysokością, dlatego sondy
+w zbiorniku dostają wysokość z poziomu (1 dół, 3 góra), a położenie w rzucie
+z przekątnej A/B — dokładnie jak we wstawce „rzut z góry". Rozmieszczenie
+urządzeń i przebieg rur pozostają wierne rysunkowi.
+
+> **Uwaga przy edycji SVG:** widok 3D czyta plik **ścisłym parserem XML**.
+> Rzecz, która wywróciła to raz: `<!-- ---- opis ---- -->` jest w XML błędem,
+> bo podwójny dywiz w komentarzu jest zabroniony. Widok 2D to tolerował,
+> a scena 3D po cichu gubiła połowę obiektów. Teraz przy takim błędzie
+> w konsoli przeglądarki pojawia się ostrzeżenie — ale lepiej go nie tworzyć.
 
 Skala barwna i pasmo przemiany pochodzą z profilu materiału
 w [`server/src/materials.config.ts`](server/src/materials.config.ts) — nie

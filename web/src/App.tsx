@@ -6,16 +6,35 @@
  * je od razu jako nieaktywne, zeby bylo widac, gdzie idziemy.
  */
 
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useLiveData } from './useLiveData.js';
 import { Diagnostyka } from './views/Diagnostyka.js';
 import { Magazyn } from './views/Magazyn.js';
 import { formatClock } from './format.js';
 
-type ViewId = 'magazyn' | 'przebiegi' | 'bilans' | 'diagnostyka' | 'sesje' | 'ustawienia';
+/**
+ * Widok 3D wczytywany na żądanie.
+ *
+ * Three.js waży ponad pół megabajta — gdyby wchodził do wspólnej paczki,
+ * płaciłby za niego każdy, kto otwiera tylko widok 2D albo Diagnostykę.
+ * Przy podglądzie na tablecie w laboratorium to realna różnica.
+ */
+const Magazyn3D = lazy(() =>
+  import('./views/Magazyn3D.js').then((module) => ({ default: module.Magazyn3D })),
+);
+
+type ViewId =
+  | 'magazyn'
+  | 'magazyn3d'
+  | 'przebiegi'
+  | 'bilans'
+  | 'diagnostyka'
+  | 'sesje'
+  | 'ustawienia';
 
 const VIEWS: Array<{ id: ViewId; label: string; ready: boolean }> = [
   { id: 'magazyn', label: 'Magazyn', ready: true },
+  { id: 'magazyn3d', label: 'Magazyn 3D', ready: true },
   { id: 'przebiegi', label: 'Przebiegi', ready: false },
   { id: 'bilans', label: 'Bilans', ready: false },
   { id: 'diagnostyka', label: 'Diagnostyka', ready: true },
@@ -77,6 +96,11 @@ export function App() {
         </div>
 
         {view === 'magazyn' ? <Magazyn data={data} /> : null}
+        {view === 'magazyn3d' ? (
+          <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
+            <Magazyn3D data={data} />
+          </Suspense>
+        ) : null}
         {view === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
       </main>
     </div>

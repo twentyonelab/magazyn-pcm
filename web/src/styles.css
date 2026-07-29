@@ -985,3 +985,83 @@ code {
   stroke: var(--ink);
   stroke-width: 2;
 }
+
+/* =========================================================================
+   WIDOK 3D
+   ========================================================================= */
+
+.canvas--3d {
+  padding: 0;
+  overflow: hidden;
+}
+
+.stage3d {
+  position: relative;
+  width: 100%;
+  height: clamp(420px, 62vh, 760px);
+}
+
+.canvas--3d .flow-note {
+  margin: 0;
+  padding: 0.9rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.tool.is-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Etykiety w przestrzeni 3D — pigułki jak w referencji: półprzejrzysta biel,
+   cienka obwódka, rozmycie tła. */
+.scene-label {
+  font-family: var(--font);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.scene-label--object {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(6px);
+  border: 1px solid #e6e5e1;
+  border-radius: 999px;
+  padding: 3px 10px;
+  box-shadow: 0 1px 4px rgba(17, 16, 19, 0.06);
+}
+
+.scene-label--sensor {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #e6e5e1;
+  border-radius: 8px;
+  padding: 2px 7px;
+  box-shadow: 0 1px 4px rgba(17, 16, 19, 0.08);
+}
+
+/* Cztery stany punktu wyglądają różnie także w 3D. */
+.scene-label--sensor[data-state='stale'] {
+  color: var(--warn-ink);
+  background: rgba(253, 240, 213, 0.9);
+  border-color: #f0dcae;
+}
+
+.scene-label--sensor[data-state='no-data'],
+.scene-label--sensor[data-state='not-connected'] {
+  color: var(--ink-faint);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.scene-label--zone {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  color: #b7b5b0;
+}
