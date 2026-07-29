@@ -1,59 +1,82 @@
 /**
- * Szkielet frontendu.
+ * Powloka aplikacji: naglowek, nawigacja, wskaznik zywosci danych.
  *
- * Krok 1 konczy sie na liczbach w konsoli — widoki powstaja w krokach 5-7
- * wedlug kolejnosci z sekcji 10 specyfikacji:
- *   Diagnostyka -> warstwa wiazaca SVG i widok Magazyn PCM -> zaslepki.
- *
- * Ta strona istnieje tylko po to, zeby monorepo bylo kompletne i zeby bylo
- * widac, ze frontend czyta typy ze wspolnego pakietu.
+ * W tym kroku dziala jeden widok — Diagnostyka. Pozostale wejda w krokach
+ * 6 i 7 (Magazyn PCM ze schematem SVG, potem zaslepki). Nawigacja pokazuje
+ * je od razu jako nieaktywne, zeby bylo widac, gdzie idziemy.
  */
 
-import type { PublicPoint } from '@magazyn-pcm/shared';
+import { useState } from 'react';
+import { useLiveData } from './useLiveData.js';
+import { Diagnostyka } from './views/Diagnostyka.js';
+import { formatClock } from './format.js';
 
-/** Kolejnosc budowy z sekcji 10 specyfikacji. */
-const ROADMAP: Array<{ step: number; label: string; done: boolean }> = [
-  { step: 1, label: 'Middleware — 6 temperatur w konsoli', done: true },
-  { step: 2, label: '/api/points i /api/snapshot', done: true },
-  { step: 3, label: '/api/stream (SSE)', done: false },
-  { step: 4, label: 'Zapis do SQLite', done: false },
-  { step: 5, label: 'Widok Diagnostyka', done: false },
-  { step: 6, label: 'Warstwa wiazaca SVG i widok Magazyn PCM', done: false },
-  { step: 7, label: 'Zaslepki pozostalych widokow', done: false },
-  { step: 8, label: '/api/history', done: false },
+type ViewId = 'magazyn' | 'przebiegi' | 'bilans' | 'diagnostyka' | 'sesje' | 'ustawienia';
+
+const VIEWS: Array<{ id: ViewId; label: string; ready: boolean }> = [
+  { id: 'magazyn', label: 'Magazyn', ready: false },
+  { id: 'przebiegi', label: 'Przebiegi', ready: false },
+  { id: 'bilans', label: 'Bilans', ready: false },
+  { id: 'diagnostyka', label: 'Diagnostyka', ready: true },
+  { id: 'sesje', label: 'Sesje', ready: false },
+  { id: 'ustawienia', label: 'Ustawienia', ready: false },
 ];
 
-export function App(): JSX.Element {
-  // Typ ze wspolnego pakietu — dowod, ze `shared/` dziala po stronie frontendu.
-  const example: PublicPoint | null = null;
-  void example;
+export function App() {
+  const [view, setView] = useState<ViewId>('diagnostyka');
+  const data = useLiveData();
+
+  const material = data.session?.material ?? null;
 
   return (
-    <main className="page">
-      <header className="page__head">
-        <p className="eyebrow">21 zmysłów · stanowisko badawcze</p>
-        <h1>
-          Magazyn PCM
-          <span className="dot">.</span>
-        </h1>
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand__mark">Magazyn PCM</span>
+          <span className="brand__dot">.</span>
+        </div>
+
+        <nav className="nav" aria-label="Widoki">
+          {VIEWS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`nav__item${view === item.id ? ' is-active' : ''}${
+                item.ready ? '' : ' is-soon'
+              }`}
+              onClick={() => item.ready && setView(item.id)}
+              aria-disabled={!item.ready}
+              title={item.ready ? undefined : 'Widok powstanie w kolejnym kroku'}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className={`pulse is-${data.link}`}>
+          <span className="pulse__dot" aria-hidden="true" />
+          <span className="pulse__text">
+            {data.lastMessageAt ? formatClock(data.lastMessageAt.toISOString()) : '—'}
+          </span>
+        </div>
       </header>
 
-      <section className="card">
-        <h2 className="card__title">interfejs powstaje w kolejnych krokach</h2>
-        <p className="card__lead">
-          Middleware już działa. Sześć temperatur z magazynu jest odczytywanych i wypisywanych
-          w konsoli serwera, a dane są dostępne pod <code>/api/snapshot</code>.
-        </p>
+      <main className="main">
+        <div className="page-head">
+          <p className="eyebrow">
+            21 zmysłów · stanowisko badawcze
+            {data.health?.sourceKind === 'mock' ? ' · DANE SYNTETYCZNE' : ''}
+          </p>
+          <h1>{VIEWS.find((v) => v.id === view)?.label}</h1>
+          <p className="page-sub">
+            {data.session
+              ? `Sesja: ${data.session.label} · materiał ${material}`
+              : 'Żadna sesja badawcza nie jest uruchomiona'}
+          </p>
+        </div>
 
-        <ol className="roadmap">
-          {ROADMAP.map((item) => (
-            <li key={item.step} className={item.done ? 'roadmap__item is-done' : 'roadmap__item'}>
-              <span className="roadmap__step">{String(item.step).padStart(2, '0')}</span>
-              <span className="roadmap__label">{item.label}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-    </main>
+        {view === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
+      </main>
+    </div>
   );
 }

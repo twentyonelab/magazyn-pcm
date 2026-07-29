@@ -35,9 +35,12 @@ W pliku `.env` zostaw `LOXONE_SOURCE=mock` i uruchom:
 npm run dev
 ```
 
-W konsoli pojawi się tabela sześciu temperatur, odświeżana co 5 sekund.
-Liczby są syntetyczne — służą do pracy nad aplikacją, gdy nie ma dostępu
-do stanowiska.
+Startuje serwer **i** interfejs. W konsoli pojawi się tabela sześciu
+temperatur odświeżana co 5 sekund, a pod adresem **http://localhost:5173**
+zobaczysz widok Diagnostyka. Liczby są syntetyczne — służą do pracy nad
+aplikacją, gdy nie ma dostępu do stanowiska.
+
+Żeby uruchomić tylko serwer, bez interfejsu: `npm run dev:server`.
 
 ### Praca z prawdziwym Miniserverem
 
@@ -70,14 +73,16 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
 
 ---
 
-## Co już działa (krok 1)
+## Co już działa
 
 - Rejestr 18 punktów pomiarowych — jedno źródło prawdy dla całej aplikacji
 - Odczyt z Miniservera przez HTTP, co 5 s, z bezpieczną obsługą błędów
 - Źródło syntetyczne do pracy bez laboratorium
 - Tabela temperatur w konsoli
-- Zapis pomiarów do plików (historia zbiera się od pierwszego dnia)
-- Endpointy: `/api/points`, `/api/snapshot`, `/api/health`
+- Zapis pomiarów do SQLite (historia zbiera się od pierwszego dnia)
+- Strumień zmian do przeglądarki (SSE) z automatycznym wznawianiem
+- Widok **Diagnostyka**: stany łączności, surowe wartości, punkty przestarzałe
+- Endpointy: `/api/points`, `/api/snapshot`, `/api/stream`, `/api/health`
 
 ### Kolejne kroki
 
@@ -85,12 +90,22 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
 |---|---|---|
 | 1 | Middleware — 6 temperatur w konsoli | gotowe |
 | 2 | `/api/points` i `/api/snapshot` | gotowe |
-| 3 | `/api/stream` (SSE) | — |
-| 4 | Zapis do SQLite | — |
-| 5 | Widok Diagnostyka | — |
+| 3 | `/api/stream` (SSE) | gotowe |
+| 4 | Zapis do SQLite | gotowe |
+| 5 | Widok Diagnostyka | gotowe |
 | 6 | Warstwa wiążąca SVG i widok Magazyn PCM | — |
 | 7 | Zaślepki pozostałych widoków | — |
 | 8 | `/api/history` | — |
+
+### Podglądanie zebranych danych
+
+```bash
+npm run baza
+```
+
+Wypisuje, ile pomiarów jest w bazie, z jakiego okresu i w jakim zakresie
+wartości — osobno dla każdego punktu. Można to uruchomić w trakcie trwającego
+testu, odczyt nie blokuje zapisu.
 
 ---
 
@@ -107,6 +122,7 @@ server/
     cache.ts             bieżące wartości i wykrywanie przestarzałych
     health.ts            stan łączności ze źródłem
     console-view.ts      tabela temperatur w konsoli
+    stream.ts            strumień zmian do przeglądarki (SSE)
     loxone/
       source.ts            INTERFEJS źródła danych — granica wymienności
       client.ts            komunikacja i uwierzytelnianie (jedyne miejsce)
@@ -114,10 +130,18 @@ server/
       mock-source.ts       dane syntetyczne
     history/
       store.ts             interfejs zapisu historii
-      ndjson-store.ts      zapis do pliku (do czasu SQLite)
-    api/routes.ts        endpointy REST
-    scripts/fetch-uuids.ts  skrypt pobierający UUID-y
-web/             szkielet frontendu (Vite + React)
+      sqlite-store.ts      zapis do bazy SQLite
+      ndjson-store.ts      zapis do pliku (wyjście awaryjne)
+    api/routes.ts        endpointy REST i SSE
+    scripts/
+      fetch-uuids.ts       pobiera UUID-y z Miniservera
+      db-summary.ts        podsumowanie zebranych pomiarów
+web/
+  src/
+    useLiveData.ts     dane na żywo: snapshot + SSE + wznawianie
+    api.ts             dostęp do /api/*
+    format.ts          formatowanie liczb, wiek i stan wartości
+    views/Diagnostyka.tsx
 docs/            specyfikacja, schemat instalacji, język wizualny
 data/            dane pomiarowe i zrzuty z Miniservera (poza repozytorium)
 ```

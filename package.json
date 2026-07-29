@@ -13,10 +13,16 @@
     "web"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=server",
+    "dev": "concurrently -n serwer,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:web": "npm run dev --workspace=web",
     "start": "npm run start --workspace=server",
     "uuid": "npm run uuid --workspace=server",
+    "baza": "npm run baza --workspace=server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
   }
 }

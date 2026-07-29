@@ -46,6 +46,9 @@ const schema = z.object({
   PORT: numberFromEnv(4000, 1, 65_535),
 
   HISTORY_ENABLED: booleanFromEnv(true),
+  /** sqlite = docelowy zapis; ndjson = awaryjne wyjscie bez zaleznosci natywnych. */
+  HISTORY_BACKEND: z.enum(['sqlite', 'ndjson']).default('sqlite'),
+  HISTORY_DB: z.string().default('./data/pomiary.db'),
   HISTORY_DIR: z.string().default('./data/history'),
   HISTORY_HEARTBEAT_S: numberFromEnv(300, 0, 86_400),
 
@@ -60,8 +63,10 @@ export type RawConfig = z.infer<typeof schema>;
 export interface AppConfig extends RawConfig {
   /** Po tym czasie bez udanego odczytu wartosc jest przestarzala. */
   staleAfterMs: number;
-  /** Bezwzgledna sciezka katalogu historii. */
+  /** Bezwzgledna sciezka katalogu historii (backend ndjson). */
   historyDirAbs: string;
+  /** Bezwzgledna sciezka pliku bazy (backend sqlite). */
+  historyDbAbs: string;
   /** true = pracujemy na danych syntetycznych. */
   isMock: boolean;
 }
@@ -114,6 +119,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     historyDirAbs: path.isAbsolute(cfg.HISTORY_DIR)
       ? cfg.HISTORY_DIR
       : path.resolve(repoRoot, cfg.HISTORY_DIR),
+    historyDbAbs: path.isAbsolute(cfg.HISTORY_DB)
+      ? cfg.HISTORY_DB
+      : path.resolve(repoRoot, cfg.HISTORY_DB),
     isMock: cfg.LOXONE_SOURCE === 'mock',
   };
 }

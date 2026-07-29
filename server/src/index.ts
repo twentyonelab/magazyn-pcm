@@ -12,7 +12,7 @@
 import { spawnSync } from 'node:child_process';
 import Fastify, { LogController, type FastifyBaseLogger } from 'fastify';
 import pino from 'pino';
-import type { Session, SourceKind } from '@magazyn-pcm/shared';
+import type { PointValues, Session, SourceKind } from '@magazyn-pcm/shared';
 import { ConfigError, envFileExists, loadConfig } from './config.js';
 import { DEFAULT_MATERIAL, MATERIALS } from './materials.config.js';
 import { createRegistry, RegistryError } from './registry.js';
@@ -21,7 +21,9 @@ import { HealthTracker } from './health.js';
 import { registerApi } from './api/routes.js';
 import { renderPcmTable } from './console-view.js';
 import { NdjsonHistoryStore } from './history/ndjson-store.js';
+import { SqliteHistoryStore } from './history/sqlite-store.js';
 import { NullHistoryStore, type HistoryRecord, type HistoryStore } from './history/store.js';
+import { StreamHub } from './stream.js';
 import type { LoxoneSource } from './loxone/source.js';
 import { LoxoneClient } from './loxone/client.js';
 import { HttpPollSource } from './loxone/http-poll-source.js';
@@ -107,9 +109,14 @@ async function main(): Promise<void> {
   // --- Cache, zdrowie, historia -------------------------------------------
   const cache = new ValueCache(cfg.staleAfterMs);
 
-  const history: HistoryStore = cfg.HISTORY_ENABLED
-    ? new NdjsonHistoryStore({ dir: cfg.historyDirAbs, logger })
-    : new NullHistoryStore();
+  // Wybor zapisu historii. Reszta aplikacji zna wylacznie interfejs
+  // HistoryStore, wiec ta decyzja nie wychodzi poza te linie.
+  const history: HistoryStore = !cfg.HISTORY_ENABLED
+    ? new NullHistoryStore()
+    : cfg.HISTORY_BACKEND === 'sqlite'
+      ? new SqliteHistoryStore({ file: cfg.historyDbAbs, logger })
+      : new NdjsonHistoryStore({ dir: cfg.historyDirAbs, logger });
+
 
   // --- Zrodlo danych -------------------------------------------------------
   const material = MATERIALS[DEFAULT_MATERIAL];
@@ -122,6 +129,8 @@ async function main(): Promise<void> {
     registry,
     cache,
   });
+
+  const stream = new StreamHub(logger, () => healthTracker.snapshot());
 
   let source: LoxoneSource;
 
@@ -158,8 +167,18 @@ async function main(): Promise<void> {
   const lastHistoryWriteMs = new Map<string, number>();
   const heartbeatMs = cfg.HISTORY_HEARTBEAT_S * 1000;
 
+  /**
+   * Punkty, ktore uznajemy juz za przestarzale. Trzymamy to jawnie, bo
+   * przejscie w stan przestarzaly nie generuje zadnego odczytu — bez tego
+   * zbioru cisza czujnika bylaby dla przegladarki nieodroznialna od
+   * stabilnej temperatury.
+   */
+  const staleIds = new Set<string>();
+
   source.onReadings((readings) => {
     const toPersist: HistoryRecord[] = [];
+    // Do przegladarki idzie tylko to, co sie zmienilo.
+    const changedValues: PointValues = {};
 
     for (const reading of readings) {
       if (!registry.has(reading.id)) {
@@ -168,6 +187,13 @@ async function main(): Promise<void> {
       }
 
       const update = cache.set(reading.id, reading.v, reading.readAtMs);
+
+      // Wysylamy tez punkt, ktory wlasnie przestal byc przestarzaly —
+      // sama wartosc sie nie zmienila, ale jej znaczenie owszem.
+      if (update.changed || staleIds.has(reading.id)) {
+        changedValues[reading.id] = update.value;
+        staleIds.delete(reading.id);
+      }
 
       // Do historii idzie kazda ZMIANA wartosci, a dodatkowo — co
       // HISTORY_HEARTBEAT_S — wartosc niezmieniona. Dzieki temu w danych
@@ -183,7 +209,44 @@ async function main(): Promise<void> {
     }
 
     if (toPersist.length > 0) void history.append(toPersist);
+
+    stream.sendValues(changedValues);
+    stream.sendHealthIfChanged(healthTracker.snapshot());
   });
+
+  /**
+   * Przeglad przestarzalych. Uruchamiany czesciej niz prog przestarzalosci,
+   * zeby awaria sondy pokazala sie na ekranie bez zwleki.
+   */
+  const staleSweepMs = Math.max(Math.round(cfg.staleAfterMs / 3), 1000);
+
+  const staleSweepTimer = setInterval(() => {
+    const newlyStale: PointValues = {};
+
+    for (const point of registry.all()) {
+      // Punkt, z ktorego nigdy nie bylo odczytu, nie "staje sie" przestarzaly —
+      // on po prostu nie ma danych i klient wie to ze snapshotu.
+      if (!cache.hasReading(point.id)) continue;
+
+      const value = cache.get(point.id);
+      if (value.stale && !staleIds.has(point.id)) {
+        staleIds.add(point.id);
+        newlyStale[point.id] = value;
+      }
+    }
+
+    if (Object.keys(newlyStale).length > 0) {
+      logger.warn(
+        { ids: Object.keys(newlyStale) },
+        'Punkty przestały odpowiadać — oznaczam wartości jako przestarzałe',
+      );
+      stream.sendValues(newlyStale);
+    }
+
+    stream.sendHealthIfChanged(healthTracker.snapshot());
+  }, staleSweepMs);
+
+  staleSweepTimer.unref();
 
   source.onHealth((event) => {
     healthTracker.update({
@@ -215,7 +278,7 @@ async function main(): Promise<void> {
   // "zaden test nie jest uruchomiony" i frontend musi go obslugiwac od poczatku.
   const getSession = (): Session | null => null;
 
-  await registerApi(app, { registry, cache, health: healthTracker, getSession });
+  await registerApi(app, { registry, cache, health: healthTracker, stream, getSession });
   await app.listen({ host: cfg.HOST, port: cfg.PORT });
 
   // --- Start zrodla --------------------------------------------------------
@@ -239,8 +302,13 @@ async function main(): Promise<void> {
       `  punkty w magazynie   ${pcmPoints.length}`,
       `  punkty odpytywane    ${cfg.isMock ? registry.all().filter((p) => p.available).length : pollable.length}`,
       `  materiał (skala)     ${material.label} · ${material.scaleMin}–${material.scaleMax} °C · przemiana ${material.phaseBandMin}–${material.phaseBandMax} °C`,
-      `  historia             ${cfg.HISTORY_ENABLED ? `${history.kind} → ${cfg.historyDirAbs}` : 'wyłączona'}`,
+      `  historia             ${
+        cfg.HISTORY_ENABLED
+          ? `${history.kind} → ${cfg.HISTORY_BACKEND === 'sqlite' ? cfg.historyDbAbs : cfg.historyDirAbs}`
+          : 'wyłączona'
+      }`,
       `  API                  http://${cfg.HOST}:${cfg.PORT}/api/snapshot`,
+      `  strumień zmian       http://${cfg.HOST}:${cfg.PORT}/api/stream`,
       line,
       '',
     ].join('\n'),
@@ -287,7 +355,9 @@ async function main(): Promise<void> {
 
     process.stdout.write(`\nZamykam (${signal})…\n`);
     if (tableTimer) clearInterval(tableTimer);
+    clearInterval(staleSweepTimer);
 
+    stream.close();
     await source.stop();
     await history.close();
     await app.close();

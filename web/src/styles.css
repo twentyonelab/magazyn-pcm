@@ -1,25 +1,35 @@
 /**
- * Zalazek jezyka wizualnego — patrz docs/DESIGN-LANGUAGE.md.
+ * Jezyk wizualny — patrz docs/DESIGN-LANGUAGE.md.
  *
- * Kierunek: jasne, spokojne tlo, czarna gruba typografia wyswietlaniowa,
- * jeden akcent (zolty), miekko zaokraglone karty, duzo powietrza.
- * Liczby zawsze czcionka o stalej szerokosci cyfr.
+ * Jasne cieple tlo, czarna gruba typografia, jeden zolty akcent,
+ * miekko zaokraglone karty, duzo powietrza. Liczby zawsze o stalej
+ * szerokosci cyfr, zeby nie drgaly przy odswiezaniu co 5 s.
  */
 
 :root {
   --bg: #f2f2f0;
   --surface: #ffffff;
+  --surface-sunken: #f7f7f5;
   --ink: #0d0d0d;
   --ink-soft: #6b6b68;
+  --ink-faint: #a3a3a0;
   --accent: #ffe14d;
-  --accent-ink: #0d0d0d;
-  --ok: #e8f3e4;
+  --ok-bg: #e8f3e4;
+  --ok-ink: #2f6b3f;
+  --warn-bg: #fdf0d5;
+  --warn-ink: #8a5a10;
+  --bad-bg: #fbe4e4;
+  --bad-ink: #9b2c2c;
+  --hairline: #e6e6e3;
+
+  --radius-sm: 10px;
   --radius: 18px;
   --radius-lg: 28px;
-  --shadow: 0 18px 44px rgba(15, 15, 15, 0.08);
+  --shadow: 0 18px 44px rgba(15, 15, 15, 0.07);
+  --shadow-sm: 0 6px 18px rgba(15, 15, 15, 0.05);
 
-  --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-numeric: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
 }
 
 * {
@@ -30,93 +40,357 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-display);
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
 }
 
-.page {
-  max-width: 68rem;
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  text-align: right;
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.strong {
+  font-weight: 600;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--surface-sunken);
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+}
+
+/* --- Powloka --------------------------------------------------------------- */
+
+.app {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.1rem clamp(1rem, 4vw, 3rem);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.brand__dot {
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  gap: 0.15rem;
+  background: var(--surface);
+  padding: 0.25rem;
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  margin-inline: auto;
+  flex-wrap: wrap;
+}
+
+.nav__item {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.nav__item:hover:not(.is-soon) {
+  color: var(--ink);
+}
+
+.nav__item.is-active {
+  background: var(--ok-bg);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.nav__item.is-soon {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* Wskaznik zywosci danych — kropka plus godzina ostatniej wiadomosci. */
+.pulse {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.pulse__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.pulse.is-live .pulse__dot {
+  background: #4caf50;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.pulse.is-reconnecting .pulse__dot,
+.pulse.is-connecting .pulse__dot {
+  background: #e8a33d;
+}
+
+.pulse.is-error .pulse__dot {
+  background: #c94a4a;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse.is-live .pulse__dot {
+    animation: none;
+  }
+}
+
+/* --- Naglowek strony ------------------------------------------------------ */
+
+.main {
+  padding: clamp(0.5rem, 2vw, 1.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: clamp(1.5rem, 5vw, 4.5rem);
+}
+
+.page-head {
+  margin-bottom: 2rem;
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   letter-spacing: 0.08em;
   color: var(--ink-soft);
 }
 
-.page__head h1 {
-  margin: 0.4rem 0 2.5rem;
-  font-size: clamp(2.75rem, 8vw, 5.5rem);
+.page-head h1 {
+  margin: 0.3rem 0 0.4rem;
+  font-size: clamp(2.25rem, 6vw, 4rem);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   line-height: 0.95;
 }
 
-.dot {
-  color: var(--accent);
+.page-sub {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
 }
+
+.stack {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* --- Kafle stanu ---------------------------------------------------------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem;
+}
+
+.tile {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.tile__label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.tile__value {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile.is-ok .tile__value {
+  color: var(--ok-ink);
+}
+
+.tile.is-warn {
+  background: var(--warn-bg);
+}
+
+.tile.is-warn .tile__value {
+  color: var(--warn-ink);
+}
+
+.tile.is-bad {
+  background: var(--bad-bg);
+}
+
+.tile.is-bad .tile__value {
+  color: var(--bad-ink);
+}
+
+/* --- Komunikat ------------------------------------------------------------ */
+
+.note {
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  box-shadow: var(--shadow-sm);
+}
+
+.note.is-bad {
+  background: var(--bad-bg);
+  border-left-color: var(--bad-ink);
+  color: var(--bad-ink);
+}
+
+/* --- Karta i tabela ------------------------------------------------------- */
 
 .card {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: clamp(1.5rem, 4vw, 2.75rem);
+  padding: clamp(1.1rem, 3vw, 1.75rem);
+}
+
+.card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .card__title {
-  margin: 0 0 0.75rem;
-  font-size: 1.05rem;
+  margin: 0;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--ink-soft);
 }
 
-.card__lead {
-  margin: 0 0 2rem;
-  max-width: 48ch;
-  line-height: 1.6;
-}
-
-code {
-  font-family: var(--font-numeric);
-  font-size: 0.9em;
-  background: var(--bg);
-  padding: 0.1em 0.4em;
-  border-radius: 6px;
-}
-
-.roadmap {
-  list-style: none;
+.card__meta {
   margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 
-.roadmap__item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1.1rem;
-  border-radius: var(--radius);
-  background: var(--bg);
+/* Szeroka tabela przewija sie sama, strona nigdy nie przewija sie w poziomie. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.table th.num,
+.table td.num {
+  text-align: right;
+}
+
+.table__group th {
+  padding-top: 1.3rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.row.is-not-connected td {
+  color: var(--ink-faint);
+}
+
+.row.is-stale .num.strong {
+  color: var(--warn-ink);
+}
+
+/* --- Znacznik stanu ------------------------------------------------------- */
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-sunken);
   color: var(--ink-soft);
 }
 
-.roadmap__item.is-done {
-  background: var(--ok);
-  color: var(--ink);
+.badge.is-ok {
+  background: var(--ok-bg);
+  color: var(--ok-ink);
 }
 
-.roadmap__step {
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-  opacity: 0.6;
+.badge.is-stale {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 
-.roadmap__label {
-  font-weight: 500;
+.badge.is-no-data {
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+}
+
+.badge.is-not-connected {
+  background: transparent;
+  color: var(--ink-faint);
+  box-shadow: inset 0 0 0 1px var(--hairline);
 }

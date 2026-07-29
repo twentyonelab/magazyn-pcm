@@ -18,11 +18,13 @@ import type { Session, Snapshot } from '@magazyn-pcm/shared';
 import type { ValueCache } from '../cache.js';
 import type { HealthTracker } from '../health.js';
 import type { PointRegistry } from '../registry.js';
+import type { StreamHub } from '../stream.js';
 
 export interface ApiDeps {
   registry: PointRegistry;
   cache: ValueCache;
   health: HealthTracker;
+  stream: StreamHub;
   /**
    * Biezaca sesja badawcza. W kroku 1 zawsze null — zadna sesja nie jest
    * uruchomiona, co jest realnym stanem przed startem testu. Frontend musi
@@ -32,12 +34,12 @@ export interface ApiDeps {
 }
 
 export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<void> {
-  const { registry, cache, health, getSession } = deps;
+  const { registry, cache, health, stream, getSession } = deps;
 
   // Krótka lista endpointow — dla czlowieka, ktory wpisze adres w przegladarce.
   app.get('/', async () => ({
     app: 'magazyn-pcm',
-    endpoints: ['/api/points', '/api/snapshot', '/api/health'],
+    endpoints: ['/api/points', '/api/snapshot', '/api/stream', '/api/health'],
   }));
 
   app.get('/api/points', async () => registry.publicPoints());
@@ -50,6 +52,16 @@ export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<
       values: cache.snapshot(ids),
       health: health.snapshot(),
     };
+  });
+
+  /**
+   * Strumien zmian (SSE). Wysyla tylko zmienione punkty — klient scala je
+   * z lokalnym stanem. Po ponownym polaczeniu klient powinien pobrac
+   * /api/snapshot, zeby nadrobic to, co przegapil.
+   */
+  app.get('/api/stream', (request, reply) => {
+    stream.addClient(request, reply);
+    // Odpowiedzia zarzadza juz StreamHub (reply.hijack()).
   });
 
   app.get('/api/health', async (_request, reply) => {
