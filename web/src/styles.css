@@ -1,0 +1,122 @@
+/**
+ * Zalazek jezyka wizualnego — patrz docs/DESIGN-LANGUAGE.md.
+ *
+ * Kierunek: jasne, spokojne tlo, czarna gruba typografia wyswietlaniowa,
+ * jeden akcent (zolty), miekko zaokraglone karty, duzo powietrza.
+ * Liczby zawsze czcionka o stalej szerokosci cyfr.
+ */
+
+:root {
+  --bg: #f2f2f0;
+  --surface: #ffffff;
+  --ink: #0d0d0d;
+  --ink-soft: #6b6b68;
+  --accent: #ffe14d;
+  --accent-ink: #0d0d0d;
+  --ok: #e8f3e4;
+  --radius: 18px;
+  --radius-lg: 28px;
+  --shadow: 0 18px 44px rgba(15, 15, 15, 0.08);
+
+  --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-numeric: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 4.5rem);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.page__head h1 {
+  margin: 0.4rem 0 2.5rem;
+  font-size: clamp(2.75rem, 8vw, 5.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.dot {
+  color: var(--accent);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+}
+
+.card__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.card__lead {
+  margin: 0 0 2rem;
+  max-width: 48ch;
+  line-height: 1.6;
+}
+
+code {
+  font-family: var(--font-numeric);
+  font-size: 0.9em;
+  background: var(--bg);
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+}
+
+.roadmap {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.roadmap__item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink-soft);
+}
+
+.roadmap__item.is-done {
+  background: var(--ok);
+  color: var(--ink);
+}
+
+.roadmap__step {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.roadmap__label {
+  font-weight: 500;
+}

@@ -1,0 +1,22 @@
+{
+  "name": "magazyn-pcm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wizualizacja stanowiska badawczego magazynu ciepla na materiale zmiennofazowym (PCM)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=server",
+    "start": "npm run start --workspace=server",
+    "uuid": "npm run uuid --workspace=server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}

@@ -1,0 +1,77 @@
+/**
+ * HealthTracker — stan lacznosci ze zrodlem danych.
+ *
+ * Widok Diagnostyka (krok 5) i endpoint /api/health czytaja stad. Awaria
+ * czujnika w trakcie tygodniowego testu musi byc widoczna od razu, a nie
+ * odkryta przy analizie danych.
+ */
+
+import type { Health, SourceKind, SourceStatus } from '@magazyn-pcm/shared';
+import type { ValueCache } from './cache.js';
+import type { PointRegistry } from './registry.js';
+
+export interface HealthTrackerOptions {
+  sourceKind: SourceKind;
+  pollIntervalMs: number;
+  staleAfterMs: number;
+  registry: PointRegistry;
+  cache: ValueCache;
+  now?: () => number;
+}
+
+export class HealthTracker {
+  private status: SourceStatus = 'starting';
+  private latencyMs: number | null = null;
+  private lastOkAtMs: number | null = null;
+  private message: string | null = null;
+  private configChanged = false;
+  private readonly startedAtMs: number;
+  private readonly now: () => number;
+
+  constructor(private readonly opts: HealthTrackerOptions) {
+    this.now = opts.now ?? Date.now;
+    this.startedAtMs = this.now();
+  }
+
+  update(patch: {
+    status?: SourceStatus;
+    latencyMs?: number | null;
+    message?: string | null;
+  }): void {
+    if (patch.status !== undefined) this.status = patch.status;
+    if (patch.latencyMs !== undefined) this.latencyMs = patch.latencyMs;
+    if (patch.message !== undefined) this.message = patch.message;
+    if (patch.status === 'ok') this.lastOkAtMs = this.now();
+  }
+
+  markConfigChanged(): void {
+    this.configChanged = true;
+  }
+
+  get currentStatus(): SourceStatus {
+    return this.status;
+  }
+
+  snapshot(): Health {
+    const ids = this.opts.registry.all().map((p) => p.id);
+    const pollableIds = this.opts.registry.pollablePoints().map((p) => p.id);
+
+    return {
+      source: this.status,
+      sourceKind: this.opts.sourceKind,
+      latencyMs: this.latencyMs,
+      lastOkAt: this.lastOkAtMs === null ? null : new Date(this.lastOkAtMs).toISOString(),
+      // Punkty bez UUID-a raportujemy osobno — nie zasmiecaja listy
+      // przestarzalych, bo one nie sa zepsute, tylko jeszcze niepodlaczone.
+      staleIds: this.opts.cache.staleIds(
+        ids.filter((id) => pollableIds.includes(id) || this.opts.cache.hasReading(id)),
+      ),
+      pendingUuidIds: this.opts.registry.pendingUuidPoints().map((p) => p.id),
+      uptimeS: Math.round((this.now() - this.startedAtMs) / 1000),
+      pollIntervalMs: this.opts.pollIntervalMs,
+      staleAfterMs: this.opts.staleAfterMs,
+      message: this.message,
+      configChanged: this.configChanged,
+    };
+  }
+}
