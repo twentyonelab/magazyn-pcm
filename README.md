@@ -81,8 +81,11 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
 - Tabela temperatur w konsoli
 - Zapis pomiarów do SQLite (historia zbiera się od pierwszego dnia)
 - Strumień zmian do przeglądarki (SSE) z automatycznym wznawianiem
+- Widok **Magazyn PCM**: schemat instalacji, sondy barwione według temperatury,
+  zaznaczone pasmo przemiany fazowej
 - Widok **Diagnostyka**: stany łączności, surowe wartości, punkty przestarzałe
-- Endpointy: `/api/points`, `/api/snapshot`, `/api/stream`, `/api/health`
+- Endpointy: `/api/points`, `/api/snapshot`, `/api/stream`, `/api/materials`,
+  `/api/health`
 
 ### Kolejne kroki
 
@@ -93,9 +96,34 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
 | 3 | `/api/stream` (SSE) | gotowe |
 | 4 | Zapis do SQLite | gotowe |
 | 5 | Widok Diagnostyka | gotowe |
-| 6 | Warstwa wiążąca SVG i widok Magazyn PCM | — |
+| 6 | Warstwa wiążąca SVG i widok Magazyn PCM | gotowe |
 | 7 | Zaślepki pozostałych widoków | — |
 | 8 | `/api/history` | — |
+
+### Jak podmienić schemat instalacji
+
+Rysunek to **zewnętrzny plik** [`web/src/schema/schema.svg`](web/src/schema/schema.svg).
+Można go przerysować w dowolnym narzędziu graficznym i podmienić — logika
+aplikacji się nie zmienia. Warunek jest jeden: zachować atrybuty `data-*`.
+
+| Atrybut | Co robi |
+|---|---|
+| `data-point="A1"` | element pokazuje wartość punktu jako tekst |
+| `data-unit="°C"` | jednostka dopisywana po wartości |
+| `data-fill-point="A1"` | element barwi się według temperatury |
+| `data-flow="pcm-supply"` | ścieżka animuje przepływ |
+| `data-flow-source="METER_FLOW"` | prędkość animacji z tej wartości |
+| `data-state="VALVE_STATE"` | element dostaje klasę `is-active` / `is-inactive` / `is-unknown` |
+| `data-stale-hide` | element chowany, gdy wartość jest przestarzała |
+| `data-sensor="A1"` | grupa reaguje na kursor i pokazuje podpowiedź |
+
+Warstwa wiążąca ([`web/src/schema/bindSchema.ts`](web/src/schema/bindSchema.ts))
+po każdym zdarzeniu SSE odnajduje te elementy i aktualizuje im tekst,
+wypełnienie i klasy. Rysunek nie jest przerysowywany.
+
+Skala barwna i pasmo przemiany pochodzą z profilu materiału
+w [`server/src/materials.config.ts`](server/src/materials.config.ts) — nie
+z kodu widoku. Zmiana zakresu to zmiana jednej liczby w konfiguracji.
 
 ### Podglądanie zebranych danych
 

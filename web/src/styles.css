@@ -394,3 +394,594 @@ code {
   color: var(--ink-faint);
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
+
+/* =========================================================================
+   WIDOK MAGAZYN
+   ========================================================================= */
+
+.magazyn {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .magazyn {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Panel sond ----------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.panel__count {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: var(--surface-sunken);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+
+/* Legenda skali z zaznaczonym pasmem przemiany. */
+.legend {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.legend__bar {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(13, 31, 20, 0.08);
+}
+
+/* Pasmo przemiany — osobne oznaczenie, nie odcień. */
+.legend__band {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+.legend__scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend__band-label {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.probes {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.probes__label {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.probes__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.probe {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  cursor: default;
+  transition: box-shadow 120ms ease;
+}
+
+.probe.is-hovered {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.probe__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--hairline);
+  box-shadow: inset 0 0 0 1px rgba(13, 31, 20, 0.12);
+}
+
+.probe__id {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.probe__value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.probe.is-stale .probe__value {
+  color: var(--warn-ink);
+}
+
+.probe.is-no-data .probe__value,
+.probe.is-not-connected .probe__value {
+  color: var(--ink-faint);
+}
+
+.probe__phase,
+.probe__warn {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+}
+
+.probe__phase {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.probe__warn {
+  color: var(--warn-ink);
+}
+
+.probe.is-phase {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.probe.is-phase.is-hovered {
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    0 0 0 2px var(--accent);
+}
+
+.panel__foot {
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.85rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.panel__footline {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.panel__footline strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Płótno ze schematem -------------------------------------------------- */
+
+.canvas {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  min-height: 420px;
+}
+
+.canvas__scroll {
+  overflow: auto;
+}
+
+.canvas__stage {
+  min-width: 720px;
+}
+
+.canvas__stage svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.canvas__tools {
+  position: absolute;
+  right: 1.25rem;
+  top: 1.25rem;
+  z-index: 2;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.tool {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tool:hover {
+  color: var(--ink);
+}
+
+.flow-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.flow-note.is-quiet {
+  color: var(--ink-faint);
+}
+
+/* Podpowiedź nad sondą — jak nakładane karty w referencji. */
+.tooltip {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 3;
+  min-width: 240px;
+  background: var(--ink);
+  color: #f7f7f5;
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  box-shadow: 0 20px 40px rgba(13, 31, 20, 0.25);
+}
+
+.tooltip__title {
+  margin: 0 0 0.2rem;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.tooltip__value {
+  margin: 0 0 0.6rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tooltip__rows {
+  margin: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.tooltip__rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.tooltip__rows dt {
+  opacity: 0.6;
+}
+
+.tooltip__rows dd {
+  margin: 0;
+}
+
+.tooltip__phase {
+  margin: 0.6rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* =========================================================================
+   SCHEMAT SVG — style dla wstrzykniętego rysunku
+   ========================================================================= */
+
+.schema {
+  font-family: var(--font);
+}
+
+.schema .label {
+  font-size: 13px;
+  fill: var(--ink-soft);
+}
+
+.schema .label--strong {
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+
+.schema .label--sm {
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.schema .meta {
+  font-size: 11px;
+  fill: var(--ink-faint);
+}
+
+/* --- Rury ---------------------------------------------------------------- */
+
+.schema .pipe {
+  stroke: #3f9e57;
+  stroke-width: 2.5;
+  opacity: 0.75;
+}
+
+.schema .pipe--return {
+  stroke: #8fbf9f;
+}
+
+/* Przepływ: kreskowana linia z animowanym przesunięciem. */
+.schema .pipe.is-flowing {
+  stroke-dasharray: 10 8;
+  animation: flow var(--flow-duration, 2s) linear infinite;
+}
+
+/* ZEROWY PRZEPŁYW TO BRAK RUCHU — linia ciągła, nic się nie przesuwa. */
+.schema .pipe.is-still {
+  stroke-dasharray: none;
+  animation: none;
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schema .pipe.is-flowing {
+    animation: none;
+  }
+}
+
+.schema .node {
+  fill: #3f9e57;
+}
+
+.schema .tick {
+  fill: #ffffff;
+  stroke: #cfdcd3;
+  stroke-width: 1;
+}
+
+/* --- Urządzenia ---------------------------------------------------------- */
+
+.schema .device__bar {
+  fill: #dfe4de;
+}
+
+.schema .device__led {
+  fill: var(--ink-faint);
+}
+
+.schema .device.is-active .device__led {
+  fill: #4caf50;
+}
+
+.schema .device.is-inactive .device__led {
+  fill: #cfd4cd;
+}
+
+.schema .device.is-unknown .device__led {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+}
+
+.schema .valve rect {
+  stroke: #d8ded7;
+  stroke-width: 1;
+}
+
+.schema .valve__glyph {
+  stroke: var(--ink-faint);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.schema .valve__glyph-dot {
+  fill: var(--ink-faint);
+}
+
+.schema .valve.is-active .valve__glyph,
+.schema .valve.is-active .valve__glyph-dot {
+  stroke: #2f8a46;
+  fill: none;
+}
+
+.schema .valve.is-active .valve__glyph-dot {
+  fill: #2f8a46;
+}
+
+.schema .valve.is-unknown rect {
+  stroke-dasharray: 4 3;
+}
+
+/* --- Magazyn i sondy ---------------------------------------------------- */
+
+.schema .storage__body {
+  stroke: #e2e6e0;
+  stroke-width: 1.5;
+}
+
+.schema .rod {
+  stroke: #c9d1c9;
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.schema .rod__label {
+  font-size: 11px;
+  fill: var(--ink-faint);
+  text-anchor: middle;
+}
+
+.schema .level__label {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-faint);
+}
+
+.schema .sensor__cell {
+  stroke: rgba(13, 31, 20, 0.12);
+  stroke-width: 1;
+  transition: fill 400ms ease;
+}
+
+.schema .sensor__grain {
+  pointer-events: none;
+}
+
+.schema .sensor__id {
+  font-size: 12px;
+  font-weight: 700;
+  fill: rgba(13, 31, 20, 0.55);
+}
+
+.schema .sensor__value {
+  font-size: 20px;
+  font-weight: 700;
+  text-anchor: end;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.schema .sensor__value--sm {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.schema .sensor__value.is-no-data,
+.schema .sensor__value.is-not-connected {
+  fill: var(--ink-faint);
+  font-weight: 600;
+}
+
+.schema .sensor__value.is-stale {
+  fill: var(--warn-ink);
+}
+
+/* Znacznik pasma przemiany — ukryty, dopóki punkt nie wejdzie w plateau. */
+.schema .sensor__phase {
+  fill: var(--ink);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.schema .sensor.is-phase .sensor__phase {
+  opacity: 1;
+}
+
+/* Sonda w plateau dostaje wyraźną obwódkę — to inna informacja, nie odcień. */
+.schema .sensor.is-phase .sensor__cell {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.schema .sensor.is-dim .sensor__cell {
+  stroke-dasharray: 5 4;
+  stroke: #c9cfc9;
+}
+
+.schema .sensor--sm .sensor__value {
+  font-size: 14px;
+}
+
+.schema .exchanger__coil {
+  stroke: #8fbf9f;
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* --- Rzut z góry i hala ------------------------------------------------- */
+
+.schema .inset__tank {
+  fill: #f4f5f2;
+  stroke: #e0e5df;
+}
+
+.schema .inset__rod {
+  stroke: #a9b4ab;
+  stroke-width: 2;
+}
+
+.schema .inset__label {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--ink-faint);
+}
+
+.schema .ambient__value {
+  font-size: 26px;
+  font-weight: 700;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.schema .ambient__value.is-no-data,
+.schema .ambient__value.is-not-connected {
+  fill: var(--ink-faint);
+}
+
+.schema .is-hidden {
+  display: none;
+}
+
+/* Sonda reaguje na kursor — sygnał, że da się o niej dowiedzieć więcej. */
+.schema .sensor {
+  cursor: pointer;
+}
+
+.schema .sensor:hover .sensor__cell {
+  stroke: var(--ink);
+  stroke-width: 2;
+}

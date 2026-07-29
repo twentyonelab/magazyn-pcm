@@ -22,8 +22,14 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Health, PointValues, PublicPoint, Session } from '@magazyn-pcm/shared';
-import { fetchPoints, fetchSnapshot } from './api.js';
+import type {
+  Health,
+  MaterialsResponse,
+  PointValues,
+  PublicPoint,
+  Session,
+} from '@magazyn-pcm/shared';
+import { fetchMaterials, fetchPoints, fetchSnapshot } from './api.js';
 
 /** Stan lacznosci PRZEGLADARKA -> SERWER (nie serwer -> Miniserver). */
 export type LinkState = 'connecting' | 'live' | 'reconnecting' | 'error';
@@ -33,6 +39,8 @@ export interface LiveData {
   values: PointValues;
   health: Health | null;
   session: Session | null;
+  /** Konfiguracja materiałów i zbiorników; null dopóki nie wczytana. */
+  materials: MaterialsResponse | null;
   link: LinkState;
   /** Kiedy ostatnio przyszla jakakolwiek wiadomosc z serwera. */
   lastMessageAt: Date | null;
@@ -55,6 +63,7 @@ export function useLiveData(): LiveData {
   const [values, setValues] = useState<PointValues>({});
   const [health, setHealth] = useState<Health | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [materials, setMaterials] = useState<MaterialsResponse | null>(null);
   const [link, setLink] = useState<LinkState>('connecting');
   const [lastMessageAt, setLastMessageAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,9 +90,16 @@ export function useLiveData(): LiveData {
 
     /** Pelny stan — na starcie i po kazdym odzyskaniu polaczenia. */
     const loadSnapshot = async (signal: AbortSignal): Promise<void> => {
-      const [pointList, snapshot] = await Promise.all([fetchPoints(), fetchSnapshot()]);
+      // Konfiguracja materialow zmienia sie tylko przy restarcie serwera,
+      // wiec pobieramy ja razem ze snapshotem — jeden przelot, bez osobnego stanu.
+      const [pointList, snapshot, materialsResponse] = await Promise.all([
+        fetchPoints(),
+        fetchSnapshot(),
+        fetchMaterials(),
+      ]);
       if (!aliveRef.current || signal.aborted) return;
 
+      setMaterials(materialsResponse);
       setPoints(pointList);
       setValues(snapshot.values);
       setHealth(snapshot.health);
@@ -214,5 +230,5 @@ export function useLiveData(): LiveData {
     };
   }, [reloadToken]);
 
-  return { points, values, health, session, link, lastMessageAt, error, reload };
+  return { points, values, health, session, materials, link, lastMessageAt, error, reload };
 }

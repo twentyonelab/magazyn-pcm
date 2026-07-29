@@ -50,3 +50,10 @@ export const VOLUMES_L = {
   buffer: 80,
   storage: 200,
 } as const;
+
+/**
+ * Przeplyw, przy ktorym animacja przeplywu na schemacie osiaga pelna predkosc.
+ * Ciepłomierz ma qp 2,5 m3/h, a realne przeplywy sa rzedu 0,5 m3/h —
+ * skalujemy wiec do wartosci roboczej, nie do maksimum przyrzadu.
+ */
+export const FLOW_FULL_SPEED_M3H = 0.8;

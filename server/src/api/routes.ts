@@ -14,7 +14,13 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import type { Session, Snapshot } from '@magazyn-pcm/shared';
+import type { MaterialsResponse, Session, Snapshot } from '@magazyn-pcm/shared';
+import {
+  DEFAULT_MATERIAL,
+  FLOW_FULL_SPEED_M3H,
+  MATERIALS,
+  VOLUMES_L,
+} from '../materials.config.js';
 import type { ValueCache } from '../cache.js';
 import type { HealthTracker } from '../health.js';
 import type { PointRegistry } from '../registry.js';
@@ -39,10 +45,28 @@ export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<
   // Krótka lista endpointow — dla czlowieka, ktory wpisze adres w przegladarce.
   app.get('/', async () => ({
     app: 'magazyn-pcm',
-    endpoints: ['/api/points', '/api/snapshot', '/api/stream', '/api/health'],
+    endpoints: [
+      '/api/points',
+      '/api/snapshot',
+      '/api/stream',
+      '/api/materials',
+      '/api/health',
+    ],
   }));
 
   app.get('/api/points', async () => registry.publicPoints());
+
+  /**
+   * Konfiguracja materiałów i zbiorników. Bez tego frontend nie mógłby
+   * poprawnie zbudować skali barwnej — a zakres skali decyduje o tym, czy
+   * przemiana fazowa jest w ogóle widoczna.
+   */
+  app.get('/api/materials', async (): Promise<MaterialsResponse> => ({
+    defaultMaterial: DEFAULT_MATERIAL,
+    profiles: MATERIALS,
+    volumesL: { buffer: VOLUMES_L.buffer, storage: VOLUMES_L.storage },
+    flowFullSpeed: FLOW_FULL_SPEED_M3H,
+  }));
 
   app.get('/api/snapshot', async (): Promise<Snapshot> => {
     const ids = registry.all().map((p) => p.id);

@@ -169,6 +169,26 @@ export interface Session {
 // Kontrakt API
 // ---------------------------------------------------------------------------
 
+/**
+ * GET /api/materials
+ *
+ * Konfiguracja, bez ktorej nie da sie poprawnie narysowac skali barwnej ani
+ * opisac zbiornikow. Zakresy skal i objetosci sa wartosciami konfiguracyjnymi
+ * — nigdy nie zapisujemy ich na stale w kodzie widoku.
+ */
+export interface MaterialsResponse {
+  /** Material uzywany, gdy zadna sesja badawcza nie jest uruchomiona. */
+  defaultMaterial: PcmMaterial;
+  profiles: Record<PcmMaterial, MaterialProfile>;
+  /** Objetosci zbiornikow w litrach. */
+  volumesL: {
+    buffer: number;
+    storage: number;
+  };
+  /** Przeplyw, przy ktorym animacja przeplywu osiaga pelna predkosc (m3/h). */
+  flowFullSpeed: number;
+}
+
 /** GET /api/snapshot */
 export interface Snapshot {
   ts: string;

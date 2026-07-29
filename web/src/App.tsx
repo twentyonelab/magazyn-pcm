@@ -9,12 +9,13 @@
 import { useState } from 'react';
 import { useLiveData } from './useLiveData.js';
 import { Diagnostyka } from './views/Diagnostyka.js';
+import { Magazyn } from './views/Magazyn.js';
 import { formatClock } from './format.js';
 
 type ViewId = 'magazyn' | 'przebiegi' | 'bilans' | 'diagnostyka' | 'sesje' | 'ustawienia';
 
 const VIEWS: Array<{ id: ViewId; label: string; ready: boolean }> = [
-  { id: 'magazyn', label: 'Magazyn', ready: false },
+  { id: 'magazyn', label: 'Magazyn', ready: true },
   { id: 'przebiegi', label: 'Przebiegi', ready: false },
   { id: 'bilans', label: 'Bilans', ready: false },
   { id: 'diagnostyka', label: 'Diagnostyka', ready: true },
@@ -23,7 +24,7 @@ const VIEWS: Array<{ id: ViewId; label: string; ready: boolean }> = [
 ];
 
 export function App() {
-  const [view, setView] = useState<ViewId>('diagnostyka');
+  const [view, setView] = useState<ViewId>('magazyn');
   const data = useLiveData();
 
   const material = data.session?.material ?? null;
@@ -75,6 +76,7 @@ export function App() {
           </p>
         </div>
 
+        {view === 'magazyn' ? <Magazyn data={data} /> : null}
         {view === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
       </main>
     </div>

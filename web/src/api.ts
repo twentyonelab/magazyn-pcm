@@ -5,6 +5,7 @@
 
 import type {
   HistoryResponse,
+  MaterialsResponse,
   PublicPoint,
   Snapshot,
 } from '@magazyn-pcm/shared';
@@ -43,6 +44,11 @@ export function fetchPoints(): Promise<PublicPoint[]> {
 
 export function fetchSnapshot(): Promise<Snapshot> {
   return getJson<Snapshot>('/api/snapshot');
+}
+
+/** Profile materiałów, zakresy skal i objętości zbiorników — konfiguracja. */
+export function fetchMaterials(): Promise<MaterialsResponse> {
+  return getJson<MaterialsResponse>('/api/materials');
 }
 
 /**
