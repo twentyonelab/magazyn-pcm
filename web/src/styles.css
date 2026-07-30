@@ -7,6 +7,7 @@
  */
 
 :root {
+  /* --- Motyw jasny (domyślny) --- */
   --bg: #f2f2f0;
   --surface: #ffffff;
   --surface-sunken: #f7f7f5;
@@ -14,6 +15,7 @@
   --ink-soft: #6b6b68;
   --ink-faint: #a3a3a0;
   --accent: #ffe14d;
+  --accent-ink: #0d0d0d;
   --ok-bg: #e8f3e4;
   --ok-ink: #2f6b3f;
   --warn-bg: #fdf0d5;
@@ -21,6 +23,12 @@
   --bad-bg: #fbe4e4;
   --bad-ink: #9b2c2c;
   --hairline: #e6e6e3;
+
+  /* Kolory sceny 3D i schematu — osobne, bo muszą znieść oba motywy. */
+  --scene-bg: #fafaf9;
+  --scene-floor: #e3e2dd;
+  --pipe-warm: #3f9e57;
+  --pipe-cool: #8fbf9f;
 
   --radius-sm: 10px;
   --radius: 18px;
@@ -30,6 +38,40 @@
 
   --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
   --mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+}
+
+/**
+ * Motyw ciemny.
+ *
+ * Nie jest odwróceniem jasnego: tło jest ciepłoszare, nie czarne, a papier
+ * kart o stopień jaśniejszy od tła — inaczej karty znikają. Kolory stanów
+ * (ok/uwaga/błąd) mają własne, przyciemnione warianty, bo jasne pastele
+ * na ciemnym tle świecą i przestają znaczyć to, co miały znaczyć.
+ */
+:root[data-theme='dark'] {
+  --bg: #14140f;
+  --surface: #1e1e19;
+  --surface-sunken: #26261f;
+  --ink: #f4f4ee;
+  --ink-soft: #a8a89e;
+  --ink-faint: #6f6f68;
+  --accent: #ffe14d;
+  --accent-ink: #14140f;
+  --ok-bg: #1f3324;
+  --ok-ink: #8fd6a0;
+  --warn-bg: #3a2f16;
+  --warn-ink: #f0c674;
+  --bad-bg: #3a1f1f;
+  --bad-ink: #f09a9a;
+  --hairline: #33332b;
+
+  --scene-bg: #16161a;
+  --scene-floor: #202024;
+  --pipe-warm: #4fb86a;
+  --pipe-cool: #7aa88a;
+
+  --shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -71,8 +113,15 @@ code {
 
 /* --- Powloka --------------------------------------------------------------- */
 
+/* Aplikacja zajmuje pełną wysokość, a pasek stanu trzyma się dołu. */
 .app {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
 }
 
 .topbar {
@@ -81,6 +130,105 @@ code {
   gap: 1.5rem;
   padding: 1.1rem clamp(1rem, 4vw, 3rem);
   flex-wrap: wrap;
+}
+
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-left: auto;
+}
+
+.topbar__logo {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
+.theme-toggle {
+  border: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-soft);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+}
+
+.nav__emoji {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* =========================================================================
+   DOLNY PASEK STANU
+   ========================================================================= */
+
+.statusbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem 1.4rem;
+  flex-wrap: wrap;
+  padding: 0.55rem clamp(1rem, 4vw, 3rem);
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  box-shadow: 0 -6px 20px rgba(15, 15, 15, 0.05);
+}
+
+.statusbar__pulse {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-right: 0.6rem;
+  border-right: 1px solid var(--hairline);
+}
+
+.statusbar__clock {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusbar__field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.statusbar__label {
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.statusbar__value {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.statusbar__field.is-ok .statusbar__value {
+  color: var(--ok-ink);
+}
+
+.statusbar__field.is-warn .statusbar__value {
+  color: var(--warn-ink);
+}
+
+.statusbar__field.is-bad .statusbar__value {
+  color: var(--bad-ink);
 }
 
 .brand {
@@ -507,6 +655,168 @@ code {
   font-size: 0.76rem;
   line-height: 1.5;
   color: var(--ink-faint);
+}
+
+/* =========================================================================
+   PASEK SKALI Z PASMEM PRZEMIANY (nagłówek widoku Magazyn)
+   ========================================================================= */
+
+.bandbar {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.bandbar__head {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .bandbar__head {
+    grid-template-columns: 1fr auto;
+  }
+  .bandbar__scale {
+    grid-column: 1 / -1;
+  }
+}
+
+.bandbar__material {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.bandbar__name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bandbar__source {
+  font-size: 0.68rem;
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+}
+
+.bandbar__scale {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.bandbar__min,
+.bandbar__max {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.bandbar__track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(13, 31, 20, 0.12);
+}
+
+/* Pasmo przemiany — osobne oznaczenie, nie odcień. */
+.bandbar__band {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    0 0 0 2px var(--surface);
+}
+
+.bandbar__phase {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bandbar__chevron {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+
+.bandbar__body {
+  border-top: 1px solid var(--hairline);
+  padding: 1rem 1.25rem 1.15rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.bandbar__switch {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 0.3rem;
+  background: var(--surface-sunken);
+  padding: 0.25rem;
+  border-radius: 999px;
+  justify-self: start;
+}
+
+.bandbar__facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+}
+
+.bandbar__facts > div {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+}
+
+.bandbar__facts dt {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.15rem;
+}
+
+.bandbar__facts dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bandbar__note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* Identyfikator punktu jako odnośnik do wykresu. */
+.linkish {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 0;
 }
 
 /* --- Przelacznik parafiny -------------------------------------------------- */
@@ -991,8 +1301,40 @@ code {
    SCHEMAT SVG — style dla wstrzykniętego rysunku
    ========================================================================= */
 
+/* Schemat bierze kolory ze zmiennych motywu, więc działa w obu trybach. */
 .schema {
   font-family: var(--font);
+}
+
+.schema .device__body {
+  fill: var(--surface);
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.schema .device__vessel {
+  fill: var(--surface);
+  stroke: var(--hairline);
+  stroke-width: 1.5;
+}
+
+/* Elementy instalacji reagują na kursor — sygnał, że da się w nie kliknąć. */
+.schema [data-element] {
+  cursor: pointer;
+}
+
+.schema [data-element]:hover .device__body,
+.schema [data-element]:hover .device__vessel,
+.schema [data-element]:hover .storage__body {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.schema [data-element].is-selected .device__body,
+.schema [data-element].is-selected .device__vessel,
+.schema [data-element].is-selected .storage__body {
+  stroke: var(--accent);
+  stroke-width: 3;
 }
 
 .schema .label {
@@ -1019,13 +1361,13 @@ code {
 /* --- Rury ---------------------------------------------------------------- */
 
 .schema .pipe {
-  stroke: #3f9e57;
+  stroke: var(--pipe-warm);
   stroke-width: 2.5;
   opacity: 0.75;
 }
 
 .schema .pipe--return {
-  stroke: #8fbf9f;
+  stroke: var(--pipe-cool);
 }
 
 /* Przepływ: kreskowana linia z animowanym przesunięciem. */
@@ -1053,19 +1395,19 @@ code {
 }
 
 .schema .node {
-  fill: #3f9e57;
+  fill: var(--pipe-warm);
 }
 
 .schema .tick {
-  fill: #ffffff;
-  stroke: #cfdcd3;
+  fill: var(--surface);
+  stroke: var(--hairline);
   stroke-width: 1;
 }
 
 /* --- Urządzenia ---------------------------------------------------------- */
 
 .schema .device__bar {
-  fill: #dfe4de;
+  fill: var(--hairline);
 }
 
 .schema .device__led {
@@ -1087,10 +1429,7 @@ code {
   stroke-dasharray: 2 2;
 }
 
-.schema .valve rect {
-  stroke: #d8ded7;
-  stroke-width: 1;
-}
+
 
 .schema .valve__glyph {
   stroke: var(--ink-faint);
@@ -1120,12 +1459,13 @@ code {
 /* --- Magazyn i sondy ---------------------------------------------------- */
 
 .schema .storage__body {
-  stroke: #e2e6e0;
+  fill: var(--surface);
+  stroke: var(--hairline);
   stroke-width: 1.5;
 }
 
 .schema .rod {
-  stroke: #c9d1c9;
+  stroke: var(--hairline);
   stroke-width: 3;
   stroke-linecap: round;
   fill: none;
@@ -1144,7 +1484,7 @@ code {
 }
 
 .schema .sensor__cell {
-  stroke: rgba(13, 31, 20, 0.12);
+  stroke: var(--hairline);
   stroke-width: 1;
   transition: fill 400ms ease;
 }
@@ -1156,7 +1496,7 @@ code {
 .schema .sensor__id {
   font-size: 12px;
   font-weight: 700;
-  fill: rgba(13, 31, 20, 0.55);
+  fill: rgba(13, 31, 20, 0.6);
 }
 
 .schema .sensor__value {
@@ -1210,7 +1550,7 @@ code {
 }
 
 .schema .exchanger__coil {
-  stroke: #8fbf9f;
+  stroke: var(--pipe-cool);
   stroke-width: 3;
   fill: none;
   stroke-linecap: round;
@@ -1218,21 +1558,11 @@ code {
 
 /* --- Rzut z góry i hala ------------------------------------------------- */
 
-.schema .inset__tank {
-  fill: #f4f5f2;
-  stroke: #e0e5df;
-}
 
-.schema .inset__rod {
-  stroke: #a9b4ab;
-  stroke-width: 2;
-}
 
-.schema .inset__label {
-  font-size: 10px;
-  font-weight: 700;
-  fill: var(--ink-faint);
-}
+
+
+
 
 .schema .ambient__value {
   font-size: 26px;

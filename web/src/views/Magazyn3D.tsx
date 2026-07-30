@@ -30,6 +30,7 @@ import type { LiveData } from '../useLiveData.js';
 import { FALLBACK_STALE_AFTER_MS, NO_DATA, formatValue, pointState } from '../format.js';
 import { isInPhaseBand, temperatureFill } from '../scale.js';
 import { getSettings, useSettings } from '../settings.js';
+import { useAppliedTheme } from '../theme.js';
 
 /* --- Stałe scenografii ---------------------------------------------------- */
 
@@ -47,8 +48,21 @@ const PIPE_COOL = 0x8fbf9f;
 const ACCENT = 0x0d0d0d;
 const PLINTH_H = 0.14;
 
-const CAMERA_HOME = new THREE.Vector3(-8, 17, 31);
-const CAMERA_TARGET = new THREE.Vector3(1.5, 2.4, 0);
+// Kamera cofnięta i podniesiona, bo magazyn jest teraz trzykrotnie wyższy —
+// przy poprzednim ustawieniu górne sondy wychodziły poza kadr.
+const CAMERA_HOME = new THREE.Vector3(-12, 26, 46);
+const CAMERA_TARGET = new THREE.Vector3(1.5, 8, 0);
+
+/** Odczyt koloru z motywu CSS, żeby scena szła za trybem jasnym/ciemnym. */
+function themeColor(nazwa: string, fallback: number): THREE.Color {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(nazwa).trim();
+  if (!value) return new THREE.Color(fallback);
+  try {
+    return new THREE.Color(value);
+  } catch {
+    return new THREE.Color(fallback);
+  }
+}
 
 /**
  * Zbiornik na rysunku 2D jest PRZEKROJEM: jego wysokość opisuje wysokość
@@ -59,6 +73,20 @@ const CAMERA_TARGET = new THREE.Vector3(1.5, 2.4, 0);
  * Środek bryły pozostaje dokładnie tam, gdzie na rysunku.
  */
 const VESSEL_FOOTPRINT = 0.72;
+
+/**
+ * Magazyn jest WYSOKI, nie przysadzisty.
+ *
+ * Rysunek 2D jest przekrojem, więc jego proporcje wynikają z tego, co da się
+ * czytelnie opisać na płaszczyźnie, a nie z rzeczywistej bryły. W 3D zbiornik
+ * dostaje trzykrotność wysokości z rysunku — dopiero wtedy widać stratyfikację
+ * i to, że sondy siedzą na trzech różnych poziomach, a nie obok siebie.
+ */
+const STORAGE_HEIGHT_FACTOR = 3;
+
+/** Liczba poziomych płyt (lamel) wypełniających magazyn. */
+const LAMELA_COUNT = 25;
+const LAMELA_THICKNESS = 0.09;
 
 /* --- Pomocnicze ----------------------------------------------------------- */
 
@@ -96,12 +124,17 @@ interface Solid {
   height: number;
 }
 
-function solidOf(object: { vessel: boolean; height: number } & SvgBox, scene: Scene): Solid {
+function solidOf(
+  object: { vessel: boolean; height: number; id?: string } & SvgBox,
+  scene: Scene,
+): Solid {
   const [cx, cz] = boxCenterWorld(object, scene);
 
   if (object.vessel) {
     const side = object.w * WORLD_SCALE * VESSEL_FOOTPRINT;
-    return { cx, cz, w: side, d: side, height: object.height };
+    const height =
+      object.id === 'storage' ? object.height * STORAGE_HEIGHT_FACTOR : object.height;
+    return { cx, cz, w: side, d: side, height };
   }
 
   return {
@@ -144,6 +177,9 @@ export function Magazyn3D({ data }: { data: LiveData }) {
   const labelRootRef = useRef<HTMLElement | null>(null);
 
   const scene3d = useMemo(() => extractScene(schemaMarkup), []);
+  // Zmiana motywu przebudowuje scenę: kolory tła, podłogi i mgły są
+  // wpieczone w obiekty Three.js, więc nie da się ich podmienić w locie.
+  const theme = useAppliedTheme();
   const pointMap = useMemo(() => new Map(data.points.map((p) => [p.id, p])), [data.points]);
 
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
@@ -174,9 +210,12 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     const width = () => host.clientWidth || 960;
     const height = () => host.clientHeight || 560;
 
+    const sceneBg = themeColor('--scene-bg', BG);
+    const sceneFloor = themeColor('--scene-floor', FLOOR);
+
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(BG);
-    scene.fog = new THREE.Fog(BG, 46, 120);
+    scene.background = sceneBg;
+    scene.fog = new THREE.Fog(sceneBg.getHex(), 60, 150);
 
     const camera = new THREE.PerspectiveCamera(46, width() / height(), 0.1, 400);
     camera.position.copy(CAMERA_HOME);
@@ -231,7 +270,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     // --- Podłoga i siatka -------------------------------------------------
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(160, 120),
-      new THREE.MeshStandardMaterial({ color: FLOOR, roughness: 1, metalness: 0 }),
+      new THREE.MeshStandardMaterial({ color: sceneFloor, roughness: 1, metalness: 0 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.02;
@@ -304,28 +343,65 @@ export function Magazyn3D({ data }: { data: LiveData }) {
       group.add(plinth);
 
       if (object.vessel) {
+        const vesselHeight = solid.height;
+
         // Zbiornik jest przejrzysty, żeby było widać sondy w środku.
         const shell = new THREE.Mesh(
-          new THREE.BoxGeometry(w, object.height, d),
+          new THREE.BoxGeometry(w, vesselHeight, d),
           new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
             roughness: 0.12,
             metalness: 0,
             transparent: true,
-            opacity: 0.16,
+            opacity: 0.12,
             side: THREE.DoubleSide,
           }),
         );
-        shell.position.y = object.height / 2 + PLINTH_H;
+        shell.position.y = vesselHeight / 2 + PLINTH_H;
         group.add(shell);
 
         // Krawędzie dają bryle czytelny kontur bez zasłaniania wnętrza.
         const edges = new THREE.LineSegments(
-          new THREE.EdgesGeometry(new THREE.BoxGeometry(w, object.height, d)),
+          new THREE.EdgesGeometry(new THREE.BoxGeometry(w, vesselHeight, d)),
           new THREE.LineBasicMaterial({ color: 0x9aa39c, transparent: true, opacity: 0.8 }),
         );
         edges.position.copy(shell.position);
         group.add(edges);
+
+        // LAMELE — poziome płyty wypełniające zbiornik.
+        //
+        // Magazyn PCM to nie pusta skrzynia: parafina leży między płytami
+        // wymiennika. Bez nich zbiornik wyglądał jak akwarium z sześcioma
+        // klockami i nie było widać, że sondy tkwią w ośrodku.
+        if (object.id === 'storage') {
+          const lamelaGeometry = new THREE.BoxGeometry(w * 0.86, LAMELA_THICKNESS, d * 0.86);
+          const lamelaMaterial = new THREE.MeshStandardMaterial({
+            color: 0xd7dcd6,
+            roughness: 0.62,
+            metalness: 0.08,
+            transparent: true,
+            opacity: 0.55,
+          });
+
+          // Jedna geometria i jeden materiał na wszystkie płyty — 25 osobnych
+          // par kosztowałoby tyle samo pamięci, co reszta sceny razem wzięta.
+          const lamele = new THREE.InstancedMesh(lamelaGeometry, lamelaMaterial, LAMELA_COUNT);
+          lamele.castShadow = true;
+          lamele.receiveShadow = true;
+
+          const dummy = new THREE.Object3D();
+          const first = vesselHeight * 0.06;
+          const last = vesselHeight * 0.94;
+          const step = (last - first) / (LAMELA_COUNT - 1);
+
+          for (let i = 0; i < LAMELA_COUNT; i += 1) {
+            dummy.position.set(0, PLINTH_H + first + i * step, 0);
+            dummy.updateMatrix();
+            lamele.setMatrixAt(i, dummy.matrix);
+          }
+          lamele.instanceMatrix.needsUpdate = true;
+          group.add(lamele);
+        }
       } else {
         const body = new THREE.Mesh(
           new THREE.BoxGeometry(w, object.height, d),
@@ -383,9 +459,10 @@ export function Magazyn3D({ data }: { data: LiveData }) {
         const { cx: vx, cz: vz } = solid;
 
         if (point?.geometry) {
-          // Pręty stoją na przekątnych zbiornika — dokładnie jak we wstawce
-          // „rzut z góry” na rysunku 2D.
-          const radius = Math.min(solid.w, solid.d) * 0.26;
+          // Pręty stoją na DWÓCH RÓŻNYCH PRZEKĄTNYCH zbiornika: A po jednej,
+          // B po drugiej. Na każdej wysokości jest więc para 1A/1B, 2A/2B,
+          // 3A/3B — dokładnie tak, jak sondy są przywiązane do prętów.
+          const radius = Math.min(solid.w, solid.d) * 0.3;
           px = vx + (point.geometry.diagonal === 'A' ? -radius : radius);
           pz = vz - radius;
           py = levelHeight(point.geometry.level, solid.height) + PLINTH_H;
@@ -552,9 +629,9 @@ export function Magazyn3D({ data }: { data: LiveData }) {
       sensorsRef.current = [];
       devicesRef.current = [];
     };
-    // Scena budowana raz. Dane wchodzą osobnym efektem, bez przebudowy.
+    // Scena budowana raz na motyw. Dane wchodzą osobnym efektem, bez przebudowy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene3d]);
+  }, [scene3d, theme]);
 
   /* --- Przekazanie przełącznika obrotu do pętli -------------------------- */
   useEffect(() => {

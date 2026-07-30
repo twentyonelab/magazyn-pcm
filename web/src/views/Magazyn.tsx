@@ -25,9 +25,10 @@ import {
   formatValue,
   pointState,
 } from '../format.js';
-import { isInPhaseBand, phaseBandBounds, rampColor, temperatureFill } from '../scale.js';
+import { isInPhaseBand, temperatureFill } from '../scale.js';
 import { setSetting, useSettings } from '../settings.js';
-import { PrzelacznikParafiny } from '../components/PrzelacznikParafiny.js';
+import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
+import { PanelElementu } from '../components/PanelElementu.js';
 import { PanelSondy } from '../components/PanelSondy.js';
 
 const ZOOM_STEP = 0.15;
@@ -58,6 +59,8 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   /** Sonda, dla której otwarty jest panel z wykresem historii. */
   const [selected, setSelected] = useState<string | null>(null);
+  /** Element instalacji (ciepłomierz, bufor…), dla którego otwarty jest panel. */
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
   const { points, values, health, materials, session } = data;
 
@@ -118,12 +121,29 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
     const onOver = (event: Event): void => setHovered(sensorIdFrom(event));
     const onLeave = (): void => setHovered(null);
 
-    // Klik na sondę otwiera jej historię. Zdarzenie łapiemy na kontenerze,
-    // a nie na sondach — SVG jest wstrzykiwany jako tekst, więc nie ma do
-    // czego przypiąć handlerów po stronie Reacta.
+    // Klik otwiera panel: sondy albo elementu instalacji. Zdarzenie łapiemy
+    // na kontenerze, a nie na elementach — SVG jest wstrzykiwany jako tekst,
+    // więc nie ma do czego przypiąć handlerów po stronie Reacta.
+    //
+    // Sonda ma pierwszeństwo przed urządzeniem, bo leży w jego wnętrzu —
+    // inaczej klik w sondę magazynu otwierałby panel całego zbiornika.
     const onClick = (event: Event): void => {
-      const id = sensorIdFrom(event);
-      if (id) setSelected((current) => (current === id ? null : id));
+      const sensorId = sensorIdFrom(event);
+      if (sensorId) {
+        setSelectedElement(null);
+        setSelected((current) => (current === sensorId ? null : sensorId));
+        return;
+      }
+
+      const target = event.target as Element | null;
+      const element = target?.closest?.('[data-element]');
+      const elementId =
+        element instanceof SVGElement ? (element.dataset.element ?? null) : null;
+
+      if (elementId) {
+        setSelected(null);
+        setSelectedElement((current) => (current === elementId ? null : elementId));
+      }
     };
 
     host.addEventListener('mouseover', onOver);
@@ -140,23 +160,25 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
 
   return (
-    <div className="magazyn">
+    <div className="stack">
+      {/* Pasek skali z pasmem przemiany — centralnie pod menu, rozwijany. */}
+      <PasekPrzemiany
+        profile={profile}
+        materials={materials}
+        fromSession={session?.material ?? null}
+        detected={detectedBank}
+        preview={settings.parafinaPodgladu}
+        onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
+        volumesL={materials?.volumesL}
+      />
+
+      <div className="magazyn">
       {/* ------------------------- Panel sond ------------------------- */}
       <aside className="panel">
         <div className="panel__head">
           <h2 className="panel__title">Sondy w magazynie</h2>
           <span className="panel__count">{pcmPoints.length}</span>
         </div>
-
-        <PrzelacznikParafiny
-          materials={materials}
-          fromSession={session?.material ?? null}
-          detected={detectedBank}
-          preview={settings.parafinaPodgladu}
-          onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
-        />
-
-        {profile ? <PhaseLegend profile={profile} /> : null}
 
         <div className="probes">
           {LEVELS_TOP_DOWN.map((level) => (
@@ -188,32 +210,6 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
           ))}
         </div>
 
-        {profile ? (
-          <div className="panel__foot">
-            <p className="panel__footline">
-              <span>parafina</span>
-              <strong>{profile.label}</strong>
-            </p>
-            <p className="panel__footline">
-              <span>przemiana</span>
-              <strong>
-                {profile.phaseBandMin}–{profile.phaseBandMax} °C
-              </strong>
-            </p>
-            <p className="panel__footline">
-              <span>ciepło utajone</span>
-              <strong>{profile.latentHeat} kJ/kg</strong>
-            </p>
-            {materials ? (
-              <p className="panel__footline">
-                <span>magazyn / bufor</span>
-                <strong>
-                  {materials.volumesL.storage} / {materials.volumesL.buffer} l
-                </strong>
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </aside>
 
       {/* ------------------------- Schemat ------------------------- */}
@@ -277,45 +273,20 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
           />
         ) : null}
 
-        <FlowNote data={data} staleAfterMs={staleAfterMs} now={now} />
+        {selectedElement ? (
+          <PanelElementu
+            elementId={selectedElement}
+            data={data}
+            onClose={() => setSelectedElement(null)}
+            onOpenInPrzebiegi={onOpenInPrzebiegi}
+          />
+        ) : null}
       </section>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------------- */
-
-/**
- * Legenda skali z ZAZNACZONYM PASMEM PRZEMIANY.
- *
- * To najważniejszy element opisowy na ekranie. Bez niego kolor sondy jest
- * tylko ładnym odcieniem; z nim widać, czy materiał właśnie się przemienia.
- */
-function PhaseLegend({ profile }: { profile: MaterialProfile }) {
-  const band = phaseBandBounds(profile);
-  const gradient = `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1]
-    .map((stop) => `${rampColor(stop)} ${stop * 100}%`)
-    .join(', ')})`;
-
-  return (
-    <div className="legend">
-      <div className="legend__bar" style={{ background: gradient }}>
-        <div
-          className="legend__band"
-          style={{ left: `${band.left}%`, width: `${band.width}%` }}
-          title={`Pasmo przemiany ${profile.phaseBandMin}–${profile.phaseBandMax} °C`}
-        />
-      </div>
-      <div className="legend__scale">
-        <span>{profile.scaleMin} °C</span>
-        <span className="legend__band-label">
-          przemiana {profile.phaseBandMin}–{profile.phaseBandMax} °C
-        </span>
-        <span>{profile.scaleMax} °C</span>
       </div>
     </div>
   );
 }
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -401,44 +372,3 @@ function SensorTooltip(props: {
   );
 }
 
-/* ------------------------------------------------------------------------- */
-
-/**
- * Wyjaśnienie, dlaczego rury się nie animują.
- *
- * Zerowy przepływ to brak ruchu, nie ruch wolny — ale nieruchoma linia bez
- * wyjaśnienia wygląda jak zepsuta aplikacja. Skoro nie mamy jeszcze danych
- * z ciepłomierza, mówimy to wprost.
- */
-function FlowNote({
-  data,
-  staleAfterMs,
-  now,
-}: {
-  data: LiveData;
-  staleAfterMs: number;
-  now: number;
-}) {
-  const point = data.points.find((p) => p.id === 'METER_FLOW');
-  if (!point) return null;
-
-  const value = data.values.METER_FLOW;
-  const state = pointState(point, value, staleAfterMs, now, data.link === 'live');
-
-  if (state === 'ok' && (value?.v ?? 0) > 0) {
-    return (
-      <p className="flow-note">
-        przepływ <strong className="mono">{formatValue(value!, point)}</strong> — animacja
-        proporcjonalna do wartości
-      </p>
-    );
-  }
-
-  return (
-    <p className="flow-note is-quiet">
-      {state === 'not-connected'
-        ? 'Ciepłomierz nie jest jeszcze podłączony — brak danych o przepływie, więc rury pozostają nieruchome.'
-        : 'Zerowy przepływ — rury nieruchome.'}
-    </p>
-  );
-}
