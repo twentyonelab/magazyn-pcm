@@ -56,9 +56,29 @@ function statusOf(
   staleAfterMs: number,
   now: number,
 ): Status {
+  // Punkt nieznany i punkt zadeklarowany-ale-niepodlaczony wygladaja tak samo
+  // na rysunku; roznice widac w konsoli (patrz warnUnknownPoint).
   if (!point || !point.available) return 'not-connected';
   if (!value || value.v === null) return 'no-data';
   return isStale(value, staleAfterMs, now) ? 'stale' : 'ok';
+}
+
+/**
+ * Identyfikatory ze schematu, ktorych nie ma w rejestrze punktow.
+ * Ostrzegamy RAZ na identyfikator — bindSchema biegnie co 5 s, wiec
+ * ostrzeganie za kazdym razem zasypaloby konsole.
+ */
+const warnedUnknown = new Set<string>();
+
+function warnUnknownPoint(id: string): void {
+  if (warnedUnknown.has(id)) return;
+  warnedUnknown.add(id);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `schema.svg odwołuje się do punktu "${id}", którego nie ma w rejestrze ` +
+      '(server/src/points.config.ts). Element zostanie pokazany jako niepodłączony. ' +
+      'Najczęstsza przyczyna: literówka w atrybucie data-* po przerysowaniu rysunku.',
+  );
 }
 
 export function bindSchema(root: ParentNode, opts: BindOptions): void {
@@ -70,6 +90,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     if (!id) continue;
 
     const point = points.get(id);
+    if (!point) warnUnknownPoint(id);
     const value = values[id];
     const status = statusOf(point, value, staleAfterMs, now);
 
@@ -92,6 +113,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     if (!id) continue;
 
     const point = points.get(id);
+    if (!point) warnUnknownPoint(id);
     const value = values[id];
     const status = statusOf(point, value, staleAfterMs, now);
     const usable = status === 'ok' || status === 'stale';

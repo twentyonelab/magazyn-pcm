@@ -90,12 +90,17 @@ export function isStale(
 export type PointState = 'ok' | 'stale' | 'no-data' | 'not-connected';
 
 export function pointState(
-  point: PublicPoint,
+  // `undefined` jest tu dopuszczalne swiadomie: wywolania biora punkt
+  // z mapy rejestru, a schemat SVG moze odwolywac sie do identyfikatora,
+  // ktorego w rejestrze nie ma (choćby przez literowke po przerysowaniu
+  // rysunku). Brak definicji ma dac "niepodlaczony", nie wyjatek gaszacy
+  // caly widok.
+  point: PublicPoint | undefined,
   value: PointValue | undefined,
   staleAfterMs: number = FALLBACK_STALE_AFTER_MS,
   now: number = Date.now(),
 ): PointState {
-  if (!point.available) return 'not-connected';
+  if (!point || !point.available) return 'not-connected';
   if (!value || value.v === null) return 'no-data';
   return isStale(value, staleAfterMs, now) ? 'stale' : 'ok';
 }

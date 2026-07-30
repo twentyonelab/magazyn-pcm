@@ -127,23 +127,34 @@ export function Wykres({ series, band, events, fromMs, toMs }: WykresProps) {
       series.map((s) => {
         let d = '';
         let previousMs: number | null = null;
+        // pen opuszczony -> kolejny punkt dolaczamy linia (L);
+        // pen podniesiony -> zaczynamy nowy odcinek (M), czyli w wykresie
+        // powstaje PRZERWA. Przerwa jest informacja, nie usterka rysowania.
         let pen = false;
+
         for (const point of s.points) {
           const ms = Date.parse(point.ts);
-          if (point.v === null || (previousMs !== null && ms - previousMs > gapLimitMs && pen)) {
-            pen = point.v !== null ? false : pen;
-            if (point.v === null) {
-              previousMs = ms;
-              pen = false;
-              continue;
-            }
+
+          // Brak danych przerywa linie i nie zostawia po sobie sladu.
+          if (point.v === null) {
+            previousMs = ms;
+            pen = false;
+            continue;
           }
+
+          // Dziura w czasie tez przerywa. Serwer nie zwraca kubelkow, w ktorych
+          // nie bylo ani jednego odczytu, wiec przestoj widac wylacznie po
+          // odstepie miedzy probkami — poprowadzenie tu prostej twierdziloby,
+          // ze przez cala przerwe cos mierzylismy.
+          if (previousMs !== null && ms - previousMs > gapLimitMs) pen = false;
+
           const x = xOf(ms).toFixed(1);
           const y = yOf(point.v).toFixed(1);
           d += pen ? ` L${x} ${y}` : ` M${x} ${y}`;
           pen = true;
           previousMs = ms;
         }
+
         return { id: s.id, color: s.color, d: d.trim() };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

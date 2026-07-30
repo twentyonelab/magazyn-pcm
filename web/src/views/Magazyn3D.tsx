@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import type { MaterialProfile, PublicPoint } from '@magazyn-pcm/shared';
+import type { MaterialProfile } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { extractScene, type Scene, type SvgBox } from '../schema/extractScene.js';
 import type { LiveData } from '../useLiveData.js';
@@ -177,7 +177,10 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     renderer.setSize(width(), height());
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // PCFSoftShadowMap jest w nowszych wersjach three wycofany i po cichu
+    // zamieniany na PCFShadowMap — ustawiamy go wprost, zeby nie zasmiecac
+    // konsoli ostrzezeniem. Miekkosc cienia dobieramy przez shadow.radius.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.domElement.style.cssText = 'position:absolute;inset:0;display:block';
     host.appendChild(renderer.domElement);
 
@@ -482,11 +485,18 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     // --- Pętla renderowania -----------------------------------------------
     let raf = 0;
     let rotating = true;
-    const clock = new THREE.Clock();
+    // Wlasny pomiar czasu miedzy ramkami — THREE.Clock jest wycofany,
+    // a potrzebujemy z niego tylko jednej liczby.
+    let previousFrameMs = performance.now();
 
     const animate = (): void => {
       raf = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+
+      const nowMs = performance.now();
+      // Ograniczenie na wypadek powrotu z uspionej karty: bez tego jeden
+      // ogromny krok obrocilby kamere o przypadkowy kat.
+      const delta = Math.min((nowMs - previousFrameMs) / 1000, 0.1);
+      previousFrameMs = nowMs;
 
       if (rotating) {
         // Obrót kamery wokół środka sceny — powolny, żeby nie rozpraszał.
@@ -558,7 +568,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     for (const handle of sensorsRef.current) {
       const point = pointMap.get(handle.pointId);
       const value = data.values[handle.pointId];
-      const state = pointState(point as PublicPoint, value, staleAfterMs, now);
+      const state = pointState(point, value, staleAfterMs, now);
       const usable = state === 'ok' || state === 'stale';
       const numeric = usable ? (value?.v ?? null) : null;
 
@@ -577,7 +587,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     for (const device of devicesRef.current) {
       const point = pointMap.get(device.statePoint);
       const value = data.values[device.statePoint];
-      const state = pointState(point as PublicPoint, value, staleAfterMs, now);
+      const state = pointState(point, value, staleAfterMs, now);
       const material = device.led.material as THREE.MeshStandardMaterial;
 
       if (state === 'ok') {
