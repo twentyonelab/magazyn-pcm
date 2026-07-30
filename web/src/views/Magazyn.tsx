@@ -214,9 +214,13 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
         </div>
 
         <div className="canvas__scroll">
+          {/* Powiększenie skaluje rysunek, a NIE zmienia jego szerokości.
+              Szerokość procentowa kłóciłaby się z dopasowaniem do wysokości
+              ekranu: przy skali 1 rysunek ma się mieścić w polu w całości,
+              a dopiero powiększony wychodzić poza nie i dawać się przesuwać. */}
           <div
             className="canvas__stage"
-            style={{ width: `${zoom * 100}%` }}
+            style={zoom === 1 ? undefined : { transform: `scale(${zoom})` }}
             ref={hostRef}
             aria-label="Schemat instalacji"
           />

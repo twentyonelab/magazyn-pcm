@@ -78,6 +78,18 @@
   box-sizing: border-box;
 }
 
+/* Aplikacja zajmuje dokładnie jeden ekran i nigdzie się nie przewija.
+   To ekran stanowiska badawczego — ma być widoczny cały naraz, bez szukania
+   suwakiem. Przewijanie zostaje tylko WEWNĄTRZ widoków, które z natury są
+   dłuższe od ekranu (tabela punktów w Diagnostyce, lista sesji) — tam pasek
+   pojawia się w treści, a rama aplikacji stoi. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -114,14 +126,17 @@ code {
 /* --- Powloka --------------------------------------------------------------- */
 
 /* Aplikacja zajmuje pełną wysokość, a pasek stanu trzyma się dołu. */
+/* Trzy pasy: nagłówek, treść, pasek stanu. Środkowy pas dostaje `minmax(0,
+   1fr)`, bo samo `1fr` nie pozwoliłoby mu zejść poniżej rozmiaru zawartości —
+   i wysoka treść wypchnęłaby pasek stanu za dolną krawędź ekranu. */
 .app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .main {
-  flex: 1;
+  min-height: 0;
 }
 
 .topbar {
@@ -430,16 +445,19 @@ code {
 /* --- Naglowek strony ------------------------------------------------------ */
 
 .main {
-  padding: clamp(0.5rem, 2vw, 1.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+  padding: clamp(0.5rem, 2vw, 1.5rem) clamp(1rem, 4vw, 3rem) clamp(0.5rem, 2vw, 1.5rem);
   max-width: 1400px;
   margin: 0 auto;
-  /* `.main` jest elementem flexa, więc domyślne `min-width: auto` pozwoliłoby
-     mu puchnąć pod szerokość dziecka. Przy schemacie na 100vw robiło to
-     błędne koło: dziecko rozpychało `.main`, a wtedy „margin-left: 50%"
-     liczyło się od już rozepchniętej szerokości i wyjście z marginesów
-     znosiło się do zera. */
+  /* Bez `min-width: 0` element puchnie pod szerokość dziecka. Przy schemacie
+     na 100vw robiło to błędne koło: dziecko rozpychało `.main`, a wtedy
+     „margin-left: 50%" liczyło się od już rozepchniętej szerokości i wyjście
+     z marginesów znosiło się do zera. */
   min-width: 0;
   width: 100%;
+  /* Treść dłuższa od ekranu przewija się TUTAJ, wewnątrz ramy — nagłówek
+     i pasek stanu zostają na swoich miejscach. */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .page-head {
@@ -1045,6 +1063,10 @@ code {
   width: 100vw;
   margin-left: 50%;
   transform: translateX(-50vw);
+  /* Widok wypełnia dokładnie wysokość ramy: pasek przemiany bierze tyle, ile
+     potrzebuje, schemat dostaje całą resztę i sam się do niej dopasowuje. */
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 /* Pasek przemiany wraca do szerokości treści i zostaje wyśrodkowany. */
@@ -1060,6 +1082,11 @@ code {
   box-shadow: none;
   border-radius: 0;
   padding: 0;
+  /* `min-height` z ogólnej reguły `.canvas` (420 px) wypchnąłby schemat poza
+     ekran na niskich okienkach — tu wysokość dyktuje rama, nie zawartość. */
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* Narzędzia powiększenia trzymamy przy prawej krawędzi okna, ale z zapasem —
@@ -1077,18 +1104,43 @@ code {
   overflow-x: clip;
 }
 
+/* Schemat dopasowuje się do OBU wymiarów dostępnego pola.
+   Wcześniej rósł tylko na szerokość („width: 100%, height: auto"), więc na
+   niskim i szerokim ekranie wychodził poza dół. Teraz ograniczają go oba
+   wymiary, a proporcje trzyma viewBox. Pole jest polem przewijania tylko po
+   powiększeniu — przy skali 1 rysunek zawsze się mieści. */
 .canvas__scroll {
   overflow: auto;
+  display: grid;
+  place-items: center;
+  min-height: 0;
 }
 
 .canvas__stage {
-  min-width: 720px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bez tego „height: 100%" nie działa: element siatki ma domyślnie
+     `min-height: auto`, więc nie zejdzie poniżej wysokości swojej zawartości.
+     Rysunek o proporcjach 1400×640 przy szerokości 1265 px domaga się 578 px
+     wysokości i rozpychał pole na 486 px. */
+  min-height: 0;
+  min-width: 0;
 }
 
+/* Rysunek dostaje całe pole na szerokość i wysokość, a proporcje pilnuje jego
+   własny `viewBox` (domyślne preserveAspectRatio wpisuje go w środek pola).
+   Para „max-height + height: auto" tego nie załatwiała: przeglądarka liczyła
+   wysokość z proporcji do szerokości i przekraczała pole. */
 .canvas__stage svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  /* Ten sam powód co wyżej — tu jako element flexa. */
+  min-height: 0;
+  min-width: 0;
 }
 
 .canvas__tools {
@@ -1611,15 +1663,24 @@ code {
    WIDOK 3D
    ========================================================================= */
 
+/* Scena bierze całą wysokość ramy: pole sceny na resztę, podpis pod spodem
+   tyle, ile potrzebuje. Wcześniej wysokość była wpisana na sztywno
+   (clamp 420–760 px), więc na wysokim ekranie zostawał martwy pas pod sceną,
+   a na niskim scena wychodziła poza ekran. */
 .canvas--3d {
   padding: 0;
   overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .stage3d {
   position: relative;
   width: 100%;
-  height: clamp(420px, 62vh, 760px);
+  height: 100%;
+  min-height: 0;
 }
 
 .canvas--3d .flow-note {

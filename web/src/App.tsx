@@ -5,7 +5,7 @@
  * i logo u góry, kluczowe parametry na dole. Środek należy do danych.
  */
 
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { useLiveData } from './useLiveData.js';
 import { Diagnostyka } from './views/Diagnostyka.js';
 import { Magazyn } from './views/Magazyn.js';
@@ -26,9 +26,41 @@ import { PrzelacznikMotywu } from './components/PrzelacznikMotywu.js';
  * Three.js waży ponad pół megabajta — gdyby wchodził do wspólnej paczki,
  * płaciłby za niego każdy, kto otwiera tylko widok 2D albo Diagnostykę.
  */
+const importMagazyn3D = () => import('./views/Magazyn3D.js');
+
 const Magazyn3D = lazy(() =>
-  import('./views/Magazyn3D.js').then((module) => ({ default: module.Magazyn3D })),
+  importMagazyn3D().then((module) => ({ default: module.Magazyn3D })),
 );
+
+/**
+ * Ściągnięcie paczki 3D w tle, gdy przeglądarka nie ma nic pilnego do roboty.
+ *
+ * Leniwe wczytywanie oszczędza czas pierwszego otwarcia aplikacji, ale bez tego
+ * cały koszt trzy.js spadał na kliknięcie w „Magazyn 3D" — i to właśnie wtedy
+ * użytkownik czekał. Pobranie z wyprzedzeniem zostawia oszczędność na starcie,
+ * a samo przejście do widoku robi natychmiastowym.
+ *
+ * `requestIdleCallback` czeka na bezczynność, więc nie odbiera pasma pierwszemu
+ * strumieniowi danych. Gdzie go nie ma (Safari), wystarcza zwykłe opóźnienie.
+ */
+function usePobierzWczesniej3D(wlaczony: boolean): void {
+  useEffect(() => {
+    if (!wlaczony) return;
+
+    const pobierz = (): void => {
+      void importMagazyn3D();
+    };
+
+    const idle = window.requestIdleCallback;
+    if (typeof idle === 'function') {
+      const id = idle(pobierz, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+
+    const timer = window.setTimeout(pobierz, 1500);
+    return () => window.clearTimeout(timer);
+  }, [wlaczony]);
+}
 
 type ViewId =
   | 'magazyn'
@@ -56,6 +88,9 @@ export function App() {
   const data = useLiveData();
   const settings = useSettings();
   const theme = useAppliedTheme();
+
+  // Paczka 3D ląduje w pamięci przeglądarki jeszcze przed kliknięciem.
+  usePobierzWczesniej3D(settings.widok3d);
 
   const openInPrzebiegi = (pointId: string): void => {
     setPrzebiegiIds([pointId]);
