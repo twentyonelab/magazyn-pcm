@@ -58,15 +58,37 @@ aplikacją, gdy nie ma dostępu do stanowiska.
    ```bash
    npm run uuid
    ```
-   Skrypt wypisze wszystkie kontrolki z Miniservera i zapisze je do
-   `data/loxone/`. Sprawdza też, czy uwierzytelnianie HTTP Basic działa
-   na tym firmware.
-4. Wklej UUID-y do [`server/src/points.config.ts`](server/src/points.config.ts)
-   w miejsce `null`.
+   Skrypt sprawdza uwierzytelnianie, wypisuje wszystkie kontrolki, zapisuje je
+   do `data/loxone/` — i **dopasowuje sondy magazynu do punktów rejestru
+   po nazwie**, pokazując przy każdej odczyt kontrolny.
+4. Jeśli dopasowanie się zgadza, pozwól skryptowi wpisać UUID-y:
+   ```bash
+   npm run uuid -- --zapisz
+   ```
+   Kopia rejestru powstaje automatycznie przed zapisem. Ręczne wklejanie
+   do [`server/src/points.config.ts`](server/src/points.config.ts) też działa.
 5. Uruchom serwer:
    ```bash
    npm run dev
    ```
+
+#### Konwencja nazw sond w Loxone Config
+
+Dopasowanie działa, gdy nazwa kontrolki zawiera **poziom i przekątną**.
+Rozpoznawane są oba zapisy, a oznaczenie materiału jest pomijane:
+
+| Nazwa w Loxone | Punkt |
+|---|---|
+| `1A_57HC`, `1A`, `A1`, `Zbiornik 1A` | `A1` |
+| `3B_57HC`, `3B`, `B3` | `B3` |
+
+Nazwa służy **tylko do dopasowania** — mapowanie trzyma UUID. Zmiana nazwy
+w Loxone Config (np. przy przejściu na inny materiał: `1A_8HC`) nie zmienia
+UUID-a, więc nie psuje mapowania. Gdyby aplikacja opierała się na nazwach,
+przestałaby widzieć sondy po zwykłym przemianowaniu.
+
+Skrypt odmówi zgadywania, gdy do jednej pozycji pasuje kilka kontrolek —
+wypisze je i poprosi o rozstrzygnięcie.
 
 Na Windowsie można też uruchomić dwuklikiem plik `start.cmd` — ustawia
 kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.

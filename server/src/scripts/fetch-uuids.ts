@@ -1,15 +1,18 @@
 /**
- * Skrypt pomocniczy: pobiera strukture instalacji z Miniservera i wypisuje
- * wszystkie kontrolki wraz z UUID-ami, zeby dalo sie uzupelnic rejestr punktow.
+ * Skrypt pomocniczy: pobiera strukture instalacji z Miniservera, wypisuje
+ * kontrolki z UUID-ami i DOPASOWUJE sondy magazynu do punktow rejestru.
  *
  * Uruchomienie (z sieci laboratorium):
- *   npm run uuid
+ *   npm run uuid            — podglad: co znalazlem i co proponuje
+ *   npm run uuid -- --zapisz  — wpisuje UUID-y do points.config.ts
+ *   npm run uuid -- --zapisz --nadpisz  — nadpisuje takze juz przypisane
  *
  * Skrypt jest zarazem PIERWSZYM TESTEM LACZNOSCI: sprawdza, czy Miniserver
  * z firmware 17.1.6.30 akceptuje uwierzytelnianie HTTP Basic. Jesli nie,
  * powie to wprost — zamiast pozostawic zagadke w logach serwera.
  *
- * Skrypt TYLKO CZYTA. Nie wysyla zadnej komendy sterujacej.
+ * Skrypt TYLKO CZYTA z Miniservera. Nie wysyla zadnej komendy sterujacej.
+ * Zapisuje wylacznie lokalny plik rejestru punktow, po kopii zapasowej.
  */
 
 import fs from 'node:fs';
@@ -23,6 +26,7 @@ import {
   type LoxApp3Structure,
 } from '../loxone/client.js';
 import { POINTS } from '../points.config.js';
+import { applyUuids, matchCandidates } from './match-points.js';
 
 const line = '─'.repeat(78);
 
@@ -206,8 +210,72 @@ async function main(): Promise<void> {
   fs.writeFileSync(structureFile, JSON.stringify(structure, null, 2), 'utf8');
   fs.writeFileSync(controlsFile, JSON.stringify(controls, null, 2), 'utf8');
 
-  // --- Podpowiedz do wklejenia -------------------------------------------
-  const pending = POINTS.filter((p) => p.available && p.uuid === null);
+  // --- Dopasowanie sond magazynu do punktow rejestru ----------------------
+  const result = matchCandidates(
+    POINTS,
+    controls.map((control) => ({
+      name: control.name,
+      uuid: control.valueUuid ?? control.actionUuid,
+    })),
+  );
+
+  out();
+  out(line);
+  out('  DOPASOWANIE SOND MAGAZYNU');
+  out(line);
+  out('  Konwencja nazw: cyfra = poziom, litera = przekątna (1A → punkt A1).');
+  out('  Oznaczenie materiału w nazwie (np. _57HC) jest pomijane.');
+  out();
+
+  if (result.matches.length === 0) {
+    out('  Nie rozpoznałem ani jednej sondy po nazwie.');
+    out('  Nazwij kontrolki w Loxone Config według wzoru 1A, 2B, 3A…');
+    out('  albo wpisz UUID-y ręcznie do server/src/points.config.ts.');
+  } else {
+    // Odczyt kontrolny: czy pod tym UUID-em faktycznie jest temperatura?
+    // To wyłapuje pomyłkę w mapowaniu ZANIM zacznie się zbieranie danych.
+    out('  punkt   nazwa w Loxone        odczyt      UUID');
+    out(`  ${'─'.repeat(74)}`);
+
+    for (const match of result.matches) {
+      let reading = '—';
+      if (match.candidate.uuid) {
+        try {
+          const state = await client.readState(match.candidate.uuid);
+          reading = state.value === null ? `(${state.raw || 'brak'})` : `${state.value.toFixed(1)} °C`;
+        } catch {
+          reading = '(błąd odczytu)';
+        }
+      }
+      out(
+        `  ${match.pointId.padEnd(7)} ${match.candidate.name.padEnd(20)} ` +
+          `${reading.padEnd(11)} ${match.candidate.uuid ?? '—'}`,
+      );
+    }
+  }
+
+  if (result.ambiguous.length > 0) {
+    out();
+    out('  NIEJEDNOZNACZNE — do jednej pozycji pasuje kilka kontrolek:');
+    for (const item of result.ambiguous) {
+      out(`    ${item.pointId}: ${item.names.join(' , ')}`);
+    }
+    out('  Zmień nazwy w Loxone Config albo przypisz UUID ręcznie.');
+  }
+
+  if (result.unmatchedPoints.length > 0) {
+    out();
+    out(`  BEZ DOPASOWANIA (${result.unmatchedPoints.length}): ${result.unmatchedPoints.join(', ')}`);
+  }
+
+  // --- Zapis do rejestru --------------------------------------------------
+  const wantsWrite = process.argv.includes('--zapisz');
+  const overwrite = process.argv.includes('--nadpisz');
+  const assignments = result.matches
+    .filter((m): m is { pointId: string; candidate: { name: string; uuid: string } } =>
+      Boolean(m.candidate.uuid),
+    )
+    .map((m) => ({ pointId: m.pointId, uuid: m.candidate.uuid }));
 
   out();
   out(line);
@@ -217,20 +285,69 @@ async function main(): Promise<void> {
   out(`  Lista kontrolek     ${controlsFile}`);
   out();
 
-  if (pending.length === 0) {
-    out('  Wszystkie dostępne punkty mają już przypisane UUID-y. Nic do zrobienia.');
-  } else {
-    out(`  W rejestrze czeka ${pending.length} punktów bez UUID-a:`);
-    out(`  ${pending.map((p) => p.id).join(', ')}`);
+  if (!wantsWrite) {
+    if (assignments.length > 0) {
+      out(`  Znalazłem ${assignments.length} sond gotowych do przypisania.`);
+      out('  Sprawdź, czy odczyty powyżej mają sens (czy to na pewno te pozycje),');
+      out('  a potem pozwól skryptowi wpisać UUID-y do rejestru:');
+      out();
+      out('      npm run uuid -- --zapisz');
+      out();
+      out('  Nic nie zostało jeszcze zmienione. Kopia rejestru powstanie');
+      out('  automatycznie przed zapisem.');
+    } else {
+      out('  Nie ma czego zapisać — najpierw popraw nazwy kontrolek w Loxone Config.');
+    }
     out();
-    out('  Otwórz  server/src/points.config.ts  i wpisz UUID (kolumna "value")');
-    out('  w miejsce null, na przykład:');
-    out();
-    out("      uuid: '0f869a41-0300-1c36-ffff504f94d0a3e3',");
-    out();
-    out('  Wskazówka: dla sond temperatury używaj UUID-a stanu "value".');
-    out('  Gdy go nie ma, spróbuj UUID kontrolki (uuidAction).');
+    return;
   }
+
+  if (assignments.length === 0) {
+    out('  Nie ma czego zapisać.');
+    out();
+    return;
+  }
+
+  const registryFile = path.join(repoRoot, 'server', 'src', 'points.config.ts');
+  const source = fs.readFileSync(registryFile, 'utf8');
+  const applied = applyUuids(source, assignments, overwrite);
+
+  if (applied.text === source) {
+    out('  Rejestr nie wymagał zmian.');
+    if (applied.skipped.length > 0) {
+      out(`  Pominięte (mają już UUID): ${applied.skipped.join(', ')}`);
+      out('  Żeby nadpisać: npm run uuid -- --zapisz --nadpisz');
+    }
+    out();
+    return;
+  }
+
+  // Kopia zapasowa PRZED zapisem — rejestr to plik, w ktorym literowka
+  // kosztuje cala historie pomiarow.
+  const backup = `${registryFile}.kopia-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  fs.copyFileSync(registryFile, backup);
+  fs.writeFileSync(registryFile, applied.text, 'utf8');
+
+  const written = assignments
+    .filter((a) => !applied.failed.includes(a.pointId) && !applied.skipped.includes(a.pointId))
+    .map((a) => a.pointId);
+
+  out(`  ZAPISANO ${written.length} UUID-ów do rejestru: ${written.join(', ')}`);
+  out(`  Kopia poprzedniej wersji: ${path.basename(backup)}`);
+
+  if (applied.skipped.length > 0) {
+    out(`  Pominięte (mają już UUID): ${applied.skipped.join(', ')}`);
+    out('  Żeby nadpisać: npm run uuid -- --zapisz --nadpisz');
+  }
+  if (applied.failed.length > 0) {
+    out(`  NIE UDAŁO SIĘ podmienić: ${applied.failed.join(', ')} — wpisz ręcznie.`);
+  }
+
+  out();
+  out('  Teraz:');
+  out('    1. ustaw LOXONE_SOURCE=http w pliku .env (jeśli jeszcze nie),');
+  out('    2. uruchom  npm run dev,');
+  out('    3. sprawdź w konsoli sześć temperatur i widok Diagnostyka.');
   out();
 }
 

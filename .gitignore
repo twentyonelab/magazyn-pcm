@@ -7,6 +7,8 @@ dist/
 data/
 # Kopie zapasowe danych (narzedzia/kopia-danych.cmd bez argumentu)
 kopie/
+# Kopie rejestru punktow robione przez `npm run uuid -- --zapisz`
+*.kopia-*
 *.log
 
 .DS_Store

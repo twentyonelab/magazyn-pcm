@@ -37,15 +37,39 @@ type ViewId =
   | 'sesje'
   | 'ustawienia';
 
-const VIEWS: Array<{ id: ViewId; label: string }> = [
+const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
   { id: 'magazyn', label: 'Magazyn' },
   { id: 'magazyn3d', label: 'Magazyn 3D' },
   { id: 'przebiegi', label: 'Przebiegi' },
   { id: 'bilans', label: 'Bilans' },
   { id: 'sesje', label: 'Sesje' },
   { id: 'diagnostyka', label: 'Diagnostyka' },
-  { id: 'ustawienia', label: 'Ustawienia' },
+  // Ustawienia jako trybik: nazwa widoku i tak jest w naglowku strony,
+  // a ikona odciaza pasek nawigacji z siodmego napisu.
+  { id: 'ustawienia', label: 'Ustawienia', icon: 'trybik' },
 ];
+
+/** Trybik ustawien. Dziedziczy kolor tekstu przycisku (currentColor). */
+function IkonaTrybika() {
+  return (
+    <svg
+      className="nav__icon"
+      viewBox="0 0 24 24"
+      width="17"
+      height="17"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="3.1" />
+      <path d="M12 2.6v2.2M12 19.2v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.4 19.6l1.6-1.6M18 6l1.6-1.6" />
+    </svg>
+  );
+}
 
 export function App() {
   const [view, setView] = useState<ViewId>('magazyn');
@@ -69,10 +93,16 @@ export function App() {
             <button
               key={item.id}
               type="button"
-              className={`nav__item${activeView === item.id ? ' is-active' : ''}`}
+              className={`nav__item${activeView === item.id ? ' is-active' : ''}${
+                item.icon ? ' nav__item--icon' : ''
+              }`}
               onClick={() => setView(item.id)}
+              // Ikona bez tekstu musi miec nazwe dla czytnika ekranu
+              // i podpowiedz dla kursora — inaczej jest tylko obrazkiem.
+              aria-label={item.icon ? item.label : undefined}
+              title={item.icon ? item.label : undefined}
             >
-              {item.label}
+              {item.icon === 'trybik' ? <IkonaTrybika /> : item.label}
             </button>
           ))}
         </nav>

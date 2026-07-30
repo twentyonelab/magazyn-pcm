@@ -131,6 +131,24 @@ code {
   cursor: default;
 }
 
+/* Pozycja z ikona zamiast napisu — kwadratowa, zeby trybik nie plywal. */
+.nav__item--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+}
+
+/* Ikona dziedziczy kolor przycisku (stroke: currentColor), wiec stan aktywny
+   i najechanie widac tak samo jak przy pozostalych pozycjach nawigacji.
+   Bez animacji obrotu: probowalem jej i nie dzialala w tym ukladzie, a ruch
+   nie wnosil tu nic, czego nie mowi juz kolor i tlo pigulki. */
+.nav__icon {
+  display: block;
+}
+
 /* Wskaznik zywosci danych — kropka plus godzina ostatniej wiadomosci. */
 .pulse {
   display: flex;
