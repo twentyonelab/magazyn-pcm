@@ -53,9 +53,20 @@ type FetchState =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: HistoryAvailable; params: HistoryParams };
 
-export function Przebiegi({ data }: { data: LiveData }) {
+interface PrzebiegiProps {
+  data: LiveData;
+  /**
+   * Punkty zaznaczone przy wejsciu — ustawiane, gdy widok otwarto
+   * klikniecien sondy na schemacie. Pusta lista = domyslne szesc sond.
+   */
+  initialIds?: string[];
+}
+
+export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
   const settings = useSettings();
-  const [selected, setSelected] = useState<string[]>(['A1', 'A2', 'A3', 'B1', 'B2', 'B3']);
+  const [selected, setSelected] = useState<string[]>(
+    initialIds && initialIds.length > 0 ? initialIds : ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'],
+  );
   const [from, setFrom] = useState(() => toLocalInput(new Date(Date.now() - 3600_000)));
   const [to, setTo] = useState(() => toLocalInput(new Date()));
   const [resolution, setResolution] = useState('auto');

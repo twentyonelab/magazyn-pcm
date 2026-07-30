@@ -74,8 +74,15 @@ function IkonaTrybika() {
 
 export function App() {
   const [view, setView] = useState<ViewId>('magazyn');
+  /** Sondy przekazane z widoku Magazyn do Przebiegow (klik w sondę). */
+  const [przebiegiIds, setPrzebiegiIds] = useState<string[]>([]);
   const data = useLiveData();
   const settings = useSettings();
+
+  const openInPrzebiegi = (pointId: string): void => {
+    setPrzebiegiIds([pointId]);
+    setView('przebiegi');
+  };
 
   // Brama logowania. Gdy serwer jej nie wymaga (praca w sieci laboratorium),
   // ten ekran nie pojawia sie ani na moment.
@@ -103,7 +110,12 @@ export function App() {
               className={`nav__item${activeView === item.id ? ' is-active' : ''}${
                 item.icon ? ' nav__item--icon' : ''
               }`}
-              onClick={() => setView(item.id)}
+              onClick={() => {
+                // Wejscie w Przebiegi z nawigacji czysci zaznaczenie z klikniecia
+                // sondy — inaczej badacz widzialby jedna serie i nie wiedzial czemu.
+                if (item.id === 'przebiegi') setPrzebiegiIds([]);
+                setView(item.id);
+              }}
               // Ikona bez tekstu musi miec nazwe dla czytnika ekranu
               // i podpowiedz dla kursora — inaczej jest tylko obrazkiem.
               aria-label={item.icon ? item.label : undefined}
@@ -140,13 +152,19 @@ export function App() {
         </div>
 
         <BladWidoku resetKey={activeView}>
-          {activeView === 'magazyn' ? <Magazyn data={data} /> : null}
+          {activeView === 'magazyn' ? (
+            <Magazyn data={data} onOpenInPrzebiegi={openInPrzebiegi} />
+          ) : null}
           {activeView === 'magazyn3d' ? (
             <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
               <Magazyn3D data={data} />
             </Suspense>
           ) : null}
-          {activeView === 'przebiegi' ? <Przebiegi data={data} /> : null}
+          {activeView === 'przebiegi' ? (
+            // Klucz zeruje stan formularza, gdy przyjdziemy z inną sondą —
+            // bez tego zaznaczenie z poprzedniego wejścia zostawałoby na ekranie.
+            <Przebiegi key={przebiegiIds.join(',')} data={data} initialIds={przebiegiIds} />
+          ) : null}
           {activeView === 'bilans' ? <Bilans data={data} /> : null}
           {activeView === 'sesje' ? <Sesje data={data} /> : null}
           {activeView === 'diagnostyka' ? <Diagnostyka data={data} /> : null}

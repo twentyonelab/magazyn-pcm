@@ -28,6 +28,7 @@ import {
 import { isInPhaseBand, phaseBandBounds, rampColor, temperatureFill } from '../scale.js';
 import { setSetting, useSettings } from '../settings.js';
 import { PrzelacznikParafiny } from '../components/PrzelacznikParafiny.js';
+import { PanelSondy } from '../components/PanelSondy.js';
 
 const ZOOM_STEP = 0.15;
 const ZOOM_MIN = 0.6;
@@ -43,12 +44,20 @@ function useTicker(intervalMs: number): number {
   return now;
 }
 
-export function Magazyn({ data }: { data: LiveData }) {
+interface MagazynProps {
+  data: LiveData;
+  /** Przejscie do widoku Przebiegi z wskazana sonda zaznaczona. */
+  onOpenInPrzebiegi: (pointId: string) => void;
+}
+
+export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const now = useTicker(1000);
   const settings = useSettings();
   const hostRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [hovered, setHovered] = useState<string | null>(null);
+  /** Sonda, dla której otwarty jest panel z wykresem historii. */
+  const [selected, setSelected] = useState<string | null>(null);
 
   const { points, values, health, materials, session } = data;
 
@@ -94,27 +103,41 @@ export function Magazyn({ data }: { data: LiveData }) {
     });
   }, [pointMap, values, profile, staleAfterMs, now, materials, channelAlive]);
 
-  // --- Podpowiedź po najechaniu na sondę -----------------------------------
+  // --- Najechanie i klikanie sond na schemacie ------------------------------
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
-    const onOver = (event: Event): void => {
+    /** Identyfikator sondy pod kursorem albo null. */
+    const sensorIdFrom = (event: Event): string | null => {
       const target = event.target as Element | null;
       const sensor = target?.closest?.('[data-sensor]');
-      setHovered(sensor instanceof SVGElement ? (sensor.dataset.sensor ?? null) : null);
+      return sensor instanceof SVGElement ? (sensor.dataset.sensor ?? null) : null;
     };
+
+    const onOver = (event: Event): void => setHovered(sensorIdFrom(event));
     const onLeave = (): void => setHovered(null);
+
+    // Klik na sondę otwiera jej historię. Zdarzenie łapiemy na kontenerze,
+    // a nie na sondach — SVG jest wstrzykiwany jako tekst, więc nie ma do
+    // czego przypiąć handlerów po stronie Reacta.
+    const onClick = (event: Event): void => {
+      const id = sensorIdFrom(event);
+      if (id) setSelected((current) => (current === id ? null : id));
+    };
 
     host.addEventListener('mouseover', onOver);
     host.addEventListener('mouseleave', onLeave);
+    host.addEventListener('click', onClick);
     return () => {
       host.removeEventListener('mouseover', onOver);
       host.removeEventListener('mouseleave', onLeave);
+      host.removeEventListener('click', onClick);
     };
   }, []);
 
   const pcmPoints = points.filter((p) => p.group === 'pcm' && p.geometry);
+  const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
 
   return (
     <div className="magazyn">
@@ -153,8 +176,11 @@ export function Magazyn({ data }: { data: LiveData }) {
                       profile={profile}
                       staleAfterMs={staleAfterMs}
                       now={now}
-                      active={hovered === point.id}
+                      active={hovered === point.id || selected === point.id}
                       onHover={setHovered}
+                      onSelect={() =>
+                        setSelected((current) => (current === point.id ? null : point.id))
+                      }
                     />
                   ))}
               </div>
@@ -230,13 +256,24 @@ export function Magazyn({ data }: { data: LiveData }) {
           />
         </div>
 
-        {hovered ? (
+        {/* Podpowiedź ustępuje panelowi — dwie karty naraz zasłaniałyby schemat. */}
+        {hovered && !selected ? (
           <SensorTooltip
             id={hovered}
             data={data}
             profile={profile}
             staleAfterMs={staleAfterMs}
             now={now}
+          />
+        ) : null}
+
+        {selectedPoint ? (
+          <PanelSondy
+            point={selectedPoint}
+            data={data}
+            profile={profile}
+            onClose={() => setSelected(null)}
+            onOpenInPrzebiegi={onOpenInPrzebiegi}
           />
         ) : null}
 
@@ -290,8 +327,9 @@ function ProbeCard(props: {
   now: number;
   active: boolean;
   onHover: (id: string | null) => void;
+  onSelect: () => void;
 }) {
-  const { point, data, profile, staleAfterMs, now, active, onHover } = props;
+  const { point, data, profile, staleAfterMs, now, active, onHover, onSelect } = props;
   const value = data.values[point.id];
   const state = pointState(point, value, staleAfterMs, now, data.link === 'live');
   const inBand = profile ? isInPhaseBand(value?.v ?? null, profile) : false;
@@ -302,17 +340,20 @@ function ProbeCard(props: {
       : undefined;
 
   return (
-    <div
+    <button
+      type="button"
       className={`probe is-${state}${active ? ' is-hovered' : ''}${inBand ? ' is-phase' : ''}`}
       onMouseEnter={() => onHover(point.id)}
       onMouseLeave={() => onHover(null)}
+      onClick={onSelect}
+      title={`${point.label} — kliknij, żeby zobaczyć historię`}
     >
       <span className="probe__swatch" style={swatch ? { background: swatch } : undefined} />
       <span className="probe__id mono">{point.id}</span>
       <span className="probe__value mono">{value ? formatValue(value, point) : NO_DATA}</span>
       {inBand ? <span className="probe__phase">przemiana</span> : null}
       {state === 'stale' ? <span className="probe__warn">przestarzałe</span> : null}
-    </div>
+    </button>
   );
 }
 

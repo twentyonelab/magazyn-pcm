@@ -793,6 +793,143 @@ code {
   color: var(--ink-faint);
 }
 
+/* --- Panel jednej sondy z wykresem historii ------------------------------- */
+
+.probe-panel {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 4;
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(13, 31, 20, 0.22);
+  padding: 1.1rem 1.25rem 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 900px) {
+  /* Na szerokim ekranie panel zajmuje prawą część, żeby schemat został widoczny. */
+  .probe-panel {
+    left: auto;
+    width: min(30rem, 55%);
+  }
+}
+
+.probe-panel__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.probe-panel__id {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.probe-panel__label {
+  margin: 0.1rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.probe-panel__close {
+  border: 0;
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  flex: none;
+}
+
+.probe-panel__close:hover {
+  color: var(--ink);
+}
+
+.probe-panel__now {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.probe-panel__value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.probe-panel__phase {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--ink);
+  color: #f7f7f5;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+
+.probe-panel__age {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  margin-left: auto;
+}
+
+.probe-panel__ranges {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.probe-panel__stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.probe-panel__stats > div {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+}
+
+.probe-panel__stats dt {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.15rem;
+}
+
+.probe-panel__stats dd {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.probe-panel__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* Karta sondy jest teraz przyciskiem — kasujemy domyślny wygląd przycisku. */
+.probe {
+  font: inherit;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
 /* Podpowiedź nad sondą — jak nakładane karty w referencji. */
 .tooltip {
   position: absolute;
