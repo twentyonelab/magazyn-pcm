@@ -8,6 +8,13 @@
  * Basic nie przeszedl, wymiana dotyczy jednego pliku.
  *
  * Ta klasa TYLKO CZYTA. Nie ma i nie moze miec metody wysylajacej komende.
+ *
+ * GDY STEROWANIE BEDZIE POTRZEBNE — nie dopisujemy go tutaj. Wchodzi jako
+ * osobny modul, z wlasnym kontem Loxone (`pcm-sterowanie`, patrz README)
+ * i z jawnym potwierdzeniem w interfejsie. Powod jest badawczy, nie
+ * ideologiczny: dopoki warstwa odczytu fizycznie nie potrafi nic wyslac,
+ * zaden blad w niej nie moze przestawic zaworu w trakcie tygodniowego testu
+ * i uniewaznic wynikow. Ta niemoznosc jest cecha, nie brakiem.
  */
 
 /** Odrzucone logowanie — NIGDY nie ponawiamy automatycznie. */

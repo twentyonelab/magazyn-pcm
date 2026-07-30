@@ -44,10 +44,11 @@ aplikacją, gdy nie ma dostępu do stanowiska.
 
 ### Praca z prawdziwym Miniserverem
 
-1. W **Loxone Config** założ osobnego użytkownika **tylko do odczytu**
-   (nie używaj konta `admin`) i nadaj mu uprawnienia wizualizacji do sond.
+1. W **Loxone Config** założ **dwa** konta — patrz „Konta w Loxone" poniżej:
+   `pcm-odczyt` (tylko odczyt, to ono idzie do `.env`) i `pcm-sterowanie`
+   (na przyszłość, hasło zostaje poza projektem). Nie używaj konta `admin`.
    Uwaga: zapis konfiguracji **restartuje Miniserver** — zrób to, gdy nie
-   trwa test.
+   trwa test, i załóż oba konta przy jednym podejściu.
 2. Uzupełnij `.env`:
    ```
    LOXONE_SOURCE=http
@@ -71,6 +72,30 @@ aplikacją, gdy nie ma dostępu do stanowiska.
    ```bash
    npm run dev
    ```
+
+#### Konta w Loxone
+
+| Konto | Uprawnienia | Gdzie jest hasło |
+|---|---|---|
+| `pcm-odczyt` | tylko odczyt (wizualizacja sond, bez sterowania) | w `.env`, na maszynie zbierającej |
+| `pcm-sterowanie` | z prawem sterowania | **poza projektem** — do użycia, gdy sterowanie będzie potrzebne |
+
+Oba zakłada się **przy jednym podejściu do Loxone Config**, bo zapis
+konfiguracji restartuje Miniserver — drugi restart mógłby wypaść w środku
+wielotygodniowego testu. Przejście na sterowanie będzie wtedy zmianą jednej
+linii w `.env`, bez dotykania sterownika.
+
+**Dlaczego aplikacja nie używa konta z prawem sterowania, choć ono istnieje.**
+Ta aplikacja tylko czyta — `LoxoneClient` nie ma i nie może mieć metody
+wysyłającej komendę. Konto sterujące w `.env` znaczyłoby, że literówka
+w adresie albo błąd w kodzie mogą przestawić zawór lub pompę w trakcie testu.
+To nie byłaby zepsuta aplikacja, a **nieważne wyniki badawcze bez śladu, skąd
+się wzięły**. Różnica ciężaru wycieku też jest realna: hasło odczytu to ktoś,
+kto widzi temperatury; hasło sterowania to ktoś, kto może ruszyć instalacją.
+
+Gdy sterowanie stanie się potrzebne, wchodzi ono nową ścieżką — osobnym
+modułem obok `LoxoneClient`, z własnym kontem i jawnym potwierdzeniem
+w interfejsie. Nie przez rozszerzenie warstwy odczytu.
 
 #### Konwencja nazw sond w Loxone Config
 
@@ -260,6 +285,24 @@ ciągłe — zamiast zakładać, że było.
 > kilkudniowy. Do wielotygodniowych zostaw w laboratorium tani mini-PC albo
 > Raspberry Pi na stałe: nie ma pokrywy, nie ma baterii, nie ma pytania,
 > czy ktoś go nie zabrał na spotkanie.
+
+#### Sieć laboratorium: router z kartą SIM
+
+Stanowisko ma własny router z kartą SIM, na stałe na miejscu. Co to znaczy
+praktycznie:
+
+- **Zbieranie danych nie zużywa transmisji.** Serwer odpytuje Miniserver
+  po sieci lokalnej — pakiety nie wychodzą do operatora. Nawet przy odczycie
+  co 5 sekund przez miesiąc rachunek za SIM się nie ruszy.
+- **Karta SIM jest potrzebna tylko do Twojego zdalnego wglądu**, nie do pracy
+  stanowiska. Zerwany zasięg zatrzymuje podglądanie, nie pomiary.
+- **Dostęp z zewnątrz zwykle nie zadziała wprost.** Operatorzy komórkowi
+  najczęściej dają adres za wspólnym NAT-em, więc nie da się „wejść" do
+  routera z internetu bez publicznego adresu IP albo tunelu. Do samego
+  Miniservera zostaje Loxone Remote Connect
+  (`dns.loxonecloud.com/504F94D0A3E3`), bo to on wychodzi na zewnątrz, nie
+  odwrotnie. Podgląd tej aplikacji zdalnie wymagałby osobnej decyzji —
+  wtedy dochodzi uwierzytelnianie, którego dziś celowo nie ma.
 
 ### Kopia zapasowa danych
 
