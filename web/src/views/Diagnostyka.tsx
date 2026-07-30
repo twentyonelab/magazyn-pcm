@@ -22,6 +22,7 @@ import {
   formatClock,
   formatNumber,
   formatUptime,
+  materialLabel,
   pointState,
 } from '../format.js';
 
@@ -121,10 +122,41 @@ export function Diagnostyka({ data }: { data: LiveData }) {
           value={String(staleCount)}
           tone={staleCount > 0 ? 'warn' : undefined}
         />
+        {/* Wymienne zbiorniki: bez tego kafla nie dalo by sie sprawdzic,
+            czy system rozpoznal wlasciwy zestaw sond po wymianie. */}
+        <StatTile
+          label="podłączony zbiornik"
+          value={
+            !health || !health.bank.active
+              ? 'nierozpoznany'
+              : health.bank.detection === 'auto'
+                ? materialLabel(health.bank.active, data.materials)
+                : `${materialLabel(health.bank.active, data.materials)} (${
+                    health.bank.detection === 'manual' ? 'wymuszony' : 'założony'
+                  })`
+          }
+          tone={health?.bank.detection === 'auto' ? undefined : 'warn'}
+        />
       </section>
 
       {linkLive && health?.message ? (
         <div className={`note${sourceTone === 'bad' ? ' is-bad' : ''}`}>{health.message}</div>
+      ) : null}
+
+      {/* Nierozpoznany zbiornik to nie drobiazg: od zestawu zalezy parafina,
+          a od niej cala skala barwna i opis zbieranych danych. */}
+      {linkLive && health && !health.bank.active && health.bank.message ? (
+        <div className="note">
+          <strong>Nie wiem, który zbiornik jest podłączony.</strong> {health.bank.message}
+        </div>
+      ) : null}
+
+      {linkLive && health?.bank.active && health.bank.detection === 'manual' ? (
+        <div className="note">
+          Zbiornik <strong>{materialLabel(health.bank.active, data.materials)}</strong> jest
+          wymuszony w konfiguracji (<code>FORCE_BANK</code>), nie rozpoznany. Po wymianie zbiornika
+          trzeba to zmienić ręcznie w pliku <code>.env</code>.
+        </div>
       ) : null}
 
       {health && health.pendingUuidIds.length > 0 ? (

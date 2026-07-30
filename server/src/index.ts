@@ -12,7 +12,7 @@
 import { spawnSync } from 'node:child_process';
 import Fastify, { LogController, type FastifyBaseLogger } from 'fastify';
 import pino from 'pino';
-import type { PointValues, Session, SourceKind } from '@magazyn-pcm/shared';
+import type { BankId, BankState, PointValues, Session, SourceKind } from '@magazyn-pcm/shared';
 import { ConfigError, envFileExists, loadConfig } from './config.js';
 import { DEFAULT_MATERIAL, MATERIALS } from './materials.config.js';
 import { createRegistry, RegistryError } from './registry.js';
@@ -20,6 +20,7 @@ import { ValueCache } from './cache.js';
 import { HealthTracker } from './health.js';
 import { registerApi } from './api/routes.js';
 import { registerAuth } from './auth.js';
+import { BankDetector } from './bank-detector.js';
 import { renderPcmTable } from './console-view.js';
 import { NdjsonHistoryStore } from './history/ndjson-store.js';
 import { SqliteHistoryStore } from './history/sqlite-store.js';
@@ -133,11 +134,57 @@ async function main(): Promise<void> {
 
 
   // --- Zrodlo danych -------------------------------------------------------
-  // Material bierzemy z biezacej sesji, jesli jakas trwa — zrodlo syntetyczne
-  // symuluje wtedy wlasciwy zakres temperatur, a tabela w konsoli podpisuje
-  // sie wlasciwym materialem.
-  const material = MATERIALS[sessionStore.current()?.material ?? DEFAULT_MATERIAL];
   const sourceKind: SourceKind = cfg.isMock ? 'mock' : 'http-poll';
+
+  // Klient Loxone tworzymy przed detektorem zestawu, bo detektor tez z niego
+  // korzysta (musi odpytac sondy obu zbiornikow).
+  const client = cfg.isMock
+    ? null
+    : new LoxoneClient({
+        host: cfg.LOXONE_HOST,
+        user: cfg.LOXONE_USER,
+        pass: cfg.LOXONE_PASS,
+        timeoutMs: cfg.LOXONE_TIMEOUT_MS,
+      });
+
+  /**
+   * Wymienne zbiorniki. Zestaw jest tozsamy z parafina, wiec jego rozpoznanie
+   * ustawia jednoczesnie wlasciwa skale barwna.
+   *
+   * W trybie syntetycznym nie ma czego wykrywac — zestaw bierzemy z sesji albo
+   * z wymuszenia w konfiguracji.
+   */
+  const forcedBank: BankId | null = cfg.FORCE_BANK === '' ? null : cfg.FORCE_BANK;
+
+  const bankDetector =
+    client && registry.knownBanks().length > 0
+      ? new BankDetector({
+          client,
+          points: registry.all(),
+          banks: registry.knownBanks(),
+          logger,
+          forcedBank,
+        })
+      : null;
+
+  /** Aktywny zestaw: reczne wymuszenie, potem sesja, potem detekcja. */
+  const activeBank = (): BankId | null =>
+    forcedBank ?? bankDetector?.activeBank ?? sessionStore.current()?.material ?? DEFAULT_MATERIAL;
+
+  const bankState = (): BankState =>
+    bankDetector?.snapshot() ?? {
+      active: activeBank(),
+      detection: forcedBank ? 'manual' : 'unknown',
+      alive: {},
+      message: cfg.isMock
+        ? 'Dane syntetyczne — zestaw sond nie jest wykrywany.'
+        : 'Rejestr punktów nie ma jeszcze UUID-ów dla zestawów.',
+    };
+
+  // Material: sesja ma pierwszenstwo (badacz zadeklarowal, co bada),
+  // a gdy sesji nie ma — wykryty zbiornik.
+  const materialId = sessionStore.current()?.material ?? activeBank() ?? DEFAULT_MATERIAL;
+  const material = MATERIALS[materialId];
 
   const healthTracker = new HealthTracker({
     sourceKind,
@@ -145,6 +192,7 @@ async function main(): Promise<void> {
     staleAfterMs: cfg.staleAfterMs,
     registry,
     cache,
+    getBank: bankState,
   });
 
   const stream = new StreamHub(logger, () => healthTracker.snapshot());
@@ -161,16 +209,14 @@ async function main(): Promise<void> {
       logger,
     });
   } else {
-    const client = new LoxoneClient({
-      host: cfg.LOXONE_HOST,
-      user: cfg.LOXONE_USER,
-      pass: cfg.LOXONE_PASS,
-      timeoutMs: cfg.LOXONE_TIMEOUT_MS,
-    });
-
     source = new HttpPollSource({
-      client,
-      points: pollable,
+      client: client!,
+      // Cele odpytywania zaleza od AKTYWNEGO ZESTAWU, a ten moze sie zmienic
+      // po wymianie zbiornika — dlatego funkcja, nie lista.
+      resolveTargets: () =>
+        registry
+          .pollablePoints(activeBank())
+          .map((point) => ({ id: point.id, uuid: registry.uuidFor(point, activeBank())! })),
       intervalMs: cfg.POLL_INTERVAL_MS,
       logger,
       onConfigChanged: () => healthTracker.markConfigChanged(),
@@ -220,7 +266,14 @@ async function main(): Promise<void> {
         heartbeatMs > 0 && (lastWrite === undefined || reading.readAtMs - lastWrite >= heartbeatMs);
 
       if (update.changed || heartbeatDue) {
-        toPersist.push({ id: reading.id, v: reading.v, tsMs: reading.readAtMs });
+        const point = registry.get(reading.id);
+        toPersist.push({
+          id: reading.id,
+          v: reading.v,
+          tsMs: reading.readAtMs,
+          // Zbiornik zapisujemy tylko przy sondach, ktore sie z nim wymieniaja.
+          bank: point && registry.isBanked(point) ? activeBank() : null,
+        });
         lastHistoryWriteMs.set(reading.id, reading.readAtMs);
       }
     }
@@ -315,6 +368,45 @@ async function main(): Promise<void> {
   });
   await app.listen({ host: cfg.HOST, port: cfg.PORT });
 
+  // --- Rozpoznanie zestawu sond -------------------------------------------
+  // Robimy to PRZED startem odpytywania, zeby pierwszy cykl trafil od razu
+  // w UUID-y wlasciwego zbiornika.
+  let bankTimer: NodeJS.Timeout | null = null;
+
+  if (bankDetector) {
+    try {
+      await bankDetector.detect();
+      const state = bankDetector.snapshot();
+      if (state.active) {
+        logger.info({ zestaw: state.active, sondy: state.alive }, 'Aktywny zbiornik rozpoznany');
+      } else {
+        logger.warn({ powod: state.message }, 'Nie rozpoznano zbiornika');
+      }
+    } catch (error) {
+      logger.warn(
+        { err: error instanceof Error ? error.message : String(error) },
+        'Rozpoznanie zbiornika nie udalo sie — probuje dalej w tle',
+      );
+    }
+
+    // Wymiana zbiornika w trakcie pracy nie moze wymagac restartu aplikacji.
+    bankTimer = setInterval(() => {
+      void bankDetector
+        .detect()
+        .then((changed) => {
+          if (changed) {
+            // Zmiana zbiornika zmienia znaczenie danych — klienci musza
+            // dowiedziec sie od razu, a nie przy nastepnym odswiezeniu.
+            stream.sendHealth(healthTracker.snapshot());
+          }
+        })
+        .catch(() => {
+          // Blad detekcji nie moze przerwac zbierania danych.
+        });
+    }, cfg.BANK_RECHECK_S * 1000);
+    bankTimer.unref();
+  }
+
   // --- Start zrodla --------------------------------------------------------
   await source.start();
 
@@ -336,6 +428,16 @@ async function main(): Promise<void> {
       `  punkty w magazynie   ${pcmPoints.length}`,
       `  punkty odpytywane    ${cfg.isMock ? registry.all().filter((p) => p.available).length : pollable.length}`,
       `  parafina (skala)     ${material.label} · ${material.scaleMin}–${material.scaleMax} °C · przemiana ${material.phaseBandMin}–${material.phaseBandMax} °C`,
+      `  zbiornik (zestaw)    ${(() => {
+        const state = bankState();
+        if (!state.active) return 'nierozpoznany';
+        const label = MATERIALS[state.active].label;
+        // Trzy rozne rzeczy: rozpoznane po sondach, wymuszone w .env,
+        // albo tylko zalozone (tryb syntetyczny, brak UUID-ow).
+        if (state.detection === 'auto') return `${label} (rozpoznany po sondach)`;
+        if (state.detection === 'manual') return `${label} (wymuszony w .env)`;
+        return `${label} (założony — brak rozpoznania)`;
+      })()}`,
       `  historia             ${
         cfg.HISTORY_ENABLED
           ? `${history.kind} → ${cfg.HISTORY_BACKEND === 'sqlite' ? cfg.historyDbAbs : cfg.historyDirAbs}`
@@ -389,6 +491,7 @@ async function main(): Promise<void> {
 
     process.stdout.write(`\nZamykam (${signal})…\n`);
     if (tableTimer) clearInterval(tableTimer);
+    if (bankTimer) clearInterval(bankTimer);
     clearInterval(staleSweepTimer);
 
     stream.close();

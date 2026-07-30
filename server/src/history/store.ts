@@ -17,6 +17,15 @@ export interface HistoryRecord {
   v: number | null;
   /** Czas udanego odczytu (ms epoch). */
   tsMs: number;
+  /**
+   * Zestaw sond, czyli wymienny zbiornik, z ktorego pochodzi odczyt.
+   * null dla punktow niezwiazanych ze zbiornikiem (bufor, cieplomierz).
+   *
+   * Bez tego pola pozycja A1 z dwoch roznych zbiornikow zlala by sie w jeden
+   * szereg i po dwoch tygodniach nie dalo by sie powiedziec, ktora parafina
+   * dala ktory wynik.
+   */
+  bank?: string | null;
 }
 
 export interface HistoryStore {

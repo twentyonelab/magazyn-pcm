@@ -8,8 +8,15 @@
  * JAK UZUPELNIC UUID-Y:
  *   1. Podlacz sie do sieci laboratorium.
  *   2. Uruchom:  npm run uuid
- *   3. Skrypt wypisze wszystkie kontrolki z Miniservera wraz z UUID-ami.
- *   4. Wklej UUID-y ponizej w miejsce `null`.
+ *   3. Skrypt wypisze kontrolki i sam dopasuje sondy do pozycji i zestawow.
+ *   4. Zatwierdz zapis:  npm run uuid -- --zapisz
+ *
+ * DWA ZESTAWY SOND (wymienne zbiorniki):
+ * Kazda pozycja pomiarowa ma DWA UUID-y — po jednym na zbiornik. Zestaw jest
+ * tozsamy z parafina, bo kazdy zbiornik jest napelniony innym materialem
+ * (sondy nazwane w Loxone jako 1A_57HC i 1A_8HC). Identyfikator punktu (A1)
+ * jest WSPOLNY dla obu zbiornikow, bo to ta sama pozycja pomiarowa — z ktorego
+ * zbiornika pochodzi odczyt, zapisuje sie osobno w historii.
  *
  * UWAGA: pola `id` NIE WOLNO zmieniac po rozpoczeciu zbierania danych —
  * historia pomiarow jest do nich przypisana na zawsze.
@@ -31,6 +38,8 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'A1',
     uuid: null,
+    // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
+    uuidByBank: { RT57HC: null, RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 1',
     unit: '°C',
     kind: 'temperature',
@@ -42,6 +51,8 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'A2',
     uuid: null,
+    // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
+    uuidByBank: { RT57HC: null, RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 2',
     unit: '°C',
     kind: 'temperature',
@@ -53,6 +64,8 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'A3',
     uuid: null,
+    // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
+    uuidByBank: { RT57HC: null, RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 3',
     unit: '°C',
     kind: 'temperature',
@@ -64,6 +77,8 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'B1',
     uuid: null,
+    // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
+    uuidByBank: { RT57HC: null, RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 1',
     unit: '°C',
     kind: 'temperature',
@@ -75,6 +90,8 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'B2',
     uuid: null,
+    // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
+    uuidByBank: { RT57HC: null, RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 2',
     unit: '°C',
     kind: 'temperature',
@@ -86,6 +103,8 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'B3',
     uuid: null,
+    // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
+    uuidByBank: { RT57HC: null, RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 3',
     unit: '°C',
     kind: 'temperature',

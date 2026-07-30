@@ -16,7 +16,7 @@
  * krucho: aplikacja przestalaby widziec sondy po zwyklej zmianie nazwy.
  */
 
-import type { PointDef } from '@magazyn-pcm/shared';
+import type { BankId, PointDef } from '@magazyn-pcm/shared';
 
 export interface MatchCandidate {
   /** Nazwa kontrolki w Loxone Config. */
@@ -27,6 +27,8 @@ export interface MatchCandidate {
 
 export interface Match {
   pointId: string;
+  /** Zestaw (wymienny zbiornik) albo null, gdy sonda nie nalezy do zbiornika. */
+  bank: BankId | null;
   candidate: MatchCandidate;
 }
 
@@ -38,6 +40,24 @@ export interface MatchResult {
   unusedCandidates: MatchCandidate[];
   /** Punkty, do ktorych pasowala wiecej niz jedna kontrolka. */
   ambiguous: Array<{ pointId: string; names: string[] }>;
+}
+
+/**
+ * Wyciaga zestaw (wymienny zbiornik) z nazwy kontrolki.
+ *
+ * Zestaw jest tozsamy z parafina, a ta siedzi w nazwie jako oznaczenie
+ * materialu: 1A_57HC -> zbiornik z parafina 57HC, 1A_8HC -> z 8HC.
+ * Zwraca null, gdy nazwa nie mowi o materiale — wtedy sonda nie nalezy
+ * do zadnego z wymiennych zbiornikow albo nazwa wymaga poprawy.
+ */
+export function bankFromName(rawName: string): BankId | null {
+  const match = rawName.match(/(?:RT)?\s*(\d+)\s*HC\b/i);
+  if (!match) return null;
+
+  const number = match[1];
+  if (number === '57') return 'RT57HC';
+  if (number === '8') return 'RT8HC';
+  return null;
 }
 
 /**
@@ -69,10 +89,14 @@ export function matchCandidates(
   points: readonly PointDef[],
   candidates: readonly MatchCandidate[],
 ): MatchResult {
-  const pcmIds = points.filter((p) => p.group === 'pcm').map((p) => p.id);
+  const pcmPoints = points.filter((p) => p.group === 'pcm');
+  const pcmIds = pcmPoints.map((p) => p.id);
+  /** Ktore punkty maja wymienne zbiorniki. */
+  const banked = new Set(pcmPoints.filter((p) => p.uuidByBank).map((p) => p.id));
 
-  // Zbierz wszystkie trafienia per punkt, zeby wykryc niejednoznacznosc.
-  const byPoint = new Map<string, MatchCandidate[]>();
+  // Grupujemy po PARZE (pozycja, zestaw) — dwie sondy o tej samej pozycji
+  // w roznych zbiornikach to NIE konflikt, tylko dwa osobne przypisania.
+  const byKey = new Map<string, MatchCandidate[]>();
   const unused: MatchCandidate[] = [];
 
   for (const candidate of candidates) {
@@ -81,30 +105,46 @@ export function matchCandidates(
       unused.push(candidate);
       continue;
     }
-    const bucket = byPoint.get(pointId);
+
+    // Punkt z wymiennymi zbiornikami wymaga rozpoznania zestawu z nazwy.
+    // Bez tego nie wiedzielibysmy, do ktorego zbiornika wpisac UUID.
+    const bank = banked.has(pointId) ? bankFromName(candidate.name) : null;
+    if (banked.has(pointId) && bank === null) {
+      unused.push(candidate);
+      continue;
+    }
+
+    const key = `${pointId}|${bank ?? ''}`;
+    const bucket = byKey.get(key);
     if (bucket) bucket.push(candidate);
-    else byPoint.set(pointId, [candidate]);
+    else byKey.set(key, [candidate]);
   }
 
   const matches: Match[] = [];
   const ambiguous: Array<{ pointId: string; names: string[] }> = [];
+  const covered = new Set<string>();
 
-  for (const pointId of pcmIds) {
-    const found = byPoint.get(pointId) ?? [];
+  for (const [key, found] of byKey) {
+    const [pointId, bankKey] = key.split('|');
+    const bank = (bankKey || null) as BankId | null;
+
     if (found.length === 1) {
-      matches.push({ pointId, candidate: found[0]! });
-    } else if (found.length > 1) {
-      // Dwie kontrolki na jedna pozycje to zawsze blad konfiguracji
-      // albo pozostalosc po starym czujniku — czlowiek musi wybrac.
-      ambiguous.push({ pointId, names: found.map((c) => c.name) });
+      matches.push({ pointId: pointId!, bank, candidate: found[0]! });
+      covered.add(pointId!);
+    } else {
+      // Dwie kontrolki na te sama pozycje w TYM SAMYM zbiorniku to blad
+      // konfiguracji albo pozostalosc po starym czujniku — czlowiek wybiera.
+      ambiguous.push({
+        pointId: bank ? `${pointId} (${bank})` : pointId!,
+        names: found.map((c) => c.name),
+      });
+      covered.add(pointId!);
     }
   }
 
   return {
     matches,
-    unmatchedPoints: pcmIds.filter(
-      (id) => !matches.some((m) => m.pointId === id) && !ambiguous.some((a) => a.pointId === id),
-    ),
+    unmatchedPoints: pcmIds.filter((id) => !covered.has(id)),
     unusedCandidates: unused,
     ambiguous,
   };
@@ -121,37 +161,66 @@ export function matchCandidates(
  */
 export function applyUuids(
   source: string,
-  assignments: ReadonlyArray<{ pointId: string; uuid: string }>,
+  assignments: ReadonlyArray<{ pointId: string; bank: BankId | null; uuid: string }>,
   overwrite: boolean,
 ): { text: string; failed: string[]; skipped: string[] } {
   let text = source;
   const failed: string[] = [];
   const skipped: string[] = [];
 
-  for (const { pointId, uuid } of assignments) {
+  for (const { pointId, bank, uuid } of assignments) {
+    const label = bank ? `${pointId}/${bank}` : pointId;
+
     // Sanity: UUID Loxone to znaki szesnastkowe i myslniki. Nic innego nie
     // moze wejsc do pliku zrodlowego.
     if (!/^[A-Za-z0-9-]+$/.test(uuid)) {
-      failed.push(pointId);
+      failed.push(label);
       continue;
     }
 
-    const pattern = new RegExp(
-      `(id:\\s*'${pointId}',\\s*\\r?\\n\\s*uuid:\\s*)(null|'[^']*')`,
-    );
-    const found = text.match(pattern);
+    // Blok punktu wyznaczamy od jego `id` do nastepnego `id:` albo konca
+    // tablicy — podmiana musi zostac WEWNATRZ wlasciwego punktu.
+    const blockPattern = new RegExp(`(id:\\s*'${pointId}',)([\\s\\S]*?)(?=\\n\\s*(?:id:\\s*'|\\];))`);
+    const block = text.match(blockPattern);
 
-    if (!found) {
-      failed.push(pointId);
+    if (!block) {
+      failed.push(label);
       continue;
     }
 
-    if (found[2] !== 'null' && !overwrite) {
-      skipped.push(pointId);
-      continue;
+    const body = block[2]!;
+    let newBody: string;
+
+    if (bank) {
+      // Podmieniamy wartosc przy wlasciwym kluczu wewnatrz uuidByBank.
+      const slotPattern = new RegExp(`(${bank}:\\s*)(null|'[^']*')`);
+      const slot = body.match(slotPattern);
+
+      if (!slot) {
+        failed.push(label);
+        continue;
+      }
+      if (slot[2] !== 'null' && !overwrite) {
+        skipped.push(label);
+        continue;
+      }
+      newBody = body.replace(slotPattern, `$1'${uuid}'`);
+    } else {
+      const slotPattern = /(uuid:\s*)(null|'[^']*')/;
+      const slot = body.match(slotPattern);
+
+      if (!slot) {
+        failed.push(label);
+        continue;
+      }
+      if (slot[2] !== 'null' && !overwrite) {
+        skipped.push(label);
+        continue;
+      }
+      newBody = body.replace(slotPattern, `$1'${uuid}'`);
     }
 
-    text = text.replace(pattern, `$1'${uuid}'`);
+    text = text.replace(blockPattern, `$1${newBody}`);
   }
 
   return { text, failed, skipped };

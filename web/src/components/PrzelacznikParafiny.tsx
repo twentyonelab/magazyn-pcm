@@ -20,23 +20,36 @@ interface Props {
   materials: MaterialsResponse | null;
   /** Material narzucony przez trwajaca sesje albo null. */
   fromSession: PcmMaterial | null;
-  /** Material wybrany do podgladu (gdy sesji nie ma). */
+  /**
+   * Zbiornik rozpoznany po sondach albo null. Wymienne zbiorniki maja rozne
+   * parafiny, wiec rozpoznanie zestawu jest mocniejsza przeslanka niz
+   * preferencja przegladarki — ale slabsza niz deklaracja badacza w sesji.
+   */
+  detected: PcmMaterial | null;
+  /** Material wybrany do podgladu (gdy nie ma ani sesji, ani rozpoznania). */
   preview: PcmMaterial;
   onPreviewChange: (material: PcmMaterial) => void;
 }
 
-export function PrzelacznikParafiny({ materials, fromSession, preview, onPreviewChange }: Props) {
+export function PrzelacznikParafiny({
+  materials,
+  fromSession,
+  detected,
+  preview,
+  onPreviewChange,
+}: Props) {
   if (!materials) return null;
 
   const profiles = Object.values(materials.profiles) as MaterialProfile[];
-  const active = fromSession ?? preview;
-  const locked = fromSession !== null;
+  const active = fromSession ?? detected ?? preview;
+  const locked = fromSession !== null || detected !== null;
+  const source = fromSession ? 'z sesji' : detected ? 'z sond' : null;
 
   return (
     <div className="parafina">
       <div className="parafina__head">
         <span className="parafina__title">parafina</span>
-        {locked ? <span className="parafina__lock">z sesji</span> : null}
+        {source ? <span className="parafina__lock">{source}</span> : null}
       </div>
 
       <div className="parafina__switch" role="group" aria-label="Wybór parafiny">
@@ -50,9 +63,11 @@ export function PrzelacznikParafiny({ materials, fromSession, preview, onPreview
               disabled={locked && !isActive}
               aria-pressed={isActive}
               title={
-                locked
-                  ? 'Materiał pochodzi z trwającej sesji — zmień go, kończąc sesję i zakładając nową'
-                  : `Przemiana ${profile.phaseBandMin}–${profile.phaseBandMax} °C, skala ${profile.scaleMin}–${profile.scaleMax} °C`
+                fromSession
+                  ? 'Parafina pochodzi z trwającej sesji — zmień ją, kończąc sesję i zakładając nową'
+                  : detected
+                    ? 'Parafina wynika z rozpoznanego zbiornika — wymień zbiornik, żeby ją zmienić'
+                    : `Przemiana ${profile.phaseBandMin}–${profile.phaseBandMax} °C, skala ${profile.scaleMin}–${profile.scaleMax} °C`
               }
               onClick={() => !locked && onPreviewChange(profile.id)}
             >
@@ -63,9 +78,11 @@ export function PrzelacznikParafiny({ materials, fromSession, preview, onPreview
       </div>
 
       <p className="parafina__note">
-        {locked
-          ? 'Materiał pochodzi z trwającej sesji. Żeby go zmienić, zakończ sesję i zacznij nową.'
-          : 'Podgląd bez sesji. Przy prawdziwym teście materiał wybierasz, zakładając sesję — wtedy zapisze się razem z danymi.'}
+        {fromSession
+          ? 'Parafina pochodzi z trwającej sesji. Żeby ją zmienić, zakończ sesję i zacznij nową.'
+          : detected
+            ? 'Rozpoznana po sondach podłączonego zbiornika. Po wymianie zbiornika przełączy się sama.'
+            : 'Podgląd bez sesji i bez rozpoznanego zbiornika. Przy prawdziwym teście parafinę wybierasz, zakładając sesję.'}
       </p>
     </div>
   );

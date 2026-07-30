@@ -97,15 +97,46 @@ Gdy sterowanie stanie się potrzebne, wchodzi ono nową ścieżką — osobnym
 modułem obok `LoxoneClient`, z własnym kontem i jawnym potwierdzeniem
 w interfejsie. Nie przez rozszerzenie warstwy odczytu.
 
+#### Dwa zbiorniki, dwa zestawy sond
+
+Stanowisko ma dwa wymienne zbiorniki, każdy z własnymi sześcioma sondami.
+W Loxone Config przypisanych jest 12 sond, ale magistrala widzi tylko te
+z podłączonego zbiornika.
+
+**Aplikacja rozpoznaje sama, który zbiornik jest podłączony** — przy starcie
+i potem co `BANK_RECHECK_S` sekund, więc wymiana zbiornika nie wymaga restartu.
+Zestaw jest tożsamy z parafiną, więc rozpoznanie **ustawia jednocześnie skalę
+barwną i pasmo przemiany**.
+
+Jak rozpoznaje: odpytuje sondy obu zestawów i porównuje. Zbiornik podłączony
+daje sensowne i **różne** temperatury (w magazynie PCM jest stratyfikacja),
+odłączony zwraca zera, wartość spoza zakresu albo nic.
+
+> **Gdy nie da się rozstrzygnąć, aplikacja nie zgaduje.** Pokazuje „nie wiem"
+> w Diagnostyce i prosi o wybór. Cicha pomyłka byłaby groźniejsza: dane
+> zostałyby opisane parafiną, której w zbiorniku nie było. Zdarzy się to,
+> gdy Loxone dla odłączonych sond pokazuje ostatnią znaną wartość — wtedy
+> ustaw `FORCE_BANK=RT57HC` (albo `RT8HC`) w `.env`.
+
+Identyfikatory punktów (`A1`…`B3`) są **wspólne dla obu zbiorników**, bo to ta
+sama pozycja pomiarowa — dzięki temu da się porównać to samo miejsce między
+parafinami. Z którego zbiornika pochodzi odczyt, zapisuje się w kolumnie `bank`
+w bazie pomiarów.
+
 #### Konwencja nazw sond w Loxone Config
 
 Dopasowanie działa, gdy nazwa kontrolki zawiera **poziom i przekątną**.
 Rozpoznawane są oba zapisy, a oznaczenie materiału jest pomijane:
 
-| Nazwa w Loxone | Punkt |
-|---|---|
-| `1A_57HC`, `1A`, `A1`, `Zbiornik 1A` | `A1` |
-| `3B_57HC`, `3B`, `B3` | `B3` |
+| Nazwa w Loxone | Punkt | Zbiornik |
+|---|---|---|
+| `1A_57HC` | `A1` | 57HC |
+| `1A_8HC` | `A1` | 8HC |
+| `3B_57HC` | `B3` | 57HC |
+| `1A`, `A1` (bez materiału) | `A1` | nierozpoznany |
+
+Sondy w wymiennych zbiornikach **muszą** mieć w nazwie oznaczenie parafiny —
+bez niego skrypt nie wie, do którego zbiornika wpisać UUID, i pominie sondę.
 
 Nazwa służy **tylko do dopasowania** — mapowanie trzyma UUID. Zmiana nazwy
 w Loxone Config (np. przy przejściu na inny materiał: `1A_8HC`) nie zmienia

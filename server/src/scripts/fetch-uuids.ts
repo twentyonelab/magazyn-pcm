@@ -26,6 +26,7 @@ import {
   type LoxApp3Structure,
 } from '../loxone/client.js';
 import { POINTS } from '../points.config.js';
+import { MATERIALS } from '../materials.config.js';
 import { applyUuids, matchCandidates } from './match-points.js';
 
 const line = '─'.repeat(78);
@@ -223,35 +224,48 @@ async function main(): Promise<void> {
   out(line);
   out('  DOPASOWANIE SOND MAGAZYNU');
   out(line);
-  out('  Konwencja nazw: cyfra = poziom, litera = przekątna (1A → punkt A1).');
-  out('  Oznaczenie materiału w nazwie (np. _57HC) jest pomijane.');
+  out('  Konwencja nazw: cyfra = poziom, litera = przekątna (1A → punkt A1),');
+  out('  a oznaczenie materiału wskazuje ZBIORNIK (_57HC / _8HC).');
   out();
 
   if (result.matches.length === 0) {
     out('  Nie rozpoznałem ani jednej sondy po nazwie.');
-    out('  Nazwij kontrolki w Loxone Config według wzoru 1A, 2B, 3A…');
+    out('  Nazwij kontrolki w Loxone Config według wzoru 1A_57HC, 2B_8HC…');
     out('  albo wpisz UUID-y ręcznie do server/src/points.config.ts.');
   } else {
     // Odczyt kontrolny: czy pod tym UUID-em faktycznie jest temperatura?
-    // To wyłapuje pomyłkę w mapowaniu ZANIM zacznie się zbieranie danych.
-    out('  punkt   nazwa w Loxone        odczyt      UUID');
-    out(`  ${'─'.repeat(74)}`);
+    // To wyłapuje pomyłkę w mapowaniu ZANIM zacznie się zbieranie danych,
+    // a przy dwóch zbiornikach pokazuje od razu, który jest podłączony.
+    out('  zbiornik  punkt   nazwa w Loxone        odczyt        UUID');
+    out(`  ${'─'.repeat(78)}`);
 
-    for (const match of result.matches) {
+    const sorted = [...result.matches].sort(
+      (a, b) =>
+        (a.bank ?? '').localeCompare(b.bank ?? '') || a.pointId.localeCompare(b.pointId),
+    );
+
+    for (const match of sorted) {
       let reading = '—';
       if (match.candidate.uuid) {
         try {
           const state = await client.readState(match.candidate.uuid);
-          reading = state.value === null ? `(${state.raw || 'brak'})` : `${state.value.toFixed(1)} °C`;
+          reading =
+            state.value === null ? `(${state.raw || 'brak'})` : `${state.value.toFixed(1)} °C`;
         } catch {
-          reading = '(błąd odczytu)';
+          reading = '(brak odp.)';
         }
       }
+      const bankLabel = match.bank ? MATERIALS[match.bank].label : '—';
       out(
-        `  ${match.pointId.padEnd(7)} ${match.candidate.name.padEnd(20)} ` +
-          `${reading.padEnd(11)} ${match.candidate.uuid ?? '—'}`,
+        `  ${bankLabel.padEnd(9)} ${match.pointId.padEnd(7)} ${match.candidate.name.padEnd(20)} ` +
+          `${reading.padEnd(13)} ${match.candidate.uuid ?? '—'}`,
       );
     }
+
+    out();
+    out('  Zbiornik PODŁĄCZONY to ten, którego sondy pokazują sensowne i różne');
+    out('  temperatury. Drugi zwykle zwraca zera, wartość spoza zakresu albo nic.');
+    out('  Aplikacja rozpoznaje to sama przy każdym starcie i co kilka minut.');
   }
 
   if (result.ambiguous.length > 0) {
@@ -272,10 +286,8 @@ async function main(): Promise<void> {
   const wantsWrite = process.argv.includes('--zapisz');
   const overwrite = process.argv.includes('--nadpisz');
   const assignments = result.matches
-    .filter((m): m is { pointId: string; candidate: { name: string; uuid: string } } =>
-      Boolean(m.candidate.uuid),
-    )
-    .map((m) => ({ pointId: m.pointId, uuid: m.candidate.uuid }));
+    .filter((m) => Boolean(m.candidate.uuid))
+    .map((m) => ({ pointId: m.pointId, bank: m.bank, uuid: m.candidate.uuid! }));
 
   out();
   out(line);
@@ -329,8 +341,8 @@ async function main(): Promise<void> {
   fs.writeFileSync(registryFile, applied.text, 'utf8');
 
   const written = assignments
-    .filter((a) => !applied.failed.includes(a.pointId) && !applied.skipped.includes(a.pointId))
-    .map((a) => a.pointId);
+    .map((a) => (a.bank ? `${a.pointId}/${a.bank}` : a.pointId))
+    .filter((label) => !applied.failed.includes(label) && !applied.skipped.includes(label));
 
   out(`  ZAPISANO ${written.length} UUID-ów do rejestru: ${written.join(', ')}`);
   out(`  Kopia poprzedniej wersji: ${path.basename(backup)}`);

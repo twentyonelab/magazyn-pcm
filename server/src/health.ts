@@ -6,7 +6,7 @@
  * odkryta przy analizie danych.
  */
 
-import type { Health, SourceKind, SourceStatus } from '@magazyn-pcm/shared';
+import type { BankState, Health, SourceKind, SourceStatus } from '@magazyn-pcm/shared';
 import type { ValueCache } from './cache.js';
 import type { PointRegistry } from './registry.js';
 
@@ -16,6 +16,8 @@ export interface HealthTrackerOptions {
   staleAfterMs: number;
   registry: PointRegistry;
   cache: ValueCache;
+  /** Stan wymiennych zbiornikow — czytany na biezaco, bo zestaw moze sie zmienic. */
+  getBank: () => BankState;
   now?: () => number;
 }
 
@@ -53,12 +55,14 @@ export class HealthTracker {
   }
 
   snapshot(): Health {
+    const bank = this.opts.getBank();
     const ids = this.opts.registry.all().map((p) => p.id);
-    const pollableIds = this.opts.registry.pollablePoints().map((p) => p.id);
+    const pollableIds = this.opts.registry.pollablePoints(bank.active).map((p) => p.id);
 
     return {
       source: this.status,
       sourceKind: this.opts.sourceKind,
+      bank,
       latencyMs: this.latencyMs,
       lastOkAt: this.lastOkAtMs === null ? null : new Date(this.lastOkAtMs).toISOString(),
       // Punkty bez UUID-a raportujemy osobno — nie zasmiecaja listy
@@ -66,7 +70,7 @@ export class HealthTracker {
       staleIds: this.opts.cache.staleIds(
         ids.filter((id) => pollableIds.includes(id) || this.opts.cache.hasReading(id)),
       ),
-      pendingUuidIds: this.opts.registry.pendingUuidPoints().map((p) => p.id),
+      pendingUuidIds: this.opts.registry.pendingUuidPoints(bank.active).map((p) => p.id),
       uptimeS: Math.round((this.now() - this.startedAtMs) / 1000),
       pollIntervalMs: this.opts.pollIntervalMs,
       staleAfterMs: this.opts.staleAfterMs,

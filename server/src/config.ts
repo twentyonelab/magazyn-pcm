@@ -42,6 +42,15 @@ const schema = z.object({
   POLL_INTERVAL_MS: numberFromEnv(5000, 1000, 600_000),
   STALE_FACTOR: numberFromEnv(3, 2, 100),
 
+  /**
+   * Wymuszenie zestawu sond (wymienny zbiornik). Puste = rozpoznawanie
+   * automatyczne. Ustaw tylko wtedy, gdy detekcja myli sie albo oba zbiorniki
+   * sa podlaczone naraz.
+   */
+  FORCE_BANK: z.enum(['', 'RT8HC', 'RT57HC']).default(''),
+  /** Co ile sekund sprawdzac ponownie, ktory zbiornik jest podlaczony. */
+  BANK_RECHECK_S: numberFromEnv(300, 30, 86_400),
+
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: numberFromEnv(4000, 1, 65_535),
 

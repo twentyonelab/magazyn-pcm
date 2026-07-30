@@ -42,13 +42,35 @@ export interface PointGeometry {
 }
 
 /**
+ * ZESTAW SOND = wymienny zbiornik.
+ *
+ * Stanowisko ma dwa zbiorniki, kazdy z wlasnymi szescioma sondami, i pracuje
+ * z jednym naraz. W Loxone Config przypisanych jest 12 sond; podlaczony
+ * zbiornik odpowiada, drugi nie. Zestaw jest tozsamy z parafina, bo kazdy
+ * zbiornik jest napelniony innym materialem — dlatego rozpoznanie zestawu
+ * jednoczesnie ustawia wlasciwa skale barwna.
+ */
+export type BankId = PcmMaterial;
+
+/**
  * Definicja punktu pomiarowego — postac serwerowa, z UUID-em Loxone.
  */
 export interface PointDef {
-  /** Stabilny identyfikator logiczny. NIE zmieniac po starcie zbierania danych. */
+  /**
+   * Stabilny identyfikator logiczny. NIE zmieniac po starcie zbierania danych.
+   * Sonda w tej samej pozycji obu zbiornikow ma TEN SAM identyfikator (A1),
+   * bo to ta sama pozycja pomiarowa. Z ktorego zbiornika pochodzi odczyt,
+   * mowi pole `bank` w historii — inaczej nie dalo by sie porownac tej samej
+   * pozycji miedzy materialami.
+   */
   id: string;
   /** UUID z LoxAPP3.json; null = punkt jeszcze niepodlaczony. */
   uuid: string | null;
+  /**
+   * UUID-y per zestaw — tylko dla sond w wymiennych zbiornikach.
+   * Gdy pole jest obecne, `uuid` jest ignorowane.
+   */
+  uuidByBank?: Partial<Record<BankId, string | null>>;
   label: string;
   unit: string;
   kind: PointKind;
@@ -109,9 +131,24 @@ export type SourceStatus =
 
 export type SourceKind = 'http-poll' | 'websocket' | 'mock';
 
+/** Skad wiadomo, ktory zestaw sond jest podlaczony. */
+export type BankDetection = 'auto' | 'manual' | 'unknown';
+
+export interface BankState {
+  /** Aktywny zestaw albo null, gdy jeszcze nie rozpoznany. */
+  active: BankId | null;
+  detection: BankDetection;
+  /** Ile sond kazdego zestawu odpowiada w tej chwili. */
+  alive: Partial<Record<BankId, number>>;
+  /** Komunikat dla czlowieka, po polsku. */
+  message: string | null;
+}
+
 export interface Health {
   source: SourceStatus;
   sourceKind: SourceKind;
+  /** Wymienne zbiorniki: ktory zestaw sond jest podlaczony. */
+  bank: BankState;
   /** Czas odpowiedzi ostatniego cyklu odczytu w ms. */
   latencyMs: number | null;
   lastOkAt: string | null;

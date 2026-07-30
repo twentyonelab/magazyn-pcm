@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import type { PointDef, PublicPoint } from '@magazyn-pcm/shared';
+import type { BankId, PointDef, PublicPoint } from '@magazyn-pcm/shared';
 import { POINTS } from './points.config.js';
 
 const geometrySchema = z.object({
@@ -20,6 +20,9 @@ const pointSchema = z.object({
     .min(1)
     .regex(/^[A-Z0-9_]+$/, 'identyfikator może zawierać tylko A-Z, 0-9 i podkreślenie'),
   uuid: z.string().min(1).nullable(),
+  uuidByBank: z
+    .record(z.enum(['RT8HC', 'RT57HC']), z.string().min(1).nullable())
+    .optional(),
   label: z.string().min(1),
   unit: z.string(),
   kind: z.enum(['temperature', 'flow', 'energy', 'power', 'volume', 'delta', 'state']),
@@ -61,14 +64,25 @@ export class PointRegistry {
         problems.push(`zduplikowany identyfikator punktu: ${point.id}`);
         return;
       }
-      if (point.uuid) {
-        const clash = this.byUuid.get(point.uuid);
+      // Ten sam UUID w dwoch miejscach to zawsze blad — takze wtedy, gdy
+      // trafi do dwoch roznych zestawow (znaczylo by, ze jedna sonda udaje
+      // dwie pozycje i dane z obu zbiornikow by sie zlaly).
+      const allUuids = [point.uuid, ...Object.values(point.uuidByBank ?? {})].filter(
+        (value): value is string => typeof value === 'string' && value.length > 0,
+      );
+
+      let clashed = false;
+      for (const uuid of allUuids) {
+        const clash = this.byUuid.get(uuid);
         if (clash) {
-          problems.push(`ten sam UUID przypisany do ${clash.id} i ${point.id}: ${point.uuid}`);
-          return;
+          problems.push(`ten sam UUID przypisany do ${clash.id} i ${point.id}: ${uuid}`);
+          clashed = true;
+          break;
         }
-        this.byUuid.set(point.uuid, point);
       }
+      if (clashed) return;
+      for (const uuid of allUuids) this.byUuid.set(uuid, point);
+
       this.byId.set(point.id, point);
     });
 
@@ -124,19 +138,48 @@ export class PointRegistry {
   }
 
   /**
-   * Punkty, ktore probujemy odczytywac: zadeklarowane jako dostepne
-   * i majace przypisany UUID.
+   * UUID punktu dla wskazanego zestawu.
+   *
+   * Sondy w wymiennych zbiornikach maja po jednym UUID na zestaw; pozostale
+   * punkty (bufor, cieplomierz) maja jeden, wspolny — one nie wymieniaja sie
+   * razem ze zbiornikiem.
    */
-  pollablePoints(): PointDef[] {
-    return this.all().filter((p) => p.available && p.uuid !== null);
+  uuidFor(point: PointDef, bank: BankId | null): string | null {
+    if (!point.uuidByBank) return point.uuid;
+    if (!bank) return null;
+    return point.uuidByBank[bank] ?? null;
+  }
+
+  /** Czy punkt nalezy do wymiennego zbiornika. */
+  isBanked(point: PointDef): boolean {
+    return point.uuidByBank !== undefined;
   }
 
   /**
-   * Punkty zadeklarowane jako dostepne, ale bez UUID-a — czekaja na
-   * uruchomienie `npm run uuid` w sieci laboratorium.
+   * Punkty, ktore probujemy odczytywac: zadeklarowane jako dostepne
+   * i majace przypisany UUID dla AKTYWNEGO zestawu.
    */
-  pendingUuidPoints(): PointDef[] {
-    return this.all().filter((p) => p.available && p.uuid === null);
+  pollablePoints(bank: BankId | null = null): PointDef[] {
+    return this.all().filter((p) => p.available && this.uuidFor(p, bank) !== null);
+  }
+
+  /**
+   * Punkty zadeklarowane jako dostepne, ale bez UUID-a dla aktywnego zestawu —
+   * czekaja na uruchomienie `npm run uuid` w sieci laboratorium.
+   */
+  pendingUuidPoints(bank: BankId | null = null): PointDef[] {
+    return this.all().filter((p) => p.available && this.uuidFor(p, bank) === null);
+  }
+
+  /** Zestawy, dla ktorych rejestr ma cokolwiek przypisane. */
+  knownBanks(): BankId[] {
+    const banks = new Set<BankId>();
+    for (const point of this.all()) {
+      for (const key of Object.keys(point.uuidByBank ?? {})) {
+        banks.add(key as BankId);
+      }
+    }
+    return [...banks];
   }
 
   /** Postac publiczna — bez UUID-ow. Frontend nigdy ich nie widzi. */

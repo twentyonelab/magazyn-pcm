@@ -55,9 +55,16 @@ export function Magazyn({ data }: { data: LiveData }) {
   const pointMap = useMemo(() => new Map(points.map((p) => [p.id, p])), [points]);
   const staleAfterMs = health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
 
-  // Materiał należy do SESJI. Gdy żadna nie trwa, obowiązuje parafina wybrana
-  // przełącznikiem w panelu — nigdy nie zgadujemy zakresu skali w kodzie widoku.
-  const activeMaterial = session?.material ?? settings.parafinaPodgladu;
+  // Hierarchia: sesja (deklaracja badacza) > rozpoznany zbiornik > podgląd.
+  // Nigdy nie zgadujemy zakresu skali w kodzie widoku.
+  //
+  // `detection === 'unknown'` znaczy, że serwer NIE rozpoznał zbiornika i tylko
+  // coś założył (tryb syntetyczny, brak UUID-ów). Nie wolno tego traktować jak
+  // pewnika — inaczej przełącznik parafiny zablokowałby się na zgadniętej
+  // wartości i nie dałoby się go ruszyć.
+  const detectedBank =
+    health && health.bank.detection !== 'unknown' ? health.bank.active : null;
+  const activeMaterial = session?.material ?? detectedBank ?? settings.parafinaPodgladu;
   const profile: MaterialProfile | null = materials
     ? (materials.profiles[activeMaterial] ?? materials.profiles[materials.defaultMaterial])
     : null;
@@ -118,6 +125,7 @@ export function Magazyn({ data }: { data: LiveData }) {
         <PrzelacznikParafiny
           materials={materials}
           fromSession={session?.material ?? null}
+          detected={detectedBank}
           preview={settings.parafinaPodgladu}
           onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
         />

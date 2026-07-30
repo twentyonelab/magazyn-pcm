@@ -22,10 +22,22 @@ import type { Logger } from 'pino';
 import { BaseSource, type SourceReading } from './source.js';
 import { LoxoneAuthError, LoxoneNetworkError, type LoxoneClient } from './client.js';
 
+/** Para: identyfikator punktu i UUID, pod ktorym go teraz czytamy. */
+export interface PollTarget {
+  id: string;
+  uuid: string;
+}
+
 export interface HttpPollSourceOptions {
   client: LoxoneClient;
-  /** Punkty do odpytywania — wylacznie te z przypisanym UUID-em. */
-  points: readonly PointDef[];
+  /**
+   * Co odpytywac — FUNKCJA, nie lista.
+   *
+   * Zbiornik jest wymienny, a razem z nim zmienia sie zestaw UUID-ow. Gdyby
+   * lista byla ustalana raz przy tworzeniu zrodla, wymiana zbiornika wymagalaby
+   * restartu aplikacji. Pytamy wiec o aktualne cele przed kazdym cyklem.
+   */
+  resolveTargets: () => readonly PollTarget[];
   intervalMs: number;
   logger: Logger;
   /** Maksymalny odstep miedzy proba po bledach sieciowych. */
@@ -102,7 +114,7 @@ export class HttpPollSource extends BaseSource {
       // Nieistotne dla dzialania — sprobujemy pozniej.
     }
 
-    if (this.opts.points.length === 0) {
+    if (this.opts.resolveTargets().length === 0) {
       // Tylko log — stan lacznosci ustala cykl odczytu, zeby komunikat
       // o brakujacych UUID-ach nie przyslonil informacji "nie ma polaczenia".
       this.opts.logger.warn(
@@ -154,7 +166,11 @@ export class HttpPollSource extends BaseSource {
     // Brak punktow z UUID-em nie zwalnia nas ze sprawdzania lacznosci —
     // inaczej diagnostyka pokazywalaby "brak UUID-ow" takze wtedy, gdy
     // prawdziwym problemem jest brak polaczenia z Miniserverem.
-    if (this.opts.points.length === 0) {
+    // Cele pobieramy PRZED kazdym cyklem — po wymianie zbiornika zmieniaja sie
+    // UUID-y, a aplikacja nie moze wymagac wtedy restartu.
+    const targets = this.opts.resolveTargets();
+
+    if (targets.length === 0) {
       await this.probeConnection();
       this.scheduleNext(this.nextDelayMs());
       return;
@@ -170,9 +186,8 @@ export class HttpPollSource extends BaseSource {
     let badCodes = 0;
 
     try {
-      for (const point of this.opts.points) {
+      for (const point of targets) {
         if (!this.running) break;
-        if (!point.uuid) continue;
 
         try {
           const result = await this.opts.client.readState(point.uuid);
@@ -232,7 +247,9 @@ export class HttpPollSource extends BaseSource {
     }
 
     // --- Stan lacznosci -----------------------------------------------------
-    if (readings.length === 0) {
+    if (targets.length === 0) {
+      this.consecutiveFailures = 0;
+    } else if (readings.length === 0) {
       this.consecutiveFailures += 1;
       this.emitHealth({
         status: 'offline',
@@ -246,7 +263,7 @@ export class HttpPollSource extends BaseSource {
       this.emitHealth({
         status: 'degraded',
         latencyMs,
-        message: `Część punktów nie odpowiedziała (${networkFailures + badCodes} z ${this.opts.points.length}).`,
+        message: `Część punktów nie odpowiedziała (${networkFailures + badCodes} z ${targets.length}).`,
       });
     } else {
       this.consecutiveFailures = 0;

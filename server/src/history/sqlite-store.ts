@@ -30,7 +30,11 @@ import Database from 'better-sqlite3';
 import type { Logger } from 'pino';
 import type { HistoryRecord, HistoryStore } from './store.js';
 
-const SCHEMA_VERSION = 1;
+/**
+ * 1 -> tabela readings(ts, point_id, v)
+ * 2 -> dodane readings.bank: z ktorego wymiennego zbiornika pochodzi odczyt
+ */
+const SCHEMA_VERSION = 2;
 
 export interface SqliteHistoryStoreOptions {
   file: string;
@@ -41,7 +45,7 @@ export class SqliteHistoryStore implements HistoryStore {
   readonly kind = 'SQLite';
 
   private readonly db: Database.Database;
-  private readonly insert: Database.Statement<[number, string, number | null]>;
+  private readonly insert: Database.Statement<[number, string, number | null, string | null]>;
   private readonly insertMany: Database.Transaction<(records: readonly HistoryRecord[]) => void>;
   private failureLogged = false;
 
@@ -59,7 +63,10 @@ export class SqliteHistoryStore implements HistoryStore {
       CREATE TABLE IF NOT EXISTS readings (
         ts       INTEGER NOT NULL,
         point_id TEXT    NOT NULL,
-        v        REAL
+        v        REAL,
+        -- Wymienny zbiornik, z ktorego pochodzi odczyt. NULL dla punktow
+        -- niezwiazanych ze zbiornikiem oraz dla rekordow sprzed migracji.
+        bank     TEXT
       );
 
       CREATE INDEX IF NOT EXISTS idx_readings_point_ts
@@ -71,15 +78,19 @@ export class SqliteHistoryStore implements HistoryStore {
       );
     `);
 
+    this.migrate(opts.logger);
+
     this.db
       .prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)')
       .run('schema_version', String(SCHEMA_VERSION));
 
-    this.insert = this.db.prepare('INSERT INTO readings (ts, point_id, v) VALUES (?, ?, ?)');
+    this.insert = this.db.prepare(
+      'INSERT INTO readings (ts, point_id, v, bank) VALUES (?, ?, ?, ?)',
+    );
 
     this.insertMany = this.db.transaction((records: readonly HistoryRecord[]) => {
       for (const record of records) {
-        this.insert.run(record.tsMs, record.id, record.v);
+        this.insert.run(record.tsMs, record.id, record.v, record.bank ?? null);
       }
     });
 
@@ -88,6 +99,28 @@ export class SqliteHistoryStore implements HistoryStore {
       { file: opts.file, records: count.c },
       'Baza historii pomiarow otwarta',
     );
+  }
+
+  /**
+   * Migracja schematu. Istniejaca baza nie moze stracic danych ani wymagac
+   * usuniecia — pomiary z tygodni testu sa nieodtwarzalne.
+   */
+  private migrate(logger: Logger): void {
+    const columns = this.db.prepare('PRAGMA table_info(readings)').all() as Array<{
+      name: string;
+    }>;
+
+    if (!columns.some((column) => column.name === 'bank')) {
+      // Rekordy sprzed migracji dostaja bank = NULL: nie wiemy, z ktorego
+      // zbiornika pochodza, i lepiej to przyznac niz dopisac zmyslona wartosc.
+      this.db.exec('ALTER TABLE readings ADD COLUMN bank TEXT');
+      logger.info('Baza historii rozszerzona o kolumnę `bank` (wymienne zbiorniki)');
+    }
+
+    // Indeks zakladamy TUTAJ, nie razem z tabela. Na istniejacej bazie
+    // (schema 1) kolumny `bank` jeszcze nie ma w chwili tworzenia tabeli —
+    // proba indeksowania jej tam wywracala start na bazie z danymi.
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_readings_bank ON readings (bank, point_id, ts)');
   }
 
   async append(records: readonly HistoryRecord[]): Promise<void> {

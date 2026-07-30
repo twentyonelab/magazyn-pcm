@@ -149,7 +149,10 @@ export function Magazyn3D({ data }: { data: LiveData }) {
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
   // Ta sama zasada co w widoku 2D: sesja narzuca material, bez sesji
   // obowiazuje parafina wybrana przelacznikiem.
-  const activeMaterial = data.session?.material ?? settings.parafinaPodgladu;
+  // Ta sama hierarchia co w 2D; zestaw "unknown" nie jest pewnikiem.
+  const detectedBank =
+    data.health && data.health.bank.detection !== 'unknown' ? data.health.bank.active : null;
+  const activeMaterial = data.session?.material ?? detectedBank ?? settings.parafinaPodgladu;
   const profile: MaterialProfile | null = data.materials
     ? (data.materials.profiles[activeMaterial] ??
       data.materials.profiles[data.materials.defaultMaterial])
