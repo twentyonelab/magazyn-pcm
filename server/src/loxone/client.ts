@@ -36,11 +36,31 @@ export class LoxoneNetworkError extends Error {
 }
 
 export interface LoxoneClientOptions {
+  /**
+   * Adres Miniservera. Trzy dopuszczalne postacie:
+   *   192.168.1.27                     — adres w sieci lokalnej
+   *   https://host:port                — pelny URL
+   *   cloud:504F94D0A3E3               — Remote Connect po numerze seryjnym
+   */
   host: string;
   user: string;
   pass: string;
   timeoutMs: number;
 }
+
+/** Prefiks wlaczajacy tryb Remote Connect. */
+const CLOUD_PREFIX = 'cloud:';
+
+/**
+ * Adres Remote Connect trzymamy krotko w pamieci.
+ *
+ * Loxone przydziela PORT DYNAMICZNIE i zmienia go w ciagu minut — adres
+ * zapamietany na dluzej przestaje dzialac, co objawia sie bledem sieci
+ * (nie bledem logowania). Kilkadziesiat sekund cache wystarcza, zeby jeden
+ * cykl odpytywania nie generowal dodatkowego zapytania do chmury, a jednoczesnie
+ * nie trzymamy adresu tak dlugo, zeby zdazyl wygasnac.
+ */
+const CLOUD_CACHE_MS = 45_000;
 
 /** Odpowiedz Miniservera: { "LL": { "control": ..., "value": ..., "Code": ... } } */
 interface LoxoneLLResponse {
@@ -102,9 +122,62 @@ export class LoxoneClient {
   private readonly authHeader: string;
   readonly baseUrl: string;
 
+  /** Numer seryjny w trybie Remote Connect, inaczej null. */
+  private readonly cloudSerial: string | null;
+  private cloudUrl: string | null = null;
+  private cloudUrlAtMs = 0;
+
   constructor(private readonly opts: LoxoneClientOptions) {
-    this.baseUrl = `http://${opts.host}`;
+    const host = opts.host.trim().replace(/\/+$/, '');
+
+    if (host.toLowerCase().startsWith(CLOUD_PREFIX)) {
+      this.cloudSerial = host.slice(CLOUD_PREFIX.length).trim();
+      // Adres poznamy dopiero po zapytaniu chmury; do logow zostaje opis.
+      this.baseUrl = `Remote Connect (${this.cloudSerial})`;
+    } else {
+      this.cloudSerial = null;
+      // Adres moze byc samym IP albo pelnym URL-em ze schematem i portem.
+      this.baseUrl = /^https?:\/\//i.test(host) ? host : `http://${host}`;
+    }
+
     this.authHeader = `Basic ${Buffer.from(`${opts.user}:${opts.pass}`).toString('base64')}`;
+  }
+
+  /**
+   * Aktualny adres bazowy. W trybie lokalnym staly, w Remote Connect
+   * odpytywany z chmury Loxone (z krotkim cache).
+   */
+  private async resolveBaseUrl(): Promise<string> {
+    if (!this.cloudSerial) return this.baseUrl;
+
+    if (this.cloudUrl && Date.now() - this.cloudUrlAtMs < CLOUD_CACHE_MS) {
+      return this.cloudUrl;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`https://dns.loxonecloud.com/${this.cloudSerial}`, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(this.opts.timeoutMs),
+      });
+    } catch (error) {
+      throw new LoxoneNetworkError(
+        'Nie mogę zapytać chmury Loxone o adres Miniservera (Remote Connect).',
+        error,
+      );
+    }
+
+    const location = response.headers.get('location');
+    if (!location) {
+      throw new LoxoneNetworkError(
+        `Chmura Loxone nie zwróciła adresu dla numeru ${this.cloudSerial}. ` +
+          'Miniserver jest prawdopodobnie offline albo Remote Connect jest wyłączony.',
+      );
+    }
+
+    this.cloudUrl = location.replace(/\/+$/, '');
+    this.cloudUrlAtMs = Date.now();
+    return this.cloudUrl;
   }
 
   /** Adres bez danych logowania — bezpieczny do logow. */
@@ -113,11 +186,12 @@ export class LoxoneClient {
   }
 
   private async request(path: string): Promise<{ response: Response; latencyMs: number }> {
+    const base = await this.resolveBaseUrl();
     const startedAt = Date.now();
     let response: Response;
 
     try {
-      response = await fetch(`${this.baseUrl}${path}`, {
+      response = await fetch(`${base}${path}`, {
         method: 'GET',
         headers: {
           Authorization: this.authHeader,
@@ -127,10 +201,15 @@ export class LoxoneClient {
       });
     } catch (error) {
       const isTimeout = error instanceof Error && error.name === 'TimeoutError';
+      // Przy Remote Connect nieudane polaczenie najczesciej znaczy, ze
+      // przydzielony port wygasl — dlatego zapominamy adres i przy kolejnej
+      // probie pytamy chmure od nowa.
+      if (this.cloudSerial) this.cloudUrl = null;
+
       throw new LoxoneNetworkError(
         isTimeout
-          ? `Miniserver ${this.opts.host} nie odpowiedział w ciągu ${this.opts.timeoutMs} ms.`
-          : `Nie mogę się połączyć z Miniserverem ${this.opts.host}.`,
+          ? `Miniserver ${this.baseUrl} nie odpowiedział w ciągu ${this.opts.timeoutMs} ms.`
+          : `Nie mogę się połączyć z Miniserverem ${this.baseUrl}.`,
         error,
       );
     }

@@ -26,6 +26,8 @@ export interface BindOptions {
    * Pochodzi z konfiguracji widoku, nie z rysunku.
    */
   flowFullSpeed: number;
+  /** Czy kanał do serwera żyje — decyduje, kto ocenia przestarzałość. */
+  channelAlive?: boolean;
 }
 
 /** Klasy stanu — dokładnie jedna z nich siedzi na elemencie. */
@@ -55,12 +57,13 @@ function statusOf(
   value: PointValue | undefined,
   staleAfterMs: number,
   now: number,
+  channelAlive: boolean,
 ): Status {
   // Punkt nieznany i punkt zadeklarowany-ale-niepodlaczony wygladaja tak samo
   // na rysunku; roznice widac w konsoli (patrz warnUnknownPoint).
   if (!point || !point.available) return 'not-connected';
   if (!value || value.v === null) return 'no-data';
-  return isStale(value, staleAfterMs, now) ? 'stale' : 'ok';
+  return isStale(value, staleAfterMs, now, channelAlive) ? 'stale' : 'ok';
 }
 
 /**
@@ -83,6 +86,7 @@ function warnUnknownPoint(id: string): void {
 
 export function bindSchema(root: ParentNode, opts: BindOptions): void {
   const { points, values, profile, staleAfterMs, now } = opts;
+  const channelAlive = opts.channelAlive ?? false;
 
   // --- Wartości liczbowe ---------------------------------------------------
   for (const element of root.querySelectorAll<SVGElement>('[data-point]')) {
@@ -92,7 +96,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     const point = points.get(id);
     if (!point) warnUnknownPoint(id);
     const value = values[id];
-    const status = statusOf(point, value, staleAfterMs, now);
+    const status = statusOf(point, value, staleAfterMs, now, channelAlive);
 
     if (status === 'ok' || status === 'stale') {
       const precision = point?.precision ?? 1;
@@ -115,7 +119,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     const point = points.get(id);
     if (!point) warnUnknownPoint(id);
     const value = values[id];
-    const status = statusOf(point, value, staleAfterMs, now);
+    const status = statusOf(point, value, staleAfterMs, now, channelAlive);
     const usable = status === 'ok' || status === 'stale';
     const numeric = usable ? value!.v : null;
 
@@ -139,7 +143,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     const sourceId = element.dataset.flowSource;
     const value = sourceId ? values[sourceId] : undefined;
     const point = sourceId ? points.get(sourceId) : undefined;
-    const status = statusOf(point, value, staleAfterMs, now);
+    const status = statusOf(point, value, staleAfterMs, now, channelAlive);
 
     const flow = status === 'ok' && value?.v !== null ? (value?.v ?? 0) : 0;
 
@@ -165,7 +169,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
 
     const point = points.get(id);
     const value = values[id];
-    const status = statusOf(point, value, staleAfterMs, now);
+    const status = statusOf(point, value, staleAfterMs, now, channelAlive);
 
     if (status === 'ok') {
       setState(element, value!.v === 0 ? 'is-inactive' : 'is-active');
@@ -181,7 +185,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     if (!id) continue;
 
     const value = values[id];
-    const hide = !value || value.v === null || isStale(value, staleAfterMs, now);
+    const hide = !value || value.v === null || isStale(value, staleAfterMs, now, channelAlive);
     element.classList.toggle('is-hidden', hide);
   }
 }

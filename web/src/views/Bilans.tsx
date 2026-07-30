@@ -14,6 +14,8 @@ const METER_IDS = ['METER_POWER', 'METER_ENERGY', 'METER_FLOW', 'METER_T1', 'MET
 export function Bilans({ data }: { data: LiveData }) {
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
   const now = Date.now();
+  // Gdy kanał żyje, o przestarzałości decyduje serwer — patrz isStale().
+  const channelAlive = data.link === 'live';
   const meterPoints = METER_IDS.map((id) => data.points.find((p) => p.id === id)).filter(
     (p): p is NonNullable<typeof p> => Boolean(p),
   );
@@ -95,7 +97,7 @@ export function Bilans({ data }: { data: LiveData }) {
             <tbody>
               {meterPoints.map((point) => {
                 const value = data.values[point.id];
-                const state = pointState(point, value, staleAfterMs, now);
+                const state = pointState(point, value, staleAfterMs, now, channelAlive);
                 return (
                   <tr key={point.id} className={`row is-${state}`}>
                     <td className="mono">{point.id}</td>

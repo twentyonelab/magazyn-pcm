@@ -82,11 +82,24 @@ export function isStale(
   value: PointValue,
   staleAfterMs: number,
   now: number = Date.now(),
+  /**
+   * Czy kanal do serwera zyje.
+   *
+   * DLACZEGO TO ZMIENIA WYNIK: przez SSE ida tylko ZMIENIONE wartosci. Gdy
+   * temperatura stoi (a w magazynie PCM stoi godzinami — na tym polega
+   * plateau), przegladarka nie dostaje odswiezonego znacznika czasu, choc
+   * serwer odczytuje sonde co 5 s i wie, ze wartosc jest swieza.
+   *
+   * Dopoki kanal zyje, o przestarzalosci decyduje wiec SERWER: sam zglasza
+   * punkty, ktore zamilkly. Wlasny licznik wieku wlaczamy tylko wtedy, gdy
+   * stracilismy lacznosc — bo wtedy nikt nas juz nie ostrzeze.
+   */
+  channelAlive = false,
 ): boolean {
   if (!value.ts) return true;
-  // Serwer moze wiedziec o przestarzalosci wiecej niz my (np. blad odczytu
-  // pojedynczego punktu), wiec jego flaga dziala jako dodatkowy warunek.
-  return value.stale || now - new Date(value.ts).getTime() > staleAfterMs;
+  if (value.stale) return true;
+  if (channelAlive) return false;
+  return now - new Date(value.ts).getTime() > staleAfterMs;
 }
 
 /**
@@ -105,10 +118,12 @@ export function pointState(
   value: PointValue | undefined,
   staleAfterMs: number = FALLBACK_STALE_AFTER_MS,
   now: number = Date.now(),
+  /** Czy kanal do serwera zyje — patrz isStale(). */
+  channelAlive = false,
 ): PointState {
   if (!point || !point.available) return 'not-connected';
   if (!value || value.v === null) return 'no-data';
-  return isStale(value, staleAfterMs, now) ? 'stale' : 'ok';
+  return isStale(value, staleAfterMs, now, channelAlive) ? 'stale' : 'ok';
 }
 
 export const POINT_STATE_LABEL: Record<PointState, string> = {

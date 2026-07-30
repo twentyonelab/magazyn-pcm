@@ -54,6 +54,8 @@ export function Magazyn({ data }: { data: LiveData }) {
 
   const pointMap = useMemo(() => new Map(points.map((p) => [p.id, p])), [points]);
   const staleAfterMs = health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
+  // Gdy kanał żyje, o przestarzałości decyduje serwer — patrz isStale().
+  const channelAlive = data.link === 'live';
 
   // Hierarchia: sesja (deklaracja badacza) > rozpoznany zbiornik > podgląd.
   // Nigdy nie zgadujemy zakresu skali w kodzie widoku.
@@ -88,8 +90,9 @@ export function Magazyn({ data }: { data: LiveData }) {
       staleAfterMs,
       now,
       flowFullSpeed: materials?.flowFullSpeed ?? 0.8,
+      channelAlive,
     });
-  }, [pointMap, values, profile, staleAfterMs, now, materials]);
+  }, [pointMap, values, profile, staleAfterMs, now, materials, channelAlive]);
 
   // --- Podpowiedź po najechaniu na sondę -----------------------------------
   useEffect(() => {
@@ -290,7 +293,7 @@ function ProbeCard(props: {
 }) {
   const { point, data, profile, staleAfterMs, now, active, onHover } = props;
   const value = data.values[point.id];
-  const state = pointState(point, value, staleAfterMs, now);
+  const state = pointState(point, value, staleAfterMs, now, data.link === 'live');
   const inBand = profile ? isInPhaseBand(value?.v ?? null, profile) : false;
 
   const swatch =
@@ -327,7 +330,7 @@ function SensorTooltip(props: {
   if (!point) return null;
 
   const value = data.values[id];
-  const state = pointState(point, value, staleAfterMs, now);
+  const state = pointState(point, value, staleAfterMs, now, data.link === 'live');
   const inBand = profile ? isInPhaseBand(value?.v ?? null, profile) : false;
 
   return (
@@ -379,7 +382,7 @@ function FlowNote({
   if (!point) return null;
 
   const value = data.values.METER_FLOW;
-  const state = pointState(point, value, staleAfterMs, now);
+  const state = pointState(point, value, staleAfterMs, now, data.link === 'live');
 
   if (state === 'ok' && (value?.v ?? 0) > 0) {
     return (

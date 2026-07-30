@@ -39,7 +39,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'A1',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: null },
+    uuidByBank: { RT57HC: '210efe36-02bc-63c1-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 1',
     unit: '°C',
     kind: 'temperature',
@@ -52,7 +52,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'A2',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: null },
+    uuidByBank: { RT57HC: '210efe36-02bb-63b1-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 2',
     unit: '°C',
     kind: 'temperature',
@@ -65,7 +65,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'A3',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: null },
+    uuidByBank: { RT57HC: '210efe36-02b7-639e-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 3',
     unit: '°C',
     kind: 'temperature',
@@ -78,7 +78,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'B1',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: null },
+    uuidByBank: { RT57HC: '210efe36-02bc-63c9-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 1',
     unit: '°C',
     kind: 'temperature',
@@ -91,7 +91,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'B2',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: null },
+    uuidByBank: { RT57HC: '210efe36-02ba-63a9-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 2',
     unit: '°C',
     kind: 'temperature',
@@ -104,7 +104,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'B3',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: null },
+    uuidByBank: { RT57HC: '210efe36-02bb-63b9-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 3',
     unit: '°C',
     kind: 'temperature',

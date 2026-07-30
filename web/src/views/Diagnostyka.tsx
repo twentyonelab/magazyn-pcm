@@ -86,7 +86,7 @@ export function Diagnostyka({ data }: { data: LiveData }) {
   // Liczba przestarzalych liczona TU, na biezaco — lista z serwera zamarla by
   // razem z serwerem.
   const staleCount = points.filter(
-    (point) => pointState(point, values[point.id], staleAfterMs, now) === 'stale',
+    (point) => pointState(point, values[point.id], staleAfterMs, now, linkLive) === 'stale',
   ).length;
 
   // Punkty w kolejnosci grup, zeby tabela dala sie czytac.
@@ -204,7 +204,7 @@ export function Diagnostyka({ data }: { data: LiveData }) {
                   </tr>
                   {pointsInGroup.map((point) => {
                     const value = values[point.id];
-                    const state = pointState(point, value, staleAfterMs, now);
+                    const state = pointState(point, value, staleAfterMs, now, linkLive);
                     return (
                       <tr key={point.id} className={`row is-${state}`}>
                         <td className="mono">{point.id}</td>

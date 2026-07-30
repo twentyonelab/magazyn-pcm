@@ -107,8 +107,6 @@ async function main(): Promise<void> {
   }
 
   const pcmPoints = registry.pcmPoints();
-  const pollable = registry.pollablePoints();
-  const pendingUuid = registry.pendingUuidPoints();
 
   // --- Cache, zdrowie, historia -------------------------------------------
   const cache = new ValueCache(cfg.staleAfterMs);
@@ -181,10 +179,16 @@ async function main(): Promise<void> {
         : 'Rejestr punktów nie ma jeszcze UUID-ów dla zestawów.',
     };
 
-  // Material: sesja ma pierwszenstwo (badacz zadeklarowal, co bada),
-  // a gdy sesji nie ma — wykryty zbiornik.
-  const materialId = sessionStore.current()?.material ?? activeBank() ?? DEFAULT_MATERIAL;
-  const material = MATERIALS[materialId];
+  /**
+   * Material: sesja ma pierwszenstwo (badacz zadeklarowal, co bada), a gdy
+   * sesji nie ma — wykryty zbiornik.
+   *
+   * FUNKCJA, nie stala: rozpoznanie zbiornika konczy sie PO tym miejscu,
+   * a zbiornik moze sie tez zmienic w trakcie pracy. Stala wartosc pokazywala
+   * tu parafine domyslna zamiast rzeczywistej — czyli zla skale barwna.
+   */
+  const currentMaterial = () =>
+    MATERIALS[sessionStore.current()?.material ?? activeBank() ?? DEFAULT_MATERIAL];
 
   const healthTracker = new HealthTracker({
     sourceKind,
@@ -205,7 +209,7 @@ async function main(): Promise<void> {
     source = new MockSource({
       points: registry.all().filter((p) => p.available),
       intervalMs: cfg.POLL_INTERVAL_MS,
-      material,
+      material: currentMaterial(),
       logger,
     });
   } else {
@@ -426,8 +430,14 @@ async function main(): Promise<void> {
       `  interwał odczytu     ${cfg.POLL_INTERVAL_MS / 1000} s`,
       `  próg przestarzałości ${cfg.staleAfterMs / 1000} s (${cfg.STALE_FACTOR} × interwał)`,
       `  punkty w magazynie   ${pcmPoints.length}`,
-      `  punkty odpytywane    ${cfg.isMock ? registry.all().filter((p) => p.available).length : pollable.length}`,
-      `  parafina (skala)     ${material.label} · ${material.scaleMin}–${material.scaleMax} °C · przemiana ${material.phaseBandMin}–${material.phaseBandMax} °C`,
+      // Liczone PO detekcji zbiornika — inaczej pokazywalo zero, bo aktywnego
+      // zestawu jeszcze nie znalismy.
+      `  punkty odpytywane    ${
+        cfg.isMock
+          ? registry.all().filter((p) => p.available).length
+          : registry.pollablePoints(activeBank()).length
+      }`,
+      `  parafina (skala)     ${currentMaterial().label} · ${currentMaterial().scaleMin}–${currentMaterial().scaleMax} °C · przemiana ${currentMaterial().phaseBandMin}–${currentMaterial().phaseBandMax} °C`,
       `  zbiornik (zestaw)    ${(() => {
         const state = bankState();
         if (!state.active) return 'nierozpoznany';
@@ -450,11 +460,16 @@ async function main(): Promise<void> {
     ].join('\n'),
   );
 
-  if (!cfg.isMock && pendingUuid.length > 0) {
+  // Liczone PO rozpoznaniu zbiornika: przed detekcja aktywnego zestawu jeszcze
+  // nie znamy, wiec ostrzezenie dotyczylo by nie tego zbiornika i pojawialo sie
+  // mimo poprawnie wpisanych UUID-ow.
+  const pendingForActiveBank = registry.pendingUuidPoints(activeBank());
+
+  if (!cfg.isMock && pendingForActiveBank.length > 0) {
     printFatal(
-      `${pendingUuid.length} punktów nie ma jeszcze przypisanego UUID-a, więc nie da się ich odczytać.`,
+      `${pendingForActiveBank.length} punktów nie ma przypisanego UUID-a dla podłączonego zbiornika, więc nie da się ich odczytać.`,
       [
-        `Punkty: ${pendingUuid.map((p) => p.id).join(', ')}`,
+        `Punkty: ${pendingForActiveBank.map((p) => p.id).join(', ')}`,
         'Podłącz się do sieci laboratorium i uruchom: npm run uuid',
         'Wklej UUID-y do server/src/points.config.ts.',
         'Żeby popracować bez laboratorium, ustaw LOXONE_SOURCE=mock w pliku .env.',
@@ -472,7 +487,9 @@ async function main(): Promise<void> {
           pcmPoints,
           getValue: (id) => cache.get(id),
           health: healthTracker.snapshot(),
-          materialLabel: material.label,
+          // Czytane przy kazdym wydruku: po wymianie zbiornika tabela musi
+          // podpisac sie nowa parafina bez restartu.
+          materialLabel: currentMaterial().label,
         })}\n`,
       );
     };

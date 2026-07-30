@@ -147,8 +147,8 @@ export function Magazyn3D({ data }: { data: LiveData }) {
   const pointMap = useMemo(() => new Map(data.points.map((p) => [p.id, p])), [data.points]);
 
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
-  // Ta sama zasada co w widoku 2D: sesja narzuca material, bez sesji
-  // obowiazuje parafina wybrana przelacznikiem.
+  // Gdy kanał żyje, o przestarzałości decyduje serwer — patrz isStale().
+  const channelAlive = data.link === 'live';
   // Ta sama hierarchia co w 2D; zestaw "unknown" nie jest pewnikiem.
   const detectedBank =
     data.health && data.health.bank.detection !== 'unknown' ? data.health.bank.active : null;
@@ -576,7 +576,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     for (const handle of sensorsRef.current) {
       const point = pointMap.get(handle.pointId);
       const value = data.values[handle.pointId];
-      const state = pointState(point, value, staleAfterMs, now);
+      const state = pointState(point, value, staleAfterMs, now, channelAlive);
       const usable = state === 'ok' || state === 'stale';
       const numeric = usable ? (value?.v ?? null) : null;
 
@@ -595,7 +595,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     for (const device of devicesRef.current) {
       const point = pointMap.get(device.statePoint);
       const value = data.values[device.statePoint];
-      const state = pointState(point, value, staleAfterMs, now);
+      const state = pointState(point, value, staleAfterMs, now, channelAlive);
       const material = device.led.material as THREE.MeshStandardMaterial;
 
       if (state === 'ok') {
