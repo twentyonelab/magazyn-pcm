@@ -11,7 +11,7 @@ import type { ConfigResponse } from '@magazyn-pcm/shared';
 import { fetchConfig } from '../api.js';
 import type { LiveData } from '../useLiveData.js';
 import { GROUP_LABEL, NO_DATA } from '../format.js';
-import { SETTINGS_LABELS, setSetting, useSettings, type UiSettings } from '../settings.js';
+import { SETTINGS_LABELS, setSetting, useSettings, type UiToggleKey } from '../settings.js';
 
 export function Ustawienia({ data }: { data: LiveData }) {
   const settings = useSettings();
@@ -37,7 +37,7 @@ export function Ustawienia({ data }: { data: LiveData }) {
           <p className="card__meta">zapisywane w tej przeglądarce</p>
         </div>
         <div className="toggles">
-          {(Object.keys(SETTINGS_LABELS) as Array<keyof UiSettings>).map((key) => (
+          {(Object.keys(SETTINGS_LABELS) as UiToggleKey[]).map((key) => (
             <label key={key} className="toggle">
               <input
                 type="checkbox"
@@ -106,14 +106,14 @@ export function Ustawienia({ data }: { data: LiveData }) {
       {data.materials ? (
         <section className="card">
           <div className="card__head">
-            <h2 className="card__title">profile materiałów PCM</h2>
+            <h2 className="card__title">profile parafin</h2>
             <p className="card__meta">server/src/materials.config.ts</p>
           </div>
           <div className="table-scroll">
             <table className="table">
               <thead>
                 <tr>
-                  <th>materiał</th>
+                  <th>parafina</th>
                   <th className="num">skala barwna</th>
                   <th className="num">pasmo przemiany</th>
                   <th className="num">ciepło utajone</th>

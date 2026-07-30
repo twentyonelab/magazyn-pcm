@@ -19,6 +19,7 @@ import { createRegistry, RegistryError } from './registry.js';
 import { ValueCache } from './cache.js';
 import { HealthTracker } from './health.js';
 import { registerApi } from './api/routes.js';
+import { registerAuth } from './auth.js';
 import { renderPcmTable } from './console-view.js';
 import { NdjsonHistoryStore } from './history/ndjson-store.js';
 import { SqliteHistoryStore } from './history/sqlite-store.js';
@@ -292,6 +293,16 @@ async function main(): Promise<void> {
 
   const getSession = (): Session | null => sessionStore.currentAsSession();
 
+  // Brama logowania rejestruje sie PRZED endpointami, zeby jej hook
+  // obejmowal takze SSE. Bez tego strumien wartosci wyciekalby bez hasla.
+  await registerAuth(app, {
+    enabled: cfg.AUTH_ENABLED,
+    passwordHash: cfg.AUTH_PASSWORD_HASH,
+    sessionDays: cfg.AUTH_SESSION_DAYS,
+    dataDir: path.dirname(cfg.historyDbAbs),
+    logger,
+  });
+
   await registerApi(app, {
     registry,
     cache,
@@ -324,7 +335,7 @@ async function main(): Promise<void> {
       `  próg przestarzałości ${cfg.staleAfterMs / 1000} s (${cfg.STALE_FACTOR} × interwał)`,
       `  punkty w magazynie   ${pcmPoints.length}`,
       `  punkty odpytywane    ${cfg.isMock ? registry.all().filter((p) => p.available).length : pollable.length}`,
-      `  materiał (skala)     ${material.label} · ${material.scaleMin}–${material.scaleMax} °C · przemiana ${material.phaseBandMin}–${material.phaseBandMax} °C`,
+      `  parafina (skala)     ${material.label} · ${material.scaleMin}–${material.scaleMax} °C · przemiana ${material.phaseBandMin}–${material.phaseBandMax} °C`,
       `  historia             ${
         cfg.HISTORY_ENABLED
           ? `${history.kind} → ${cfg.HISTORY_BACKEND === 'sqlite' ? cfg.historyDbAbs : cfg.historyDirAbs}`

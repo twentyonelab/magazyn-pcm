@@ -19,6 +19,43 @@ import type {
 const SERVER_DOWN =
   'Nie mogę połączyć się z serwerem aplikacji. Sprawdź, czy jest uruchomiony (npm run dev).';
 
+/**
+ * Rzucane, gdy serwer odpowiada 401. Osobny typ, zeby warstwa danych mogla
+ * pokazac ekran logowania, a nie komunikat o awarii — brak sesji to nie blad.
+ */
+export class WymaganeLogowanie extends Error {
+  constructor() {
+    super('Wymagane logowanie.');
+    this.name = 'WymaganeLogowanie';
+  }
+}
+
+export interface AuthState {
+  required: boolean;
+  loggedIn: boolean;
+}
+
+export function fetchAuthState(): Promise<AuthState> {
+  return getJson<AuthState>('/api/auth');
+}
+
+export async function login(password: string): Promise<void> {
+  const response = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+
+  if (response.ok) return;
+
+  const body = (await response.json().catch(() => null)) as { error?: string } | null;
+  throw new Error(body?.error ?? 'Nie udało się zalogować.');
+}
+
+export async function logout(): Promise<void> {
+  await fetch('/api/logout', { method: 'POST' });
+}
+
 async function getJson<T>(path: string): Promise<T> {
   let response: Response;
 
@@ -28,6 +65,11 @@ async function getJson<T>(path: string): Promise<T> {
     // Sieciowy blad fetch znaczy w praktyce jedno: serwera nie ma.
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     throw new Error(SERVER_DOWN);
+  }
+
+  // Brak sesji to nie awaria — osobny typ bledu prowadzi do ekranu logowania.
+  if (response.status === 401) {
+    throw new WymaganeLogowanie();
   }
 
   // 502/503/504 to typowa odpowiedz posrednika, gdy serwer nie odpowiada.

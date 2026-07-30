@@ -56,6 +56,13 @@ const schema = z.object({
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
     .default('info'),
   CONSOLE_TABLE: booleanFromEnv(true),
+
+  // --- Dostep do aplikacji -------------------------------------------------
+  // Domyslnie wylaczone: w sieci laboratorium logowanie tylko przeszkadza.
+  // Wlaczamy, gdy aplikacja ma byc widoczna z zewnatrz.
+  AUTH_ENABLED: booleanFromEnv(false),
+  AUTH_PASSWORD_HASH: z.string().default(''),
+  AUTH_SESSION_DAYS: numberFromEnv(30, 1, 365),
 });
 
 export type RawConfig = z.infer<typeof schema>;

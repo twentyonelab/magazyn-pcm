@@ -13,9 +13,10 @@ import { Przebiegi } from './views/Przebiegi.js';
 import { Sesje } from './views/Sesje.js';
 import { Bilans } from './views/Bilans.js';
 import { Ustawienia } from './views/Ustawienia.js';
-import { formatClock } from './format.js';
+import { formatClock, materialLabel } from './format.js';
 import { useSettings } from './settings.js';
 import { BladWidoku } from './components/BladWidoku.js';
+import { Logowanie } from './components/Logowanie.js';
 
 /**
  * Widok 3D wczytywany na żądanie.
@@ -76,6 +77,12 @@ export function App() {
   const data = useLiveData();
   const settings = useSettings();
 
+  // Brama logowania. Gdy serwer jej nie wymaga (praca w sieci laboratorium),
+  // ten ekran nie pojawia sie ani na moment.
+  if (data.link === 'unauthorized') {
+    return <Logowanie onSuccess={data.reload} />;
+  }
+
   // Widok 3D da sie wylaczyc w opcjach — takze wtedy, gdy jest otwarty.
   const views = VIEWS.filter((item) => item.id !== 'magazyn3d' || settings.widok3d);
   const activeView = views.some((item) => item.id === view) ? view : 'magazyn';
@@ -124,7 +131,10 @@ export function App() {
           <h1>{views.find((v) => v.id === activeView)?.label}</h1>
           <p className="page-sub">
             {data.session
-              ? `Sesja: ${data.session.label} · materiał ${data.session.material}`
+              ? `Sesja: ${data.session.label} · parafina ${materialLabel(
+                  data.session.material,
+                  data.materials,
+                )}`
               : 'Żadna sesja badawcza nie jest uruchomiona'}
           </p>
         </div>

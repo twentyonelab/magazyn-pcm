@@ -9,6 +9,7 @@
     "uuid": "tsx src/scripts/fetch-uuids.ts",
     "baza": "tsx src/scripts/db-summary.ts",
     "przerwy": "tsx src/scripts/gaps.ts",
+    "haslo": "tsx src/scripts/set-password.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

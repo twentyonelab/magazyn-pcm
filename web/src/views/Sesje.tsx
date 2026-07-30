@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { PcmMaterial, SessionRecord } from '@magazyn-pcm/shared';
 import { addSessionEvent, endSession, fetchCurrentSession, fetchSessions, startSession } from '../api.js';
 import type { LiveData } from '../useLiveData.js';
-import { formatClock } from '../format.js';
+import { formatClock, materialLabel } from '../format.js';
 
 /** Podpowiedzi znacznikow — jedno dotkniecie zamiast pisania w rekawicach. */
 const QUICK_EVENTS = ['napełniono', 'start ładowania', 'start rozładowania', 'zauważono kawernę'];
@@ -96,7 +96,7 @@ export function Sesje({ data }: { data: LiveData }) {
           <div className="session-summary">
             <p className="session-summary__label">{current.label}</p>
             <p className="session-summary__meta">
-              materiał <strong>{current.material}</strong>
+              parafina <strong>{materialLabel(current.material, data.materials)}</strong>
               {current.note ? <> · {current.note}</> : null}
             </p>
           </div>
@@ -174,7 +174,7 @@ export function Sesje({ data }: { data: LiveData }) {
             }}
           >
             <label className="field">
-              <span>materiał w zbiorniku</span>
+              <span>parafina w zbiorniku</span>
               <select value={material} onChange={(e) => setMaterial(e.target.value as PcmMaterial)}>
                 {data.materials
                   ? Object.values(data.materials.profiles).map((p) => (
@@ -224,10 +224,16 @@ export function Sesje({ data }: { data: LiveData }) {
             </button>
           </form>
 
+          <p className="session-form__hint">
+            Od parafiny zależy skala barwna i pasmo przemiany na wszystkich wykresach, więc
+            od niej zależy, czy z ekranu da się cokolwiek wyczytać. Wybór zapisze się razem
+            z danymi tej sesji.
+          </p>
+
           {data.health?.sourceKind === 'mock' ? (
             <p className="session-form__hint">
-              Źródło syntetyczne symuluje materiał wybrany przy starcie serwera — po rozpoczęciu
-              sesji z innym materiałem zrestartuj serwer, żeby liczby trafiły we właściwy zakres.
+              Źródło syntetyczne symuluje parafinę wybraną przy starcie serwera — po rozpoczęciu
+              sesji z inną zrestartuj serwer, żeby liczby trafiły we właściwy zakres.
             </p>
           ) : null}
         </section>
@@ -249,7 +255,7 @@ export function Sesje({ data }: { data: LiveData }) {
                 <summary>
                   <span className="session-item__label">{record.label}</span>
                   <span className="session-item__meta mono">
-                    {record.material} · {formatDate(record.startedAt)} ·{' '}
+                    {materialLabel(record.material, data.materials)} · {formatDate(record.startedAt)} ·{' '}
                     {formatDuration(record.startedAt, record.endedAt)} · {record.events.length}{' '}
                     zdarzeń
                   </span>

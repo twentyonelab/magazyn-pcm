@@ -29,7 +29,7 @@ import { extractScene, type Scene, type SvgBox } from '../schema/extractScene.js
 import type { LiveData } from '../useLiveData.js';
 import { FALLBACK_STALE_AFTER_MS, NO_DATA, formatValue, pointState } from '../format.js';
 import { isInPhaseBand, temperatureFill } from '../scale.js';
-import { getSettings } from '../settings.js';
+import { getSettings, useSettings } from '../settings.js';
 
 /* --- Stałe scenografii ---------------------------------------------------- */
 
@@ -128,6 +128,7 @@ interface DeviceHandle {
 }
 
 export function Magazyn3D({ data }: { data: LiveData }) {
+  const settings = useSettings();
   const hostRef = useRef<HTMLDivElement>(null);
   // Stany poczatkowe z opcji aplikacji; przyciski w widoku dzialaja dalej.
   const [autoRotate, setAutoRotate] = useState(() => getSettings().obrot3d);
@@ -146,8 +147,12 @@ export function Magazyn3D({ data }: { data: LiveData }) {
   const pointMap = useMemo(() => new Map(data.points.map((p) => [p.id, p])), [data.points]);
 
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
+  // Ta sama zasada co w widoku 2D: sesja narzuca material, bez sesji
+  // obowiazuje parafina wybrana przelacznikiem.
+  const activeMaterial = data.session?.material ?? settings.parafinaPodgladu;
   const profile: MaterialProfile | null = data.materials
-    ? data.materials.profiles[data.session?.material ?? data.materials.defaultMaterial]
+    ? (data.materials.profiles[activeMaterial] ??
+      data.materials.profiles[data.materials.defaultMaterial])
     : null;
 
   /* --- Budowa sceny, raz ------------------------------------------------- */

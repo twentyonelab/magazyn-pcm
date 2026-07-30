@@ -9,7 +9,13 @@
  *     odswiezeniu (razem z `font-variant-numeric: tabular-nums` w CSS).
  */
 
-import type { PointValue, PublicPoint, SourceStatus } from '@magazyn-pcm/shared';
+import type {
+  MaterialsResponse,
+  PcmMaterial,
+  PointValue,
+  PublicPoint,
+  SourceStatus,
+} from '@magazyn-pcm/shared';
 
 export const NO_DATA = '—';
 
@@ -120,6 +126,25 @@ export const SOURCE_STATUS_LABEL: Record<SourceStatus, string> = {
   auth_error: 'logowanie odrzucone',
   error: 'błąd',
 };
+
+/**
+ * Nazwa materialu dla czlowieka.
+ *
+ * Identyfikator w danych to RT8HC / RT57HC (klucz w zapisanych sesjach,
+ * nie zmieniamy go), ale na ekranie NIGDY nie pokazujemy nazwy producenta —
+ * wylacznie oznaczenie parafiny: "8HC", "57HC". Ta funkcja jest jedynym
+ * miejscem, w ktorym to tlumaczenie zachodzi.
+ */
+export function materialLabel(
+  material: PcmMaterial | null | undefined,
+  materials: MaterialsResponse | null,
+): string {
+  if (!material) return NO_DATA;
+  const fromConfig = materials?.profiles[material]?.label;
+  if (fromConfig) return fromConfig;
+  // Awaryjnie, gdy konfiguracja jeszcze nie doszla: odetnij prefiks producenta.
+  return material.replace(/^RT/i, '');
+}
 
 /** Grupy punktow po polsku — do naglowkow w tabeli. */
 export const GROUP_LABEL: Record<string, string> = {

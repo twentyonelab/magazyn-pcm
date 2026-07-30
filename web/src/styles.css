@@ -463,6 +463,125 @@ code {
   padding: 0.15rem 0.6rem;
 }
 
+/* =========================================================================
+   EKRAN LOGOWANIA
+   ========================================================================= */
+
+.gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.gate__card {
+  width: 100%;
+  max-width: 22rem;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: clamp(1.5rem, 5vw, 2.25rem);
+  display: grid;
+  gap: 0.9rem;
+}
+
+.gate__title {
+  margin: 0.2rem 0 0.6rem;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.gate__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--bad-ink);
+  background: var(--bad-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+}
+
+.gate__note {
+  margin: 0.2rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/* --- Przelacznik parafiny -------------------------------------------------- */
+
+.parafina {
+  display: grid;
+  gap: 0.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.parafina__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.parafina__title {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.parafina__lock {
+  font-size: 0.68rem;
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.parafina__switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  background: var(--surface-sunken);
+  padding: 0.25rem;
+  border-radius: 999px;
+}
+
+.parafina__option {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 0.45rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.parafina__option:hover:not(:disabled):not(.is-active) {
+  color: var(--ink);
+}
+
+.parafina__option.is-active {
+  background: var(--ink);
+  color: #f7f7f5;
+}
+
+.parafina__option:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.parafina__note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
 /* Legenda skali z zaznaczonym pasmem przemiany. */
 .legend {
   display: grid;

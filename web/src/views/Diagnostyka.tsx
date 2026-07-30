@@ -30,6 +30,9 @@ const LINK_LABEL: Record<LinkState, string> = {
   live: 'na żywo',
   reconnecting: 'ponawiam połączenie',
   error: 'brak połączenia',
+  // Ten stan przechwytuje App i pokazuje ekran logowania, wiec tutaj
+  // praktycznie nie da sie go zobaczyc — etykieta istnieje dla kompletnosci.
+  unauthorized: 'wymagane logowanie',
 };
 
 /** Zegar odliczajacy wiek wartosci — inaczej kolumna "wiek" stalaby w miejscu. */

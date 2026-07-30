@@ -134,8 +134,11 @@ kodowanie UTF-8, żeby polskie znaki i `°C` wyświetlały się poprawnie.
   czytany z tego samego pliku schematu
 - Widok **Przebiegi**: wykres historii z pasmem przemiany i znacznikami
   zdarzeń sesji, tabela statystyk, eksport CSV
-- Widok **Sesje**: start/koniec sesji badawczej, materiał, notatki, znaczniki
+- Widok **Sesje**: start/koniec sesji badawczej, parafina, notatki, znaczniki
   zdarzeń („napełniono", „start ładowania", „zauważono kawernę")
+- Przełącznik parafiny **8HC / 57HC** — decyduje o skali barwnej i pasmie
+  przemiany; w trakcie sesji zablokowany, bo parafina należy do sesji
+- Logowanie do aplikacji (domyślnie wyłączone, na dostęp z zewnątrz)
 - Widok **Bilans**: świadoma zaślepka — mówi, czego brakuje (mapa rejestrów
   Modbus, zasilanie 24 VDC) i policzy COP, gdy ciepłomierz zacznie raportować
 - Widok **Diagnostyka**: stany łączności, surowe wartości, punkty przestarzałe
@@ -285,6 +288,38 @@ ciągłe — zamiast zakładać, że było.
 > kilkudniowy. Do wielotygodniowych zostaw w laboratorium tani mini-PC albo
 > Raspberry Pi na stałe: nie ma pokrywy, nie ma baterii, nie ma pytania,
 > czy ktoś go nie zabrał na spotkanie.
+
+### Dostęp z zewnątrz i logowanie
+
+W sieci laboratorium aplikacja **nie ma logowania** — celowo, bo dodatkowy ekran
+przed danymi dostępnymi tylko z LAN byłby przeszkodą bez zysku. Zanim udostępnisz
+ją z zewnątrz (tunel, publiczny adres IP), **włącz bramę**:
+
+```bash
+npm run haslo -- "twoje hasło"
+```
+
+Skrypt wypisze dwie linie do wklejenia w `.env`. Hasła nie zapisujemy nigdzie —
+w pliku trafia wyłącznie hash `scrypt`, z którego nie da się go odtworzyć.
+Przy dostępie po HTTPS dodaj jeszcze `AUTH_COOKIE_SECURE=true`.
+
+Co brama obejmuje i dlaczego tak:
+
+- **Całe `/api`, także strumień SSE.** Gdyby chronione były tylko zwykłe
+  endpointy, strumień wartości oddawałby wszystkie pomiary bez hasła.
+- **Jedno hasło, nie konta użytkowników.** Stanowisko obsługuje dwuosobowe
+  studio; baza użytkowników z rolami byłaby tu aparaturą bez zastosowania.
+- **Token sesji jest podpisany, nie przechowywany.** Restart serwera w trakcie
+  tygodniowego testu nikogo nie wylogowuje.
+- **Opóźnienie po nieudanej próbie rośnie wykładniczo** (1 s, 2 s, 4 s… do 60 s)
+  osobno dla każdego adresu. Nie blokujemy na stałe — odcięcie sobie dostępu
+  do własnych danych w środku testu byłoby gorsze niż samo zgadywanie.
+- **Zbieranie danych działa niezależnie od logowania.** Serwer odpytuje
+  Miniserver i zapisuje pomiary także wtedy, gdy nikt nie patrzy.
+
+> Nawet przełamanie tej bramy nie daje sterowania instalacją — aplikacja
+> fizycznie nie potrafi wysłać komendy do Loxone. Logowanie chroni dane
+> badawcze i metadane sesji.
 
 #### Sieć laboratorium: router z kartą SIM
 

@@ -7,7 +7,15 @@
 
 import { useSyncExternalStore } from 'react';
 
+import type { PcmMaterial } from '@magazyn-pcm/shared';
+
 export interface UiSettings {
+  /**
+   * Parafina wybrana do PODGLADU, gdy zadna sesja badawcza nie trwa.
+   * Gdy sesja trwa, material pochodzi z niej i to ustawienie jest ignorowane
+   * — material jest atrybutem sesji, nie preferencja przegladarki.
+   */
+  parafinaPodgladu: PcmMaterial;
   /** Zakladka Magazyn 3D w nawigacji (Three.js dociaga sie na zadanie). */
   widok3d: boolean;
   /** Domyslny automatyczny obrot kamery w 3D. */
@@ -20,7 +28,10 @@ export interface UiSettings {
   zdarzeniaNaWykresie: boolean;
 }
 
-export const SETTINGS_LABELS: Record<keyof UiSettings, { label: string; hint: string }> = {
+/** Klucze, ktore sa zwyklymi przelacznikami tak/nie. */
+export type UiToggleKey = Exclude<keyof UiSettings, 'parafinaPodgladu'>;
+
+export const SETTINGS_LABELS: Record<UiToggleKey, { label: string; hint: string }> = {
   widok3d: {
     label: 'Widok Magazyn 3D',
     hint: 'Zakładka z trójwymiarową sceną. Wyłącz na słabszym sprzęcie — moduł 3D nie zostanie nawet pobrany.',
@@ -44,6 +55,7 @@ export const SETTINGS_LABELS: Record<keyof UiSettings, { label: string; hint: st
 };
 
 const DEFAULTS: UiSettings = {
+  parafinaPodgladu: 'RT57HC',
   widok3d: true,
   obrot3d: true,
   podpisy3d: true,

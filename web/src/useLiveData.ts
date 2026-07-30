@@ -29,10 +29,10 @@ import type {
   PublicPoint,
   Session,
 } from '@magazyn-pcm/shared';
-import { fetchMaterials, fetchPoints, fetchSnapshot } from './api.js';
+import { WymaganeLogowanie, fetchMaterials, fetchPoints, fetchSnapshot } from './api.js';
 
 /** Stan lacznosci PRZEGLADARKA -> SERWER (nie serwer -> Miniserver). */
-export type LinkState = 'connecting' | 'live' | 'reconnecting' | 'error';
+export type LinkState = 'connecting' | 'live' | 'reconnecting' | 'error' | 'unauthorized';
 
 export interface LiveData {
   points: PublicPoint[];
@@ -146,6 +146,8 @@ export function useLiveData(): LiveData {
         signal,
       });
 
+      if (response.status === 401) throw new WymaganeLogowanie();
+
       if (!response.ok || !response.body) {
         throw new Error(`Strumień odrzucony (HTTP ${response.status})`);
       }
@@ -190,6 +192,14 @@ export function useLiveData(): LiveData {
           await consumeStream(controller.signal);
         } catch (caught) {
           if (!aliveRef.current) return;
+
+          // Wygasla sesja: nie ma sensu ponawiac w petli — trzeba sie zalogowac.
+          // Wyjscie z petli oddaje decyzje warstwie wyzej (ekran logowania).
+          if (caught instanceof WymaganeLogowanie) {
+            setLink('unauthorized');
+            setError(null);
+            return;
+          }
 
           attempt += 1;
           const aborted = controller.signal.aborted;

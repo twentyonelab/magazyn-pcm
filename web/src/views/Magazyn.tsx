@@ -26,7 +26,8 @@ import {
   pointState,
 } from '../format.js';
 import { isInPhaseBand, phaseBandBounds, rampColor, temperatureFill } from '../scale.js';
-import { useSettings } from '../settings.js';
+import { setSetting, useSettings } from '../settings.js';
+import { PrzelacznikParafiny } from '../components/PrzelacznikParafiny.js';
 
 const ZOOM_STEP = 0.15;
 const ZOOM_MIN = 0.6;
@@ -54,10 +55,11 @@ export function Magazyn({ data }: { data: LiveData }) {
   const pointMap = useMemo(() => new Map(points.map((p) => [p.id, p])), [points]);
   const staleAfterMs = health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
 
-  // Materiał należy do SESJI. Gdy żadna nie trwa, bierzemy domyślny
-  // z konfiguracji serwera — nigdy nie zgadujemy zakresu skali w kodzie widoku.
+  // Materiał należy do SESJI. Gdy żadna nie trwa, obowiązuje parafina wybrana
+  // przełącznikiem w panelu — nigdy nie zgadujemy zakresu skali w kodzie widoku.
+  const activeMaterial = session?.material ?? settings.parafinaPodgladu;
   const profile: MaterialProfile | null = materials
-    ? materials.profiles[session?.material ?? materials.defaultMaterial]
+    ? (materials.profiles[activeMaterial] ?? materials.profiles[materials.defaultMaterial])
     : null;
 
   // --- Wstrzyknięcie rysunku, raz ------------------------------------------
@@ -113,6 +115,13 @@ export function Magazyn({ data }: { data: LiveData }) {
           <span className="panel__count">{pcmPoints.length}</span>
         </div>
 
+        <PrzelacznikParafiny
+          materials={materials}
+          fromSession={session?.material ?? null}
+          preview={settings.parafinaPodgladu}
+          onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
+        />
+
         {profile ? <PhaseLegend profile={profile} /> : null}
 
         <div className="probes">
@@ -145,7 +154,7 @@ export function Magazyn({ data }: { data: LiveData }) {
         {profile ? (
           <div className="panel__foot">
             <p className="panel__footline">
-              <span>materiał</span>
+              <span>parafina</span>
               <strong>{profile.label}</strong>
             </p>
             <p className="panel__footline">

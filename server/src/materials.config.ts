@@ -10,10 +10,16 @@
 
 import type { MaterialProfile, PcmMaterial } from '@magazyn-pcm/shared';
 
+/**
+ * NAZEWNICTWO: identyfikatory (RT8HC / RT57HC) sa kluczami w danych — siedza
+ * w zapisanych sesjach i nie zmieniamy ich, dokladnie tak jak identyfikatorow
+ * punktow. Do CZLOWIEKA mowi wylacznie pole `label`, a tam nazwa producenta
+ * sie nie pojawia: na ekranie i w raportach widac "8HC" i "57HC".
+ */
 export const MATERIALS: Record<PcmMaterial, MaterialProfile> = {
   RT8HC: {
     id: 'RT8HC',
-    label: 'Rubitherm RT8HC',
+    label: '8HC',
     scaleMin: 0,
     scaleMax: 20,
     phaseBandMin: 7,
@@ -24,7 +30,7 @@ export const MATERIALS: Record<PcmMaterial, MaterialProfile> = {
   },
   RT57HC: {
     id: 'RT57HC',
-    label: 'Rubitherm RT57HC',
+    label: '57HC',
     scaleMin: 40,
     scaleMax: 75,
     phaseBandMin: 55,
