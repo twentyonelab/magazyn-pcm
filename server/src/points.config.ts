@@ -22,8 +22,11 @@ export const POINTS: readonly PointDef[] = [
   // Magazyn PCM — 6 sond Loxone 200077 (DS18B20) zanurzonych w materiale.
   // Siatka: dwie przekatne A i B, po trzy poziomy.
   //
-  // Poziom 1 = dol zbiornika (zalozenie specyfikacji, otwarte pytanie nr 1).
-  // Jesli w rzeczywistosci jest odwrotnie, zmien WYLACZNIE pole `level`.
+  // POTWIERDZONE 2026-07-29 (Krzysztof): poziom 1 = dol zbiornika,
+  // 2 = srodek, 3 = gora. Na kazdym poziomie A i B to sondy na dwoch
+  // roznych przekatnych zbiornika. To zamyka otwarte pytanie nr 1 ze
+  // specyfikacji — historia pomiarow jest do tego przypisania przywiazana,
+  // wiec pol `level` i `diagonal` nie zmieniamy bez powodu.
   // -------------------------------------------------------------------------
   {
     id: 'A1',

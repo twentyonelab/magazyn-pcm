@@ -19,6 +19,7 @@
     "start": "npm run start --workspace=server",
     "uuid": "npm run uuid --workspace=server",
     "baza": "npm run baza --workspace=server",
+    "przerwy": "npm run przerwy --workspace=server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
   },

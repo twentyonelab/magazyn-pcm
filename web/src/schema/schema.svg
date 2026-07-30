@@ -36,8 +36,10 @@
     UKŁAD SOND — dlaczego dwa pionowe pręty, a nie krzyż:
     sondy siedzą na dwóch prętach ustawionych po PRZEKĄTNYCH ZBIORNIKA
     (widok z góry), a każdy pręt ma trzy sondy na trzech wysokościach.
+    Na każdym poziomie A i B to sondy na dwóch różnych przekątnych.
     W przekroju widać więc dwa pręty obok siebie. Wstawka w prawym dolnym
     narożniku pokazuje ich rzeczywiste położenie w rzucie z góry.
+    Poziom 1 = dół, 2 = środek, 3 = góra (potwierdzone 2026-07-29).
   -->
 
   <defs>
@@ -272,7 +274,7 @@
       <text class="rod__label" x="1066" y="580">przekątna B</text>
     </g>
 
-    <!-- Poziomy: 3 górny, 2 środek, 1 dolny (założenie specyfikacji). -->
+    <!-- Poziomy: 3 górny, 2 środek, 1 dolny. Potwierdzone 2026-07-29. -->
     <g class="levels">
       <text class="level__label" x="762" y="216">3</text>
       <text class="level__label" x="762" y="356">2</text>

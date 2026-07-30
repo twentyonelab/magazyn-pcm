@@ -5,6 +5,8 @@ dist/
 
 # Dane pomiarowe i zrzuty z Miniservera — nie trafiaja do repozytorium
 data/
+# Kopie zapasowe danych (narzedzia/kopia-danych.cmd bez argumentu)
+kopie/
 *.log
 
 .DS_Store

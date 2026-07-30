@@ -31,10 +31,13 @@ export type PointGroup =
   | 'ambient'
   | 'actuator';
 
-/** Pozycja sondy w zbiorniku: dwie przekatne x trzy poziomy. */
+/**
+ * Pozycja sondy w zbiorniku: dwie przekatne x trzy poziomy.
+ * Na kazdym poziomie A i B leza na DWOCH ROZNYCH przekatnych zbiornika.
+ */
 export interface PointGeometry {
   diagonal: 'A' | 'B';
-  /** 1 = dol zbiornika, 3 = gora. Patrz otwarte pytanie nr 1 w specyfikacji. */
+  /** 1 = dol zbiornika, 2 = srodek, 3 = gora. Potwierdzone 2026-07-29. */
   level: 1 | 2 | 3;
 }
 

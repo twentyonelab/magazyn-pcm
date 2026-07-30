@@ -51,8 +51,10 @@ do prętów pozycjonujących.
 | `B2` | B | 2 (środek) | |
 | `B3` | B | 3 (górny) | |
 
-> **Do potwierdzenia:** czy poziom 1 to dół zbiornika. Spec zakłada, że tak.
-> Jeśli odwrotnie, zmień wyłącznie pole `level` w rejestrze punktów.
+> **POTWIERDZONE 2026-07-29 (Krzysztof):** poziom 1 = dół zbiornika,
+> 2 = środek, 3 = góra. Na każdym poziomie `A` i `B` to sondy na dwóch
+> **różnych przekątnych** zbiornika. Otwarte pytanie nr 1 z sekcji 12
+> jest zamknięte — historia pomiarów jest do tego przypisania przywiązana.
 
 **Cykl odpytywania 1-Wire:** 15 s na sondę, magistrala odpytywana sekwencyjnie.
 Realne odświeżanie wartości: kilkanaście sekund. Aplikacja nie może zakładać

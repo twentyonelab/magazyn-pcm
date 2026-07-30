@@ -175,6 +175,85 @@ Skala barwna i pasmo przemiany pochodzą z profilu materiału
 w [`server/src/materials.config.ts`](server/src/materials.config.ts) — nie
 z kodu widoku. Zmiana zakresu to zmiana jednej liczby w konfiguracji.
 
+### Zbieranie danych bez przerw
+
+Uśpiony laptop nie odpytuje Miniservera. Każde uśpienie to **dziura
+w danych badawczych**, a dziura nie zgłasza się sama — zostaje w bazie i wychodzi
+dopiero przy analizie. Poniżej cztery kroki, żeby zbierać dane także przy
+zamkniętej pokrywie.
+
+**1. Zasilanie.** Podłącz laptopa do zasilacza i uruchom (dwuklik):
+
+```
+narzedzia\zasilanie-tryb-pomiarowy.cmd
+```
+
+Skrypt pokazuje, co zmieni, i czeka na potwierdzenie. Ustawia: uśpienie
+i hibernacja **nigdy**, zamknięcie pokrywy **nic nie rób** — wszystko tylko
+na zasilaczu, na baterii nic się nie zmienia. Ekran dalej gaśnie po 10 minutach,
+bo to nie przerywa pracy. Po zakończeniu testu przywróć zwykłe ustawienia:
+`narzedzia\zasilanie-tryb-zwykly.cmd`.
+
+**2. Sieć.** Karta Wi-Fi bywa usypiana niezależnie od reszty komputera.
+Menedżer urządzeń → karta sieciowa → Właściwości → Zarządzanie energią →
+odznacz „Zezwalaj komputerowi na wyłączanie tego urządzenia". W laboratorium
+najpewniejszy jest **kabel Ethernet** — jedno mniej źródło przerw.
+
+**3. Autostart.** Żeby zbieranie wstawało samo:
+
+```
+narzedzia\autostart-wlacz.cmd
+```
+
+Wkłada skrót do folderu Autostart — nie wymaga uprawnień administratora.
+Ograniczenie, które trzeba znać: po restarcie komputera (na przykład po
+aktualizacji Windows) zbieranie ruszy dopiero **po zalogowaniu**. Jeśli test
+ma przeżyć restart bez obecnosci człowieka, zarejestruj zadanie systemowe —
+w terminalu **uruchomionym jako administrator**:
+
+```bash
+schtasks /create /tn "Magazyn PCM - zbieranie" /tr "\"C:\Users\kbogo\dev\magazyn-pcm\narzedzia\zbieranie.cmd\"" /sc onstart /ru SYSTEM /rl HIGHEST /f
+```
+
+Usunięcie: `schtasks /delete /tn "Magazyn PCM - zbieranie" /f`.
+
+Do samego zbierania (bez przeładowywania po zmianie plików, z automatycznym
+podniesieniem serwera po awarii) służy:
+
+```
+narzedzia\zbieranie.cmd
+```
+
+**4. Sprawdź, czy zadziałało.** Po dobie:
+
+```bash
+npm run przerwy
+```
+
+Skrypt wypisuje wszystkie przerwy w danych, ich długość i **dostępność
+w procentach**. To jedyny sposób, żeby wiedzieć, że zbieranie naprawdę było
+ciągłe — zamiast zakładać, że było.
+
+> **Uczciwie o granicach.** Laptop z zamkniętą pokrywą wystarczy na test
+> kilkudniowy. Do wielotygodniowych zostaw w laboratorium tani mini-PC albo
+> Raspberry Pi na stałe: nie ma pokrywy, nie ma baterii, nie ma pytania,
+> czy ktoś go nie zabrał na spotkanie.
+
+### Kopia zapasowa danych
+
+Baza pomiarów i plik sesji leżą na jednym dysku lokalnym i celowo **nie są
+w repozytorium** (to dane, nie kod). Dla wielotygodniowego testu jedyny
+egzemplarz to żaden egzemplarz:
+
+```
+narzedzia\kopia-danych.cmd "G:\Mój dysk\kopie magazyn PCM"
+```
+
+Bez argumentu kopiuje do katalogu `kopie\` w projekcie. Bazę kopiuje
+poleceniem SQLite `.backup`, nie zwykłym kopiowaniem pliku — w trybie WAL
+część świeżych zapisów siedzi w pliku `-wal`, więc skopiowanie samego `.db`
+mogłoby dać bazę bez ostatnich pomiarów.
+
 ### Podglądanie zebranych danych
 
 ```bash

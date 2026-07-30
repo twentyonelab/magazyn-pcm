@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "uuid": "tsx src/scripts/fetch-uuids.ts",
     "baza": "tsx src/scripts/db-summary.ts",
+    "przerwy": "tsx src/scripts/gaps.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
