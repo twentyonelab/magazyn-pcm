@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Jezyk wizualny — patrz docs/DESIGN-LANGUAGE.md.
  *
  * Jasne cieple tlo, czarna gruba typografia, jeden zolty akcent,
@@ -125,11 +125,30 @@ code {
 }
 
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1.5rem;
   padding: 1.1rem clamp(1rem, 4vw, 3rem);
-  flex-wrap: wrap;
+}
+
+/* Menu wyśrodkowane wobec EKRANU, nie wobec resztki miejsca po logo.
+   Gdyby pastylka była zwykłym elementem flexa, jej środek przesuwałby się
+   przy każdej zmianie szerokości logo albo nazwy. */
+.topbar__center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+}
+
+/* Przełącznik motywu wisi za prawą krawędzią pastylki — poza nią,
+   i bez wpływu na jej wyśrodkowanie. */
+.topbar__center .theme-toggle {
+  position: absolute;
+  left: 100%;
+  margin-left: 0.6rem;
 }
 
 .topbar__right {
@@ -140,9 +159,33 @@ code {
 }
 
 .topbar__logo {
-  height: 26px;
+  height: 34px;
   width: auto;
   display: block;
+}
+
+/* Wąskie ekrany: absolutne wyśrodkowanie nie ma gdzie się zmieścić,
+   więc nagłówek wraca do zwykłego, zawijanego układu. */
+@media (max-width: 1100px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .topbar__center {
+    position: static;
+    left: auto;
+    transform: none;
+    gap: 0.6rem;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .topbar__center .theme-toggle {
+    position: static;
+    left: auto;
+    margin-left: 0;
+  }
 }
 
 .theme-toggle {
@@ -217,6 +260,44 @@ code {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Zielona pulsująca dioda — dopisek do słowa „live".
+   Migotanie jest tu treścią, nie ozdobą: zamarła kropka znaczy, że obraz
+   stanął, nawet jeśli napis nadal twierdzi, że wszystko działa. */
+.statusbar__led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok-ink);
+  box-shadow: 0 0 0 0 var(--ok-ink);
+  animation: statusled 1.8s ease-out infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes statusled {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok-ink) 55%, transparent);
+    opacity: 1;
+  }
+  70% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ok-ink) 0%, transparent);
+    opacity: 0.55;
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok-ink) 0%, transparent);
+    opacity: 1;
+  }
+}
+
+/* Kto wyłączył animacje w systemie, ten dostaje kropkę statyczną. */
+@media (prefers-reduced-motion: reduce) {
+  .statusbar__led {
+    animation: none;
+  }
 }
 
 .statusbar__field.is-ok .statusbar__value {
@@ -352,6 +433,13 @@ code {
   padding: clamp(0.5rem, 2vw, 1.5rem) clamp(1rem, 4vw, 3rem) 4rem;
   max-width: 1400px;
   margin: 0 auto;
+  /* `.main` jest elementem flexa, więc domyślne `min-width: auto` pozwoliłoby
+     mu puchnąć pod szerokość dziecka. Przy schemacie na 100vw robiło to
+     błędne koło: dziecko rozpychało `.main`, a wtedy „margin-left: 50%"
+     liczyło się od już rozepchniętej szerokości i wyjście z marginesów
+     znosiło się do zera. */
+  min-width: 0;
+  width: 100%;
 }
 
 .page-head {
@@ -565,52 +653,6 @@ code {
    WIDOK MAGAZYN
    ========================================================================= */
 
-.magazyn {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  gap: 1.25rem;
-  align-items: start;
-}
-
-@media (max-width: 1080px) {
-  .magazyn {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* --- Panel sond ----------------------------------------------------------- */
-
-.panel {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: 1.25rem;
-  display: grid;
-  gap: 1.1rem;
-}
-
-.panel__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.panel__title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.panel__count {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  color: var(--ink-soft);
-  background: var(--surface-sunken);
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-}
-
 /* =========================================================================
    EKRAN LOGOWANIA
    ========================================================================= */
@@ -679,7 +721,8 @@ code {
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.75rem 1.25rem;
-  padding: 0.85rem 1.25rem;
+  /* Górny zapas robi miejsce dla liczby średniej nad paskiem skali. */
+  padding: 1.35rem 1.25rem 0.85rem;
   text-align: left;
 }
 
@@ -744,6 +787,53 @@ code {
   box-shadow:
     inset 0 0 0 2px var(--ink),
     0 0 0 2px var(--surface);
+}
+
+/* Kreska średniej z sond magazynu.
+   Pasmo przemiany jest ramką (obwódką), więc średnia musi być czymś innego
+   rodzaju — pionową kreską przecinającą pasek na wylot. Inaczej dwa
+   oznaczenia zlałyby się w jeden nieczytelny prostokąt. */
+.bandbar__avg {
+  position: absolute;
+  top: -7px;
+  bottom: -7px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+
+/* W pasmie przemiany kreska zmienia się w akcent — to najważniejszy moment
+   badania i ma być widoczny bez czytania liczby. */
+.bandbar__avg.is-phase {
+  background: var(--accent);
+  width: 3px;
+  margin-left: -1.5px;
+}
+
+/* Średnia poza zakresem skali: kreska przerywana, żeby nie udawała odczytu
+   z pozycji, na której stoi. */
+.bandbar__avg.is-off {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--ink-faint) 0 3px,
+    transparent 3px 6px
+  );
+}
+
+.bandbar__avg-value {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 3px);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  white-space: nowrap;
 }
 
 .bandbar__phase {
@@ -930,118 +1020,6 @@ code {
   color: var(--ink);
 }
 
-.probes {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.probes__label {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-faint);
-}
-
-.probes__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
-}
-
-.probe {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.6rem;
-  border-radius: var(--radius-sm);
-  background: var(--surface-sunken);
-  cursor: default;
-  transition: box-shadow 120ms ease;
-}
-
-.probe.is-hovered {
-  box-shadow: 0 0 0 2px var(--accent);
-}
-
-.probe__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  background: var(--hairline);
-  box-shadow: inset 0 0 0 1px rgba(13, 31, 20, 0.12);
-}
-
-.probe__id {
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-}
-
-.probe__value {
-  font-size: 0.92rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-.probe.is-stale .probe__value {
-  color: var(--warn-ink);
-}
-
-.probe.is-no-data .probe__value,
-.probe.is-not-connected .probe__value {
-  color: var(--ink-faint);
-}
-
-.probe__phase,
-.probe__warn {
-  grid-column: 1 / -1;
-  font-size: 0.68rem;
-  letter-spacing: 0.03em;
-}
-
-.probe__phase {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.probe__warn {
-  color: var(--warn-ink);
-}
-
-.probe.is-phase {
-  background: #fff;
-  box-shadow: inset 0 0 0 2px var(--ink);
-}
-
-.probe.is-phase.is-hovered {
-  box-shadow:
-    inset 0 0 0 2px var(--ink),
-    0 0 0 2px var(--accent);
-}
-
-.panel__foot {
-  border-top: 1px solid var(--hairline);
-  padding-top: 0.85rem;
-  display: grid;
-  gap: 0.35rem;
-}
-
-.panel__footline {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--ink-soft);
-}
-
-.panel__footline strong {
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-/* --- Płótno ze schematem -------------------------------------------------- */
-
 .canvas {
   position: relative;
   background: var(--surface);
@@ -1049,6 +1027,54 @@ code {
   box-shadow: var(--shadow);
   padding: 1rem;
   min-height: 420px;
+}
+
+/* =========================================================================
+   WIDOK MAGAZYN — schemat na całą szerokość
+   =========================================================================
+   Schemat instalacji jest tu głównym obiektem, nie kartą wśród innych kart:
+   dostaje więc pełną szerokość okna i traci papier pod spodem. `.main`
+   ogranicza treść do 1400 px i dodaje marginesy — z tego trzeba wyjść.
+
+   Wychodzi CAŁY widok, nie sam schemat. Gdyby rozpychał się tylko schemat,
+   pociągnąłby za sobą szerokość kolumny siatki, a wtedy pasek przemiany
+   rozjechałby się razem z nim — sprawdzone. Pasek dostaje więc z powrotem
+   swoje marginesy osobno. */
+
+.magazyn-widok {
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50vw);
+}
+
+/* Pasek przemiany wraca do szerokości treści i zostaje wyśrodkowany. */
+/* `justify-self`, a nie „margin-inline: auto" — widok jest siatką, a element
+   siatki o zadanej szerokości nie wyśrodkuje się samymi marginesami. */
+.magazyn-widok .bandbar {
+  width: min(1400px, 100% - 2 * clamp(1rem, 4vw, 3rem));
+  justify-self: center;
+}
+
+.magazyn-widok .canvas {
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* Narzędzia powiększenia trzymamy przy prawej krawędzi okna, ale z zapasem —
+   przy pełnej szerokości „right: 1.25rem" wypadałoby poza pole widzenia. */
+.magazyn-widok .canvas__tools {
+  right: clamp(1rem, 4vw, 3rem);
+  top: 0;
+}
+
+/* 100vw liczy się razem z pionowym paskiem przewijania, więc pełna szerokość
+   zawsze wystaje o jego grubość. Obcinamy tę nadwyżkę — `clip`, nie `hidden`,
+   bo `hidden` zrobiłby z tego kontener przewijania i zabrałby przyklejenie
+   dolnemu paskowi stanu. */
+.app {
+  overflow-x: clip;
 }
 
 .canvas__scroll {
@@ -1229,15 +1255,6 @@ code {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
-}
-
-/* Karta sondy jest teraz przyciskiem — kasujemy domyślny wygląd przycisku. */
-.probe {
-  font: inherit;
-  text-align: left;
-  border: 0;
-  cursor: pointer;
-  width: 100%;
 }
 
 /* Podpowiedź nad sondą — jak nakładane karty w referencji. */

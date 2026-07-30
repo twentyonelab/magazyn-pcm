@@ -80,6 +80,11 @@ export function App() {
           <span className="brand__dot">.</span>
         </div>
 
+        {/* Pastylka menu jest wyśrodkowana wobec całego ekranu, a nie wobec
+            tego, co zostało po logo — dlatego siedzi w osobnym, absolutnie
+            pozycjonowanym opakowaniu. Przełącznik motywu wisi tuż za jej
+            prawą krawędzią, już poza pastylką, i nie przesuwa jej środka. */}
+        <div className="topbar__center">
         <nav className="nav" aria-label="Widoki">
           {views.map((item) => (
             <button
@@ -108,12 +113,18 @@ export function App() {
           ))}
         </nav>
 
-        <div className="topbar__right">
           <PrzelacznikMotywu />
+        </div>
+
+        <div className="topbar__right">
           {/* Logo w dwóch wersjach — ciemne na jasnym tle i odwrotnie. */}
           <img
             className="topbar__logo"
-            src={theme === 'dark' ? '/logo-21zmyslow-jasne.svg' : '/logo-21zmyslow-ciemne.svg'}
+            src={
+              theme === 'dark'
+                ? '/logo-21zmyslow-ciemnytryb.webp'
+                : '/logo-21zmyslow-jasnytryb.webp'
+            }
             alt="21 zmysłów"
           />
         </div>

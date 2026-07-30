@@ -160,12 +160,14 @@ export interface PointDef {
 | `B1` | Magazyn · przekątna B · poziom 1 | °C | temperature | pcm | ✅ |
 | `B2` | Magazyn · przekątna B · poziom 2 | °C | temperature | pcm | ✅ |
 | `B3` | Magazyn · przekątna B · poziom 3 | °C | temperature | pcm | ✅ |
-| `METER_FLOW` | Ciepłomierz · przepływ | m³/h | flow | meter | ❌ |
-| `METER_POWER` | Ciepłomierz · moc | kW | power | meter | ❌ |
-| `METER_ENERGY` | Ciepłomierz · energia | kWh | energy | meter | ❌ |
-| `METER_T1` | Ciepłomierz · zasilanie | °C | temperature | meter | ❌ |
-| `METER_T2` | Ciepłomierz · powrót | °C | temperature | meter | ❌ |
-| `METER_DT` | Ciepłomierz · ΔT | K | delta | meter | ❌ |
+| `METER_FLOW` | Ciepłomierz · przepływ | m³/h | flow | meter | ✅ |
+| `METER_POWER` | Ciepłomierz · moc | kW | power | meter | ✅ |
+| `METER_ENERGY_HEAT` | Ciepłomierz · energia grzania | — ¹ | energy | meter | ✅ |
+| `METER_ENERGY_COOL` | Ciepłomierz · energia chłodzenia | — ¹ | energy | meter | ✅ |
+| `METER_T1` | Ciepłomierz · zasilanie | °C | temperature | meter | ✅ |
+| `METER_T2` | Ciepłomierz · powrót | °C | temperature | meter | ✅ |
+| `METER_DT` | Ciepłomierz · ΔT | K | delta | meter | ✅ |
+| `METER_ERROR` | Ciepłomierz · kod błędu | — | state | meter | ✅ |
 | `BUFFER_TOP` | Bufor · góra | °C | temperature | buffer | ❌ |
 | `BUFFER_BOTTOM` | Bufor · dół | °C | temperature | buffer | ❌ |
 | `HP_STATE` | Pompa ciepła · praca | — | state | heatpump | ❌ |
@@ -175,6 +177,23 @@ export interface PointDef {
 
 Punkty z `available: false` muszą się renderować jako **wyraźnie nieaktywne** —
 nie jako zero i nie jako puste. Zero na wykresie temperatury to kłamstwo.
+
+**Ciepłomierz — podłączony 2026-07-30.** Modbus RTU czyta Miniserver i wystawia
+odczyty jako kontrolki `InfoOnlyAnalog` o nazwach `ZRODLO_*`. Po stronie
+aplikacji są to więc zwykłe punkty pomiarowe, a mapa rejestrów Modbus przestała
+być potrzebna — cała wiedza o rejestrach siedzi w Loxone Config.
+
+¹ **Jednostka energii nieznana.** Loxone deklaruje dla obu liczników energii
+format `%.3f` bez jednostki (dla pozostałych punktów jednostki są: `m³/h`,
+`kW`, `°C`, `K`). Dopóki nie jest ustawiona w Loxone Config, pokazujemy samą
+liczbę bez podpisu — zamiast zgadywać między kWh a MWh.
+
+**Otwarte: oba kanały energii pokazują tę samą wartość co ΔT.** Odczyt
+2026-07-30: `ZRODLO_Energia_Grzania` = `ZRODLO_Energia_Chlodzenia` = `-0.41`,
+przy `ZRODLO_dT` = `-0.41 K`. Licznik energii nie może być ujemny ani
+identyczny dla grzania i chłodzenia, więc najprawdopodobniej oba rejestry
+energii są w Loxone Config wpięte pod rejestr różnicy temperatur. Do
+sprawdzenia po stronie konfiguracji Modbusa.
 
 ---
 

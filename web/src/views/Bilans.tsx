@@ -9,7 +9,16 @@
 import type { LiveData } from '../useLiveData.js';
 import { NO_DATA, formatValue, pointState, FALLBACK_STALE_AFTER_MS, POINT_STATE_LABEL } from '../format.js';
 
-const METER_IDS = ['METER_POWER', 'METER_ENERGY', 'METER_FLOW', 'METER_T1', 'METER_T2', 'METER_DT'];
+const METER_IDS = [
+  'METER_POWER',
+  'METER_ENERGY_HEAT',
+  'METER_ENERGY_COOL',
+  'METER_FLOW',
+  'METER_T1',
+  'METER_T2',
+  'METER_DT',
+  'METER_ERROR',
+];
 
 export function Bilans({ data }: { data: LiveData }) {
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;

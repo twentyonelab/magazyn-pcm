@@ -12,8 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MaterialProfile, PublicPoint } from '@magazyn-pcm/shared';
-import { LEVELS_TOP_DOWN, LEVEL_LABELS } from '@magazyn-pcm/shared';
+import type { MaterialProfile } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { bindSchema } from '../schema/bindSchema.js';
 import type { LiveData } from '../useLiveData.js';
@@ -25,7 +24,7 @@ import {
   formatValue,
   pointState,
 } from '../format.js';
-import { isInPhaseBand, temperatureFill } from '../scale.js';
+import { isInPhaseBand } from '../scale.js';
 import { setSetting, useSettings } from '../settings.js';
 import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
 import { PanelElementu } from '../components/PanelElementu.js';
@@ -159,8 +158,18 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const pcmPoints = points.filter((p) => p.group === 'pcm' && p.geometry);
   const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
 
+  // Średnia z sond magazynu — jedna liczba opisująca stan zbiornika,
+  // zaznaczana kreską na pasku przemiany. Liczymy tylko z sond, które
+  // NAPRAWDĘ mają odczyt: brak danych to null, nie zero, więc wliczenie
+  // takiej sondy ściągnęłoby średnią w stronę zera i skłamało o zbiorniku.
+  const pcmValues = pcmPoints
+    .map((p) => values[p.id]?.v)
+    .filter((v): v is number => typeof v === 'number');
+  const averageC =
+    pcmValues.length > 0 ? pcmValues.reduce((sum, v) => sum + v, 0) / pcmValues.length : null;
+
   return (
-    <div className="stack">
+    <div className="stack magazyn-widok">
       {/* Pasek skali z pasmem przemiany — centralnie pod menu, rozwijany. */}
       <PasekPrzemiany
         profile={profile}
@@ -170,47 +179,8 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
         preview={settings.parafinaPodgladu}
         onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
         volumesL={materials?.volumesL}
+        averageC={averageC}
       />
-
-      <div className="magazyn">
-      {/* ------------------------- Panel sond ------------------------- */}
-      <aside className="panel">
-        <div className="panel__head">
-          <h2 className="panel__title">Sondy w magazynie</h2>
-          <span className="panel__count">{pcmPoints.length}</span>
-        </div>
-
-        <div className="probes">
-          {LEVELS_TOP_DOWN.map((level) => (
-            <div className="probes__level" key={level}>
-              <p className="probes__label">
-                poziom {level} · {LEVEL_LABELS[level]}
-              </p>
-              <div className="probes__row">
-                {pcmPoints
-                  .filter((p) => p.geometry?.level === level)
-                  .sort((a, b) => (a.geometry!.diagonal < b.geometry!.diagonal ? -1 : 1))
-                  .map((point) => (
-                    <ProbeCard
-                      key={point.id}
-                      point={point}
-                      data={data}
-                      profile={profile}
-                      staleAfterMs={staleAfterMs}
-                      now={now}
-                      active={hovered === point.id || selected === point.id}
-                      onHover={setHovered}
-                      onSelect={() =>
-                        setSelected((current) => (current === point.id ? null : point.id))
-                      }
-                    />
-                  ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-      </aside>
 
       {/* ------------------------- Schemat ------------------------- */}
       {/* Wylaczenie animacji w opcjach zatrzymuje ruch kreski na rurach —
@@ -282,51 +252,10 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
           />
         ) : null}
       </section>
-      </div>
     </div>
   );
 }
 
-
-/* ------------------------------------------------------------------------- */
-
-function ProbeCard(props: {
-  point: PublicPoint;
-  data: LiveData;
-  profile: MaterialProfile | null;
-  staleAfterMs: number;
-  now: number;
-  active: boolean;
-  onHover: (id: string | null) => void;
-  onSelect: () => void;
-}) {
-  const { point, data, profile, staleAfterMs, now, active, onHover, onSelect } = props;
-  const value = data.values[point.id];
-  const state = pointState(point, value, staleAfterMs, now, data.link === 'live');
-  const inBand = profile ? isInPhaseBand(value?.v ?? null, profile) : false;
-
-  const swatch =
-    profile && (state === 'ok' || state === 'stale')
-      ? temperatureFill(value?.v ?? null, profile)
-      : undefined;
-
-  return (
-    <button
-      type="button"
-      className={`probe is-${state}${active ? ' is-hovered' : ''}${inBand ? ' is-phase' : ''}`}
-      onMouseEnter={() => onHover(point.id)}
-      onMouseLeave={() => onHover(null)}
-      onClick={onSelect}
-      title={`${point.label} — kliknij, żeby zobaczyć historię`}
-    >
-      <span className="probe__swatch" style={swatch ? { background: swatch } : undefined} />
-      <span className="probe__id mono">{point.id}</span>
-      <span className="probe__value mono">{value ? formatValue(value, point) : NO_DATA}</span>
-      {inBand ? <span className="probe__phase">przemiana</span> : null}
-      {state === 'stale' ? <span className="probe__warn">przestarzałe</span> : null}
-    </button>
-  );
-}
 
 /* ------------------------------------------------------------------------- */
 

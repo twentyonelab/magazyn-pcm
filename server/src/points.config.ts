@@ -117,73 +117,107 @@ export const POINTS: readonly PointDef[] = [
   // -------------------------------------------------------------------------
   // Cieplomierz AXIOMA QALCOSONIC E4 (Modbus RTU).
   //
-  // available: false — brakuje mapy rejestrow Modbus
-  // ("Modbus RTU Slave Module for Qalcosonic E3/E4"). Bez niej adresy
-  // rejestrow sa nieznane.
+  // PODLACZONY 2026-07-30. Modbus czyta Miniserver, ktory wystawia odczyty
+  // jako kontrolki InfoOnlyAnalog o nazwach ZRODLO_*. Znaczy to, ze mapy
+  // rejestrow Modbus NIE POTRZEBUJEMY — po naszej stronie to zwykle punkty
+  // jak sondy temperatury. Cala wiedza o rejestrach siedzi w Loxone Config.
   //
-  // Pamietaj tez: na samej baterii licznik udostepnia Modbusa tylko 80 s
+  // Jednostki bierzemy z formatow zadeklarowanych w Loxone (%.3f m³/h,
+  // %.2f kW, %.1f °C, %.2f K), a nie z domyslow — inaczej podpisalibysmy os
+  // wykresu czyms, czego licznik nie mierzy.
+  //
+  // Pamietaj: na samej baterii licznik udostepnia Modbusa tylko 80 s
   // na godzine. Musi byc zasilony zewnetrznie z 24 VDC.
   // -------------------------------------------------------------------------
   {
     id: 'METER_FLOW',
-    uuid: null,
+    uuid: '210f76e2-02a8-42e3-ffff86611eeca57b', // ZRODLO_Przeplyw
     label: 'Ciepłomierz · przepływ',
     unit: 'm³/h',
     kind: 'flow',
     group: 'meter',
     precision: 3,
-    available: false,
+    available: true,
   },
   {
     id: 'METER_POWER',
-    uuid: null,
+    uuid: '210f769d-0255-3151-ffff86611eeca57b', // ZRODLO_Moc
     label: 'Ciepłomierz · moc',
     unit: 'kW',
     kind: 'power',
     group: 'meter',
     precision: 2,
-    available: false,
+    available: true,
   },
   {
-    id: 'METER_ENERGY',
-    uuid: null,
-    label: 'Ciepłomierz · energia',
-    unit: 'kWh',
+    // Dwa osobne liczniki energii, bo licznik rozdziela grzanie i chlodzenie.
+    // Sumowanie ich w jedna liczbe zatarloby kierunek przeplywu ciepla —
+    // przy badaniu magazynu to wlasnie kierunek jest wynikiem.
+    //
+    // JEDNOSTKA NIEZADEKLAROWANA: Loxone podaje dla tych dwoch kontrolek
+    // format "%.3f" bez jednostki, wiec nie wiemy, czy to kWh, czy MWh.
+    // Dopoki nie wiemy, nie podpisujemy — pusty `unit` pokazuje sama liczbe.
+    id: 'METER_ENERGY_HEAT',
+    uuid: '210f77a3-034c-7345-ffff86611eeca57b', // ZRODLO_Energia_Grzania
+    label: 'Ciepłomierz · energia grzania',
+    unit: '',
     kind: 'energy',
     group: 'meter',
-    precision: 2,
-    available: false,
+    precision: 3,
+    available: true,
+  },
+  {
+    id: 'METER_ENERGY_COOL',
+    uuid: '210f77af-0286-7d8f-ffff86611eeca57b', // ZRODLO_Energia_Chlodzenia
+    label: 'Ciepłomierz · energia chłodzenia',
+    unit: '',
+    kind: 'energy',
+    group: 'meter',
+    precision: 3,
+    available: true,
   },
   {
     id: 'METER_T1',
-    uuid: null,
+    uuid: '210f7702-032b-4d09-ffff86611eeca57b', // ZRODLO_T_zasilanie
     label: 'Ciepłomierz · zasilanie',
     unit: '°C',
     kind: 'temperature',
     group: 'meter',
     precision: 1,
-    available: false,
+    available: true,
   },
   {
     id: 'METER_T2',
-    uuid: null,
+    uuid: '210f7726-0029-59bd-ffff86611eeca57b', // ZRODLO_T_powrot
     label: 'Ciepłomierz · powrót',
     unit: '°C',
     kind: 'temperature',
     group: 'meter',
     precision: 1,
-    available: false,
+    available: true,
   },
   {
     // Ponizej 3 K licznik nie sumuje energii i zglasza kod bledu 4.
     id: 'METER_DT',
-    uuid: null,
+    uuid: '210f774a-017e-63ef-ffff86611eeca57b', // ZRODLO_dT
     label: 'Ciepłomierz · ΔT',
     unit: 'K',
     kind: 'delta',
     group: 'meter',
     precision: 2,
-    available: false,
+    available: true,
+  },
+  {
+    // Kod bledu licznika. Trzymamy go jako punkt, a nie jako ukryta flage,
+    // bo to on tlumaczy, dlaczego energia nie rosnie (kod 4 = ΔT ponizej 3 K).
+    id: 'METER_ERROR',
+    uuid: '210f77bf-031e-8553-ffff86611eeca57b', // ZRODLO_Blad
+    label: 'Ciepłomierz · kod błędu',
+    unit: '',
+    kind: 'state',
+    group: 'meter',
+    precision: 0,
+    available: true,
   },
 
   // -------------------------------------------------------------------------

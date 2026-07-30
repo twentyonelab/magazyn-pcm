@@ -8,17 +8,19 @@
  */
 
 import type { LiveData, LinkState } from '../useLiveData.js';
-import {
-  NO_DATA,
-  SOURCE_STATUS_LABEL,
-  formatClock,
-  formatUptime,
-  materialLabel,
-} from '../format.js';
+import { NO_DATA, SOURCE_STATUS_LABEL, formatClock, formatUptime } from '../format.js';
 
+/**
+ * Podpisy obu łączy na pasku.
+ *
+ * Stan poprawny nazywa się „live" — krótko i tak samo dla obu łączy, żeby
+ * jednym spojrzeniem dało się porównać, czy działają oba. Stany nienormalne
+ * zostają po polsku i rozpisane, bo wtedy trzeba wiedzieć CO nie działa.
+ * W widoku Diagnostyka opisy pozostają pełne — tam nie chodzi o skrót.
+ */
 const LINK_LABEL: Record<LinkState, string> = {
   connecting: 'łączę się',
-  live: 'na żywo',
+  live: 'live',
   reconnecting: 'ponawiam',
   error: 'brak połączenia',
   unauthorized: 'wymagane logowanie',
@@ -28,15 +30,21 @@ function Pole({
   label,
   value,
   tone,
+  /** Zielona pulsująca kropka — tylko gdy łącze naprawdę żyje. */
+  pulse = false,
 }: {
   label: string;
   value: string;
   tone?: 'ok' | 'warn' | 'bad';
+  pulse?: boolean;
 }) {
   return (
     <div className={`statusbar__field${tone ? ` is-${tone}` : ''}`}>
       <span className="statusbar__label">{label}</span>
-      <span className="statusbar__value mono">{value}</span>
+      <span className="statusbar__value mono">
+        {pulse ? <span className="statusbar__led" aria-hidden="true" /> : null}
+        {value}
+      </span>
     </div>
   );
 }
@@ -60,7 +68,8 @@ export function PasekStanu({ data }: { data: LiveData }) {
           ? 'bad'
           : 'warn';
 
-  const staleCount = health?.staleIds.length ?? 0;
+  // Miniserver odpowiada poprawnie — wtedy i tylko wtedy pulsuje kropka.
+  const sourceLive = live && health?.source === 'ok';
 
   return (
     <footer className="statusbar" aria-label="Stan systemu">
@@ -72,35 +81,25 @@ export function PasekStanu({ data }: { data: LiveData }) {
         </span>
       </div>
 
-      <Pole label="przeglądarka → serwer" value={LINK_LABEL[link]} tone={linkTone} />
+      <Pole
+        label="przeglądarka → serwer"
+        value={LINK_LABEL[link]}
+        tone={linkTone}
+        pulse={live}
+      />
 
       <Pole
         label="serwer → Miniserver"
-        value={!live ? 'nieznany' : health ? SOURCE_STATUS_LABEL[health.source] : NO_DATA}
+        value={
+          !live ? 'nieznany' : sourceLive ? 'live' : health ? SOURCE_STATUS_LABEL[health.source] : NO_DATA
+        }
         tone={sourceTone}
+        pulse={sourceLive}
       />
 
       <Pole
         label="opóźnienie"
         value={!live || !health || health.latencyMs === null ? NO_DATA : `${health.latencyMs} ms`}
-      />
-
-      <Pole
-        label="zbiornik"
-        value={
-          !health || !health.bank.active
-            ? 'nierozpoznany'
-            : health.bank.detection === 'auto'
-              ? materialLabel(health.bank.active, data.materials)
-              : `${materialLabel(health.bank.active, data.materials)}*`
-        }
-        tone={health?.bank.detection === 'auto' ? undefined : 'warn'}
-      />
-
-      <Pole
-        label="przestarzałe"
-        value={String(staleCount)}
-        tone={staleCount > 0 ? 'warn' : undefined}
       />
 
       <Pole

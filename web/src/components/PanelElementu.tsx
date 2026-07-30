@@ -52,9 +52,19 @@ const ELEMENTS: Record<string, ElementInfo> = {
   meter: {
     title: 'Ciepłomierz',
     subtitle: 'AXIOMA QALCOSONIC E4 · ultradźwiękowy, certyfikacja MID',
-    pointIds: ['METER_T1', 'METER_T2', 'METER_DT', 'METER_FLOW', 'METER_POWER', 'METER_ENERGY'],
+    pointIds: [
+      'METER_T1',
+      'METER_T2',
+      'METER_DT',
+      'METER_FLOW',
+      'METER_POWER',
+      'METER_ENERGY_HEAT',
+      'METER_ENERGY_COOL',
+      'METER_ERROR',
+    ],
     notes: [
-      'Brakuje mapy rejestrów Modbus („Modbus RTU Slave Module for Qalcosonic E3/E4") — bez niej adresy rejestrów są nieznane.',
+      'Modbus czyta Miniserver i wystawia odczyty jako kontrolki ZRODLO_* — po naszej stronie to zwykłe punkty pomiarowe, więc mapa rejestrów nie jest już potrzebna.',
+      'Loxone nie deklaruje jednostki dla obu liczników energii, dlatego pokazujemy samą liczbę bez podpisu. Po ustawieniu jednostki w Loxone Config dopiszemy ją tutaj.',
       'Na samej baterii licznik udostępnia Modbusa tylko 80 sekund na godzinę. Odczyt ciągły wymaga zasilania zewnętrznego 24 VDC.',
       'Poniżej ΔT = 3 K licznik nie sumuje energii i zgłasza kod błędu 4 — przy małych różnicach temperatur bilans będzie zaniżony z przyczyn metrologicznych.',
     ],
