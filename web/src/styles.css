@@ -1847,61 +1847,107 @@ code {
   margin: 0;
 }
 
-/* --- Znaczniki na mapie --------------------------------------------------- */
+/* --- Pinezki na mapie ----------------------------------------------------- */
 
-.mapmark {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
+/* Kropla z oczkiem w środku — kształt pinezki robi obrócony kwadrat
+   z trzema zaokrąglonymi narożnikami. Wierzchołek wskazuje współrzędną
+   (marker zaczepiony `anchor: 'bottom'`). */
+.pinezka {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.15rem;
   white-space: nowrap;
+  font: inherit;
 }
 
-.mapmark.is-live {
-  cursor: pointer;
+.pinezka__ksztalt {
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 8px rgba(13, 31, 20, 0.35);
 }
 
-/* Punkt pokazowy daje podpowiedź, ale nie udaje, że da się w niego wejść.
-   Mapbox ustawia własny kursor na znaczniku, stąd `!important`. */
-.mapmark.is-demo {
-  cursor: default !important;
-}
-
-.mapmark__dot {
-  width: 11px;
-  height: 11px;
+.pinezka__oczko {
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  flex: 0 0 auto;
-  box-shadow: 0 0 0 2px var(--surface);
+  transform: rotate(45deg);
 }
 
-/* Stanowisko badawcze — jedyny punkt, który coś znaczy, więc jedyny w kolorze. */
-.mapmark.is-live .mapmark__dot,
-.mapmark__dot.is-live {
+/* Stanowisko badawcze — jedyny punkt, który coś znaczy, więc jedyny w kolorze
+   i jedyny większy. */
+.pinezka.is-live .pinezka__ksztalt {
   background: var(--ok-ink);
+  width: 32px;
+  height: 32px;
+}
+
+.pinezka.is-live .pinezka__oczko {
+  background: #fff;
+}
+
+.pinezka.is-live {
+  cursor: pointer;
+  z-index: 2;
 }
 
 /* Punkty pokazowe: wyszarzone i mniejsze. Mają być tłem dla tego jednego,
    nie konkurencją dla niego. */
-.mapmark.is-demo .mapmark__dot,
-.mapmark__dot.is-demo {
+.pinezka.is-demo .pinezka__ksztalt {
   background: var(--ink-faint);
-  width: 8px;
-  height: 8px;
-  opacity: 0.55;
+  opacity: 0.6;
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 2px 5px rgba(13, 31, 20, 0.25);
+}
+
+.pinezka.is-demo .pinezka__oczko {
+  background: var(--surface);
+  width: 6px;
+  height: 6px;
+}
+
+/* Punkt pokazowy pokazuje dymek, ale nie udaje, że da się w niego wejść.
+   Mapbox ustawia własny kursor na znaczniku, stąd `!important`. */
+.pinezka.is-demo {
+  cursor: default !important;
 }
 
 /* Pulsowanie znaczy „dane płyną" — ten sam sygnał co na pasku stanu
    i przy zegarze. Jeden język: zamarła kropka = obraz stanął. */
-.mapmark.is-plynie .mapmark__dot,
-.mapmark__dot.is-plynie {
-  animation: statusled 1.8s ease-out infinite;
+.pinezka.is-plynie .pinezka__ksztalt {
+  animation: pinpuls 1.9s ease-out infinite;
 }
 
-.mapmark__label {
+@keyframes pinpuls {
+  0% {
+    box-shadow:
+      0 3px 8px rgba(13, 31, 20, 0.35),
+      0 0 0 0 color-mix(in srgb, var(--ok-ink) 50%, transparent);
+  }
+  70% {
+    box-shadow:
+      0 3px 8px rgba(13, 31, 20, 0.35),
+      0 0 0 14px color-mix(in srgb, var(--ok-ink) 0%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 3px 8px rgba(13, 31, 20, 0.35),
+      0 0 0 0 color-mix(in srgb, var(--ok-ink) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinezka.is-plynie .pinezka__ksztalt {
+    animation: none;
+  }
+}
+
+.pinezka__podpis {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--ink);
@@ -1910,19 +1956,80 @@ code {
   padding: 0 0.25rem;
 }
 
-.mapmark.is-demo .mapmark__label {
+.pinezka.is-demo .pinezka__podpis {
   font-weight: 500;
   color: var(--ink-faint);
   background: none;
 }
 
-.mapmark.is-live .mapmark__label {
-  font-size: 0.8rem;
+.pinezka.is-live .pinezka__podpis {
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
-.mapmark.is-live:hover .mapmark__label {
+.pinezka.is-live:hover .pinezka__podpis {
   color: var(--accent);
+}
+
+/* --- Dymki --------------------------------------------------------------- */
+
+/* Mapbox rysuje dymek z własnym białym tłem i ostrzem. Przemalowujemy oba,
+   żeby w trybie ciemnym nie świeciły. */
+.dymek .mapboxgl-popup-content {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.75rem;
+}
+
+.dymek .mapboxgl-popup-tip {
+  border-top-color: var(--surface);
+  border-bottom-color: var(--surface);
+}
+
+.dymek__nazwa {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dymek__opis {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  white-space: normal;
+}
+
+.dymek__akcja {
+  margin: 0.4rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ok-ink);
+}
+
+/* --- Kropki w legendzie -------------------------------------------------- */
+
+.legenda__kropka {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.legenda__kropka.is-live {
+  background: var(--ok-ink);
+}
+
+.legenda__kropka.is-demo {
+  background: var(--ink-faint);
+  opacity: 0.6;
+  width: 8px;
+  height: 8px;
+}
+
+.legenda__kropka.is-plynie {
+  animation: statusled 1.8s ease-out infinite;
 }
 
 /* Mapbox wstawia własne kontrolki z jasnym tłem — w trybie ciemnym trzeba je

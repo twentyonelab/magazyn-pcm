@@ -5,14 +5,15 @@
  * Na mapie Śląska jest jedno stanowisko z czujnikami i dwadzieścia punktów
  * pokazowych. Kliknięcie w to jedno prawdziwe wchodzi do widoku Magazyn.
  *
- * Punkty pokazowe są wyszarzone i NIE DAJĄ SIĘ kliknąć — celowo. Gdyby dały
- * się otworzyć i pokazały pusty ekran, wyglądałyby na zepsute czujniki
- * zamiast na to, czym są.
+ * MAPA JEST TRÓJWYMIAROWA — styl Mapbox Standard, motyw „faded", oświetlenie
+ * dobierane do trybu aplikacji: „day" w jasnym, „night" w ciemnym. Wszystkie
+ * nazwy ustawień pochodzą z dokumentacji Mapboxa (patrz stałe niżej), żadna
+ * nie jest zgadnięta.
  *
- * Znaczniki są zwykłymi elementami HTML (Marker), a nie warstwą danych mapy.
- * Przy dwudziestu jeden punktach nie ma to znaczenia dla wydajności, a daje
- * kropce „live" to samo pulsowanie, którym reszta aplikacji mówi „dane płyną" —
- * jeden język wizualny zamiast dwóch.
+ * CZEGO 3D NIE DAJE PRZY TEJ SKALI: bryły budynków Mapbox rysuje dopiero przy
+ * dużym przybliżeniu. Widok całego Śląska jest za daleko, żeby cokolwiek z nich
+ * zobaczyć — przestrzenność robi tu pochylenie kamery i rzeźba terenu (Beskidy
+ * na południu). Budynki pojawią się same, gdy przybliżyć do miasta.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -24,10 +25,42 @@ import { useAppliedTheme } from '../theme.js';
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
-const STYL = {
-  light: 'mapbox://styles/mapbox/light-v11',
-  dark: 'mapbox://styles/mapbox/dark-v11',
-} as const;
+/**
+ * Styl i jego ustawienia — wszystko z dokumentacji Mapbox Standard.
+ *
+ *   styl              mapbox://styles/mapbox/standard
+ *   importId          'basemap'  (klucz, pod którym siedzą ustawienia)
+ *   lightPreset       'dawn' | 'day' | 'dusk' | 'night'
+ *   theme             'default' | 'faded' | 'monochrome' | 'custom'
+ *   show3dObjects     bryły budynków, drzewa, punkty charakterystyczne
+ *
+ * Motywy „ocean", „warm" i „vivid" z galerii Mapboxa NIE są wartościami pola
+ * `theme` — wymagają `theme: 'custom'` i własnej tablicy barw (`theme-data`
+ * w postaci obrazu LUT zakodowanego base64). Nie używamy ich, bo prośba
+ * dotyczyła „faded", które jest wartością wbudowaną.
+ */
+const STYL = 'mapbox://styles/mapbox/standard';
+const IMPORT_ID = 'basemap';
+const MOTYW_MAPY = 'faded';
+
+/** Źródło rzeźby terenu — identyfikator i adres z dokumentacji Mapboxa. */
+const DEM_ID = 'mapbox-dem';
+const DEM_URL = 'mapbox://mapbox.mapbox-terrain-dem-v1';
+
+/** Pochylenie kamery. Bez niego „3D" jest tylko nazwą. */
+const POCHYLENIE = 52;
+
+function ustawieniaBazy(ciemny: boolean): Record<string, string | boolean> {
+  return {
+    lightPreset: ciemny ? 'night' : 'day',
+    theme: MOTYW_MAPY,
+    show3dObjects: true,
+    showPlaceLabels: true,
+    // Znaczniki sklepów i restauracji zabierałyby uwagę naszym dwudziestu
+    // jednemu punktom — a to one są tu treścią.
+    showPointOfInterestLabels: false,
+  };
+}
 
 interface Props {
   data: LiveData;
@@ -37,7 +70,6 @@ interface Props {
 
 export function Mapa({ data, onOtworzMagazyn }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
   const theme = useAppliedTheme();
   const [blad, setBlad] = useState<string | null>(null);
 
@@ -59,26 +91,30 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     }
 
     mapboxgl.accessToken = TOKEN;
+    const ciemny = theme === 'dark';
 
     let map: mapboxgl.Map;
     try {
       map = new mapboxgl.Map({
         container: host,
-        style: STYL[theme === 'dark' ? 'dark' : 'light'],
+        style: STYL,
+        // Ustawienia podane od razu przy tworzeniu mapy, a nie po jej wczytaniu —
+        // inaczej pierwsza klatka mrugnęłaby domyślnym motywem i oświetleniem.
+        config: { [IMPORT_ID]: ustawieniaBazy(ciemny) },
         bounds: KADR,
-        fitBoundsOptions: { padding: 48 },
+        fitBoundsOptions: { padding: 64, pitch: POCHYLENIE },
         maxBounds: MAX_GRANICE,
-        minZoom: 6.5,
-        maxZoom: 15,
-        attributionControl: true,
+        minZoom: 6,
+        maxZoom: 17,
+        pitch: POCHYLENIE,
       });
     } catch (error) {
       setBlad(`Nie udało się otworzyć mapy: ${(error as Error).message}`);
       return;
     }
 
-    mapRef.current = map;
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+    // Kompas jest tu potrzebny, inaczej po obróceniu mapy nie ma jak wrócić.
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
 
     // Mapbox zgłasza brak sieci i zły token przez zdarzenie, nie przez wyjątek.
     map.on('error', (event) => {
@@ -90,47 +126,93 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       );
     });
 
+    // Rzeźba terenu. Przy widoku całego regionu to ona, obok pochylenia kamery,
+    // daje wrażenie przestrzeni — bryły budynków są na tej skali niewidoczne.
+    map.on('style.load', () => {
+      if (map.getSource(DEM_ID)) return;
+      map.addSource(DEM_ID, {
+        type: 'raster-dem',
+        url: DEM_URL,
+        tileSize: 512,
+        maxzoom: 14,
+      });
+      map.setTerrain({ source: DEM_ID, exaggeration: 1.4 });
+    });
+
     for (const punkt of LOKALIZACJE) {
-      const el = document.createElement(punkt.stan === 'live' ? 'button' : 'div');
-      el.className = `mapmark is-${punkt.stan}`;
+      const live = punkt.stan === 'live';
 
-      const kropka = document.createElement('span');
-      kropka.className = 'mapmark__dot';
-      el.appendChild(kropka);
+      // Pinezka jako własny element — kropla z kropką w środku. Mapbox pozwala
+      // podać dowolny element przez opcję `element`; domyślna niebieska kropla
+      // nie umiałaby pulsować ani wyszarzeć się dla punktów pokazowych.
+      const el = document.createElement('div');
+      el.className = `pinezka is-${punkt.stan}`;
+      el.innerHTML =
+        '<span class="pinezka__ksztalt" aria-hidden="true">' +
+        '<span class="pinezka__oczko"></span>' +
+        '</span>' +
+        `<span class="pinezka__podpis">${punkt.miasto}</span>`;
 
-      const podpis = document.createElement('span');
-      podpis.className = 'mapmark__label';
-      podpis.textContent = punkt.miasto;
-      el.appendChild(podpis);
+      // Dymek z opisem. `offset` odsuwa go nad wierzchołek pinezki, żeby jej
+      // nie zasłaniał; `closeButton` zbędny, bo dymek zamyka klik w mapę.
+      const dymek = new mapboxgl.Popup({
+        offset: 26,
+        closeButton: false,
+        className: `dymek is-${punkt.stan}`,
+        maxWidth: '260px',
+      }).setHTML(
+        live
+          ? `<p class="dymek__nazwa">${punkt.miasto}</p>` +
+              `<p class="dymek__opis">${punkt.opis}</p>` +
+              '<p class="dymek__akcja">Kliknij pinezkę, żeby otworzyć magazyn</p>'
+          : `<p class="dymek__nazwa">${punkt.miasto}</p>` +
+              `<p class="dymek__opis">${punkt.opis}</p>`,
+      );
 
-      if (punkt.stan === 'live') {
-        (el as HTMLButtonElement).type = 'button';
-        el.title = `${punkt.opis} — kliknij, żeby otworzyć magazyn`;
+      const marker = new mapboxgl.Marker({
+        element: el,
+        // Wierzchołek kropli wskazuje współrzędną, więc zaczepiamy ją u dołu.
+        anchor: 'bottom',
+        // Pinezka stoi pionowo niezależnie od pochylenia kamery — inaczej przy
+        // pochyleniu 52 stopni położyłaby się na mapie i przestała być czytelna.
+        pitchAlignment: 'viewport',
+        rotationAlignment: 'viewport',
+      })
+        .setLngLat([punkt.lon, punkt.lat])
+        .setPopup(dymek)
+        .addTo(map);
+
+      if (live) {
+        el.setAttribute('role', 'button');
+        el.tabIndex = 0;
         el.setAttribute('aria-label', `${punkt.miasto} — otwórz magazyn`);
         el.addEventListener('click', () => otworzRef.current());
-      } else {
-        // Punkt pokazowy nie ma uchwytu kliknięcia, więc jest nieaktywny.
-        // Podpowiedź po najechaniu ZOSTAJE — to ona mówi wprost, że nie stoi
-        // za nim żadna instalacja. Bez niej na mapie zostałoby dwadzieścia
-        // milczących kropek bez wyjaśnienia. Kursor jest zwykłą strzałką
-        // (patrz `.mapmark.is-demo`), więc nic nie obiecuje.
-        el.title = `${punkt.miasto} — ${punkt.opis}`;
+        el.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            otworzRef.current();
+          }
+        });
       }
 
-      new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([punkt.lon, punkt.lat])
-        .addTo(map);
+      // Dymek pokazuje się po najechaniu — także na punktach pokazowych, bo to
+      // on mówi wprost, że nie stoi za nimi żadna instalacja.
+      el.addEventListener('mouseenter', () => {
+        if (!dymek.isOpen()) marker.togglePopup();
+      });
+      el.addEventListener('mouseleave', () => {
+        if (dymek.isOpen()) marker.togglePopup();
+      });
     }
 
     return () => {
       map.remove();
-      mapRef.current = null;
     };
   }, [theme]);
 
   // Pulsowanie kropki stanowiska idzie za stanem łącza — bez przebudowy mapy.
   useEffect(() => {
-    const el = hostRef.current?.querySelector('.mapmark.is-live');
+    const el = hostRef.current?.querySelector('.pinezka.is-live');
     el?.classList.toggle('is-plynie', zywe);
   }, [zywe, theme]);
 
@@ -140,13 +222,13 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
 
       <div className="mapa__legenda">
         <p className="mapa__legenda-wiersz">
-          <span className="mapmark__dot is-live is-plynie" aria-hidden="true" />
+          <span className="legenda__kropka is-live is-plynie" aria-hidden="true" />
           <span>
             <strong>{STANOWISKO.miasto}</strong> — stanowisko badawcze, {STANOWISKO.opis}
           </span>
         </p>
         <p className="mapa__legenda-wiersz">
-          <span className="mapmark__dot is-demo" aria-hidden="true" />
+          <span className="legenda__kropka is-demo" aria-hidden="true" />
           <span>
             Pozostałe <strong>20 punktów to demonstracja</strong> — pokazują, jak taka sieć
             mogłaby się rozłożyć w regionie. Nie stoją za nimi instalacje ani pomiary.
