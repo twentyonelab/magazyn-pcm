@@ -460,6 +460,15 @@ code {
   overflow-x: hidden;
 }
 
+/* Rama dla widoków obrazowych: do samych krawędzi ekranu, bez marginesów
+   i bez ograniczenia szerokości. Obraz sam pilnuje swoich proporcji, więc nie
+   ma tu czego przewijać. */
+.main--obraz {
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+}
+
 .page-head {
   margin-bottom: 2rem;
 }
@@ -1059,17 +1068,14 @@ code {
    rozjechałby się razem z nim — sprawdzone. Pasek dostaje więc z powrotem
    swoje marginesy osobno. */
 
-/* Trzy widoki obrazowe — schemat, mapa i scena 3D — dostają CAŁY ekran:
-   pełną szerokość okna i całą wysokość ramy. W nich obraz JEST treścią, więc
-   ograniczanie go do kolumny tekstu (1400 px) i marginesów byłoby marnowaniem
-   tego, co użytkownik ma pokazane. Pozostałe widoki zostają w kolumnie, bo
-   tam treścią są liczby i tabele, a te czyta się gorzej na całą szerokość. */
+/* Trzy widoki obrazowe — schemat, mapa i scena 3D — dostają CAŁY ekran.
+   Ramę rozszerza klasa `.main--obraz` (patrz App.tsx), więc same widoki
+   potrzebują już tylko zwykłego „wypełnij rodzica". Żadnych sztuczek z 100vw:
+   te znosiły się z ograniczeniem szerokości ramy i widok zostawał w kolumnie. */
 .magazyn-widok,
 .mapa,
 .canvas--3d {
-  width: 100vw;
-  margin-left: 50%;
-  transform: translateX(-50vw);
+  width: 100%;
   height: 100%;
   min-height: 0;
 }
@@ -1083,9 +1089,12 @@ code {
 /* Pasek przemiany wraca do szerokości treści i zostaje wyśrodkowany. */
 /* `justify-self`, a nie „margin-inline: auto" — widok jest siatką, a element
    siatki o zadanej szerokości nie wyśrodkuje się samymi marginesami. */
+/* Rama nie ma już marginesów, więc pasek przemiany bierze własne — inaczej
+   przyklejałby się do menu i do krawędzi ekranu. */
 .magazyn-widok .bandbar {
   width: min(1400px, 100% - 2 * clamp(1rem, 4vw, 3rem));
   justify-self: center;
+  margin-top: clamp(0.5rem, 1.5vw, 1rem);
 }
 
 .magazyn-widok .canvas {

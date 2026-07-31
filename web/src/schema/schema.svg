@@ -1,8 +1,9 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 1300 614"
-  width="1300"
-  height="614"
+  viewBox="-14 -14 1316 635"
+  width="1316"
+  height="635"
+  preserveAspectRatio="xMidYMid meet"
   class="schema"
   role="img"
   aria-label="Schemat instalacji magazynu ciepła PCM"
@@ -14,10 +15,17 @@
     graficznym i podmienić bez dotykania logiki aplikacji. Warunek jest jeden:
     zachować atrybuty data-*.
 
-    VIEWBOX OBEJMUJE RYSUNEK CIASNO (1300 x 614 przy zasięgu treści 1288 x 607).
-    Wcześniej było 1400 x 640, czyli 112 jednostek martwego marginesu po prawej
-    i 33 u dołu. Na ekranie schemat dopasowuje się do wysokości pola, więc każda
-    pusta jednostka w viewBox to realnie mniejszy rysunek — te marginesy kosztowały
+    VIEWBOX OBEJMUJE RYSUNEK CIASNO, z 14 jednostkami zapasu z każdej strony
+    (zasięg treści to 1288 x 607). Zapas nie jest ozdobą: podpisy urządzeń
+    pokazują ZMIENNE wartości, a ciepłomierz od niedawna podaje liczby zamiast
+    kresek — dłuższy tekst rósłby w stronę krawędzi i wychodził poza kadr,
+    bo SVG obcina wszystko poza viewBox. `preserveAspectRatio="xMidYMid meet"`
+    jest wpisane jawnie, żeby nikt tego przypadkiem nie zmienił na `slice`,
+    które przycina rysunek zamiast go wpisywać w pole.
+
+    Poprzednio było 1400 x 640, czyli 112 jednostek martwego marginesu po prawej
+    i 33 u dołu. Na ekranie schemat dopasowuje się do pola, więc każda pusta
+    jednostka w viewBox to realnie mniejszy rysunek — tamte marginesy kosztowały
     około 8% wielkości. Po przerysowaniu schematu warto sprawdzić zasięg jeszcze
     raz (w konsoli przeglądarki: svg.getBBox()) i dociągnąć viewBox.
 

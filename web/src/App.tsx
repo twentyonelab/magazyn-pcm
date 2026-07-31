@@ -80,6 +80,13 @@ type ViewId =
   | 'sesje'
   | 'ustawienia';
 
+/**
+ * Widoki, w których obraz jest treścią i ma zająć cały ekran.
+ * Pozostałe zostają w czytelnej kolumnie — tam treścią są liczby i tabele,
+ * a wiersz ciągnący się przez cały monitor czyta się gorzej.
+ */
+const OBRAZOWE = new Set<ViewId>(['mapa', 'magazyn', 'magazyn3d']);
+
 const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
   { id: 'mapa', label: 'Mapa' },
   { id: 'magazyn', label: 'Magazyn' },
@@ -175,7 +182,19 @@ export function App() {
         </div>
       </header>
 
-      <main className="main">
+      {/*
+        Widoki obrazowe (mapa, schemat, scena 3D) dostają ramę BEZ ograniczenia
+        szerokości i bez marginesów — obraz jest w nich treścią i ma iść do
+        samych krawędzi ekranu.
+
+        Wcześniej próbowałem wypychać same widoki poza `.main` sztuczką
+        „width: 100vw + margin-left: 50% + translateX(-50vw)". To działa tylko
+        wtedy, gdy rodzic ma pełną szerokość okna — a `.main` jest ograniczony
+        do 1400 px, więc oba ruchy się znosiły i widok zostawał w kolumnie.
+        Zdjęcie ograniczenia z samej ramy jest jednoznaczne i nie ma czego
+        znosić.
+      */}
+      <main className={`main${OBRAZOWE.has(activeView) ? ' main--obraz' : ''}`}>
         <BladWidoku resetKey={activeView}>
           {activeView === 'mapa' ? (
             <Suspense fallback={<div className="note">Wczytuję mapę…</div>}>
