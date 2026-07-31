@@ -1,44 +1,37 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="-16 -16 1472 716"
-  width="1472"
-  height="716"
+  viewBox="-16 -16 1532 892"
+  width="1532"
+  height="892"
   preserveAspectRatio="xMidYMid meet"
   class="schema"
   role="img"
   aria-label="Schemat instalacji magazynu ciepła PCM"
 >
   <!--
-    SCHEMAT INSTALACJI — PLIK ZEWNĘTRZNY.
+    SCHEMAT INSTALACJI — PLIK ZEWNĘTRZNY. Wersja graficzna v0.3.
 
     Rysunek jest danymi, nie kodem. Można go przerysować w dowolnym narzędziu
     graficznym i podmienić bez dotykania logiki aplikacji. Warunek jest jeden:
     zachować atrybuty data-*.
 
-    UKŁAD ODWZOROWUJE RYSUNEK TECHNICZNY STANOWISKA (wersja z 2026-07-31):
+    JĘZYK GRAFICZNY v0.3 (wg zatwierdzonej makiety):
+      - rury to METALICZNE TUBY: każda ścieżka jest narysowana CZTERY RAZY
+        (krawędź / korpus / blik / warstwa przepływu). Edytując przebieg rury
+        trzeba poprawić `d` we wszystkich czterech kopiach — są ułożone obok
+        siebie i opisane. Warstwa przepływu (tube__flow) niesie data-flow
+        i animuje się kolorem: pomarańcz = zasilanie, błękit = powrót.
+      - urządzenia to BIAŁE KARTY z ikoną liniową i podpisem,
+      - zbiornik PCM to metaliczny walec z kropkami sond na krawędziach,
+      - kierunek obiegu widać z animacji przepływu (tryb demo w widoku).
 
-      LEWO — odbiór ciepła na wodę użytkową:
-        woda wodociągowa → filtr odkamieniający → podgrzewacz wody,
-        na obiegu zaworek bezpieczeństwa, manometr, naczynie przeponowe
-        i ciepłomierz obiegu odbioru
-
-      ŚRODEK — magazyn PCM / zasobnik 200 l z sondami temperatury
-
-      PRAWO — źródło ciepła:
-        pompa ciepła → zasobnik 80 l z grzałką → pompa obiegowa → ciepłomierz,
-        z zaworkiem bezpieczeństwa, manometrem i naczyniem przeponowym
-
-    CZERWONY to zasilanie (ciepło idzie DO odbiornika), NIEBIESKI powrót.
-    Magazyn stoi centralnie, bo to on jest przedmiotem badania.
-
-    ODSTĘPSTWO OD RYSUNKU, ŚWIADOME: rysunek pokazuje w zasobniku PCM
-    dziewięć króćców pomiarowych, a instalacja ma podłączonych SZEŚĆ sond
-    (dwie przekątne × trzy poziomy). Rysujemy sześć, bo tyle mamy danych —
-    trzy puste kółka wyglądałyby na zepsute czujniki.
-
-    VIEWBOX ma 16 jednostek zapasu z każdej strony. Zapas nie jest ozdobą:
-    podpisy pokazują ZMIENNE wartości, a dłuższy tekst rósłby w stronę
-    krawędzi, którą SVG obcina.
+    TOPOLOGIA (jak na rysunku technicznym stanowiska):
+      LEWO   odbiór ciepła: woda wodociągowa → filtr → podgrzewacz,
+             obieg podgrzewacza do magazynu z zaworkiem bezp. i manometrem
+      ŚRODEK magazyn PCM / zasobnik 200 l, sondy A (lewa krawędź)
+             i B (prawa krawędź), poziomy 3/2/1 od góry
+      PRAWO  źródło: ciepłomierz, pompa obiegowa, zaworek bezp., manometr,
+             zasobnik 80 l z grzałką, naczynie przeponowe, pompa ciepła
 
     KONTRAKT WIĄZANIA
       data-point="A1"              element pokazuje wartość punktu (textContent)
@@ -58,12 +51,17 @@
       data-label="Magazyn PCM"     podpis bryły
       data-h="6.6"                 wysokość bryły w jednostkach świata
       data-vessel="true"           zbiornik: przezroczysty, z sondami w środku
-    Prostokąt bez data-object jest w 3D pomijany — jest tylko dekoracją.
+    Element bez data-object jest w 3D pomijany — jest tylko dekoracją.
 
     UKŁAD SOND: dwa pręty na PRZEKĄTNYCH ZBIORNIKA (widok z góry), każdy
-    z trzema sondami. W przekroju widać je obok siebie. Na każdym poziomie
-    A i B to sondy na dwóch różnych przekątnych.
-    Poziom 1 = dół, 2 = środek, 3 = góra (potwierdzone 2026-07-29).
+    z trzema sondami. Na każdym poziomie A i B to sondy na dwóch różnych
+    przekątnych. Poziom 1 = dół, 2 = środek, 3 = góra (potwierdzone 2026-07-29).
+
+    ŚWIADOME ODSTĘPSTWA OD MAKIETY:
+      - makieta podpisuje zbiornik „Moduł 1 z 4" — stanowisko ma JEDEN
+        zasobnik, więc podpis mówi prawdę: „Zasobnik 200 l · parafina",
+      - wartości ciepłomierza zostają widoczne (mała karta pod symbolem Wh),
+        bo były widoczne dotąd i to są prawdziwe dane, nie dekoracja.
   -->
 
   <defs>
@@ -75,166 +73,180 @@
       <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0f1f14" flood-opacity="0.10" />
     </filter>
 
-    <!-- Delikatna siatka na obiektach — daje im fakturę modułu. -->
-    <pattern id="grid" width="12" height="12" patternUnits="userSpaceOnUse">
-      <path d="M12 0H0v12" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.5" />
-    </pattern>
+    <!-- Metal zbiornika: walec oświetlony z lewej. Kolory idą ze zmiennych
+         motywu, więc ciemny tryb przyciemnia blachę zamiast ją wypalać. -->
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="var(--metal-a, #b7b7b1)" />
+      <stop offset="0.16" stop-color="var(--metal-b, #e8e8e3)" />
+      <stop offset="0.34" stop-color="var(--metal-c, #f3f3ee)" />
+      <stop offset="0.62" stop-color="var(--metal-d, #d9d9d3)" />
+      <stop offset="1" stop-color="var(--metal-e, #ababa5)" />
+    </linearGradient>
+
+    <linearGradient id="metal-cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--metal-d, #d9d9d3)" />
+      <stop offset="1" stop-color="var(--metal-e, #ababa5)" />
+    </linearGradient>
   </defs>
 
   <!-- =====================================================================
-       OBIEGI
-       Górna nitka (czerwona) to zasilanie, dolna (niebieska) powrót.
-       Oba obiegi animują się z JEDNEGO pomiaru przepływu — ciepłomierz
-       obiegu odbioru nie jest jeszcze wpięty do Miniservera, więc nie ma
-       drugiej liczby. Gdy się pojawi, wystarczy zmienić data-flow-source
-       na lewej ścieżce.
+       RURY — metaliczne tuby.
+       Każdy obieg: cztery kopie tej samej ścieżki `d`.
        ===================================================================== -->
 
-  <g class="pipes" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Magazyn -> podgrzewacz wody wodociągowej (zasilanie odbioru). -->
+  <g class="tubes" fill="none">
+    <!-- ODBIÓR · zasilanie: magazyn → podgrzewacz  d: M706 300 V200 H450 V640 -->
+    <path class="tube__outer" d="M706 300 V200 H450 V640" />
+    <path class="tube__mid" d="M706 300 V200 H450 V640" />
+    <path class="tube__hi" d="M706 300 V200 H450 V640" />
     <path
-      class="pipe pipe--supply"
+      class="tube__flow tube__flow--supply"
       data-flow="dhw-supply"
       data-flow-source="METER_FLOW"
-      d="M590 150 H230 V450"
+      d="M706 300 V200 H450 V640"
     />
 
-    <!-- Podgrzewacz -> magazyn (powrót odbioru). -->
+    <!-- ODBIÓR · powrót: podgrzewacz → magazyn  d: M486 640 V236 H742 V300 -->
+    <path class="tube__outer" d="M486 640 V236 H742 V300" />
+    <path class="tube__mid" d="M486 640 V236 H742 V300" />
+    <path class="tube__hi" d="M486 640 V236 H742 V300" />
     <path
-      class="pipe pipe--return"
+      class="tube__flow tube__flow--return"
       data-flow="dhw-return"
       data-flow-source="METER_FLOW"
-      d="M272 486 H320 V200 H590"
+      d="M486 640 V236 H742 V300"
     />
 
-    <!-- Pompa ciepła / zasobnik 80 l -> magazyn (zasilanie ładowania). -->
+    <!-- ŁADOWANIE · zasilanie: pompa ciepła → magazyn  d: M1350 560 V200 H794 V300 -->
+    <path class="tube__outer" d="M1350 560 V200 H794 V300" />
+    <path class="tube__mid" d="M1350 560 V200 H794 V300" />
+    <path class="tube__hi" d="M1350 560 V200 H794 V300" />
     <path
-      class="pipe pipe--supply"
+      class="tube__flow tube__flow--supply"
       data-flow="pcm-supply"
       data-flow-source="METER_FLOW"
-      d="M1385 250 V150 H850"
+      d="M1350 560 V200 H794 V300"
     />
 
-    <!-- Magazyn -> pompa obiegowa -> ciepłomierz -> źródło (powrót ładowania). -->
+    <!-- ŁADOWANIE · powrót: magazyn → zasobnik 80 l  d: M758 300 V236 H1080 V560 -->
+    <path class="tube__outer" d="M758 300 V236 H1080 V560" />
+    <path class="tube__mid" d="M758 300 V236 H1080 V560" />
+    <path class="tube__hi" d="M758 300 V236 H1080 V560" />
     <path
-      class="pipe pipe--return"
+      class="tube__flow tube__flow--return"
       data-flow="pcm-return"
       data-flow-source="METER_FLOW"
-      d="M850 200 H1420 M1190 200 V250 M1355 200 V250"
+      d="M758 300 V236 H1080 V560"
     />
+
+    <!-- Odgałęzienie do naczynia przeponowego — bez przepływu. -->
+    <path class="tube__outer" d="M1206 236 V560" />
+    <path class="tube__mid" d="M1206 236 V560" />
+    <path class="tube__hi" d="M1206 236 V560" />
+
+    <!-- Woda wodociągowa między kartami — cieńsza tuba, nic nie mierzymy. -->
+    <g class="tube--thin">
+      <path class="tube__outer" d="M176 700 H220 M356 700 H400" />
+      <path class="tube__mid" d="M176 700 H220 M356 700 H400" />
+      <path class="tube__hi" d="M176 700 H220 M356 700 H400" />
+    </g>
   </g>
 
-  <!-- Woda wodociągowa — wlot zimnej wody, poza obiegiem grzewczym. -->
-  <path class="pipe pipe--water" d="M44 530 H188" fill="none" />
-
-  <g class="nodes">
-    <circle class="node" cx="230" cy="150" r="4.5" />
-    <circle class="node" cx="320" cy="200" r="4.5" />
-    <circle class="node" cx="1190" cy="200" r="4.5" />
-    <circle class="node" cx="1355" cy="200" r="4.5" />
-    <circle class="node" cx="1385" cy="150" r="4.5" />
-  </g>
-
-  <!-- Strzałki kierunku — czytelne także wtedy, gdy nic nie płynie. -->
-  <g class="arrows">
-    <path class="arrow" d="M470 144 l-12 6 12 6 z" />
-    <path class="arrow" d="M430 194 l12 6 -12 6 z" />
-    <path class="arrow" d="M1050 194 l12 6 -12 6 z" />
-    <path class="arrow" d="M1150 144 l-12 6 12 6 z" />
+  <!-- Kołnierze na kolankach — detal z makiety. -->
+  <g class="joints">
+    <circle class="tube__joint" cx="450" cy="200" r="9" />
+    <circle class="tube__joint" cx="486" cy="236" r="9" />
+    <circle class="tube__joint" cx="706" cy="200" r="9" />
+    <circle class="tube__joint" cx="742" cy="236" r="9" />
+    <circle class="tube__joint" cx="758" cy="236" r="9" />
+    <circle class="tube__joint" cx="794" cy="200" r="9" />
+    <circle class="tube__joint" cx="1080" cy="236" r="9" />
+    <circle class="tube__joint" cx="1206" cy="236" r="9" />
+    <circle class="tube__joint" cx="1350" cy="200" r="9" />
   </g>
 
   <!-- =====================================================================
        LEWO — odbiór ciepła na wodę użytkową
        ===================================================================== -->
 
-  <g class="water-inlet" data-element="woda">
-    <text class="label" x="30" y="500">Woda</text>
-    <text class="label" x="30" y="520">wodociągowa</text>
+  <!-- Zaworek bezpieczeństwa obiegu odbioru: karta nad rurą, wydmuch do góry. -->
+  <g class="valve" data-element="zawor-bezp-lewy">
+    <path class="gauge__stem" d="M560 168 V200" />
+    <path class="valve__arrow" d="M560 96 V64" />
+    <path class="valve__arrowhead" d="M554 66 L560 54 L566 66 Z" />
+    <rect class="card__body" x="528" y="104" width="64" height="64" rx="14" filter="url(#soft-sm)" />
+    <path class="card__icon" d="M548 128 L572 144 M548 144 L572 128 M552 122 h16 M560 122 V112" />
+    <text class="label--sm" x="560" y="34">Zawór</text>
+    <text class="label--sm" x="560" y="50">bezpieczeństwa</text>
   </g>
 
-  <!-- Filtr odkamieniający — soczewka na przewodzie wody zimnej. -->
-  <g class="device" data-element="filtr" filter="url(#soft-sm)">
-    <ellipse
-      cx="146"
-      cy="530"
-      rx="30"
-      ry="13"
-      class="device__body"
+  <!-- Manometr obiegu odbioru. -->
+  <g class="gauge" data-element="manometr-lewy">
+    <path class="gauge__stem" d="M650 200 V150" />
+    <circle class="gauge__face" cx="650" cy="136" r="14" filter="url(#soft-sm)" />
+    <text class="gauge__text" x="650" y="141">P</text>
+  </g>
+
+  <!-- Karty odbioru: woda → filtr → podgrzewacz. -->
+  <g class="device" data-element="woda">
+    <rect class="card__body" x="40" y="640" width="136" height="120" rx="18" filter="url(#soft)" />
+    <text class="card__title" x="108" y="668">Woda</text>
+    <text class="card__title" x="108" y="686">wodociągowa</text>
+    <path class="card__icon" d="M108 706 c9 11 14 17 14 24 a14 14 0 1 1 -28 0 c0 -7 5 -13 14 -24 z" />
+  </g>
+
+  <g class="device" data-element="filtr">
+    <rect
+      class="card__body"
+      x="220"
+      y="640"
+      width="136"
+      height="120"
+      rx="18"
+      filter="url(#soft)"
       data-object="filtr"
       data-label="Filtr odkamieniający"
       data-h="0.8"
     />
-    <text class="label label--sm" x="146" y="566">Filtr odkamieniający</text>
+    <text class="card__title" x="288" y="668">Filtr</text>
+    <text class="card__title" x="288" y="686">odkamieniający</text>
+    <path class="card__icon" d="M270 706 h36 l-13 15 v17 l-10 6 v-23 z" />
   </g>
 
-  <g class="device" data-element="podgrzewacz" filter="url(#soft)">
+  <g class="device" data-element="podgrzewacz">
     <rect
-      x="188"
-      y="450"
-      width="84"
-      height="170"
-      rx="22"
-      class="device__vessel"
+      class="card__body"
+      x="400"
+      y="640"
+      width="136"
+      height="120"
+      rx="18"
+      filter="url(#soft)"
       data-object="podgrzewacz"
       data-label="Podgrzewacz wody"
       data-h="3.4"
       data-vessel="true"
     />
-    <text class="label label--sm" x="230" y="646">Podgrzewacz</text>
-    <text class="label label--sm" x="230" y="664">wody wodociągowej</text>
-  </g>
-
-  <!-- Zaworek bezpieczeństwa obiegu odbioru. -->
-  <g class="valve valve--safety" data-element="zawor-bezp-lewy">
-    <path class="valve__safety-glyph" d="M222 138 l16 -10 v20 z M230 150 v-12" />
-    <text class="label label--sm" x="196" y="118">Zaworek bezp.</text>
-  </g>
-
-  <!-- Manometr obiegu odbioru. -->
-  <g class="gauge" data-element="manometr-lewy">
-    <path class="gauge__stem" d="M300 150 V124" />
-    <circle class="gauge__face" cx="300" cy="112" r="12" />
-    <text class="gauge__text" x="300" y="117">P</text>
-  </g>
-
-  <!-- Naczynie przeponowe obiegu odbioru. -->
-  <g class="device" data-element="naczynie-lewe" filter="url(#soft-sm)">
-    <path class="gauge__stem" d="M370 150 V236" />
-    <rect
-      x="348"
-      y="236"
-      width="44"
-      height="62"
-      rx="16"
-      class="device__body"
-      data-object="naczynie-lewe"
-      data-label="Naczynie przeponowe"
-      data-h="1.4"
-    />
-    <path class="vessel__band" d="M352 262 H388 M352 272 H388" />
-    <text class="label label--sm" x="370" y="320">Naczynie</text>
-  </g>
-
-  <!-- Ciepłomierz obiegu odbioru — w instalacji jest, do Miniservera
-       jeszcze nie wpięty, więc nie pokazuje wartości. -->
-  <g class="meter-box" data-element="cieplomierz-odbior">
-    <rect x="418" y="188" width="36" height="24" rx="5" class="meter-box__body" />
-    <text class="meter-box__text" x="436" y="205">Wm</text>
-    <text class="label label--sm" x="436" y="238">ciepłomierz odbioru</text>
+    <text class="card__title" x="468" y="668">Podgrzewacz wody</text>
+    <text class="card__title" x="468" y="686">wodociągowej</text>
+    <rect class="card__icon" x="446" y="700" width="44" height="44" rx="10" />
+    <path class="card__icon" d="M452 722 h7 l6 -10 8 20 6 -10 h7" />
   </g>
 
   <!-- =====================================================================
-       ŚRODEK — MAGAZYN PCM / ZASOBNIK 200 l
+       ŚRODEK — MAGAZYN PCM / ZASOBNIK 200 l (metaliczny walec)
        ===================================================================== -->
 
   <g class="storage">
+    <rect class="storage__cap" x="640" y="288" width="200" height="26" rx="13" fill="url(#metal-cap)" />
     <rect
       class="storage__body"
-      x="590"
-      y="250"
-      width="260"
-      height="330"
-      rx="26"
+      x="640"
+      y="300"
+      width="200"
+      height="400"
+      rx="16"
+      fill="url(#metal)"
       filter="url(#soft)"
       data-object="storage"
       data-label="Magazyn PCM"
@@ -242,208 +254,209 @@
       data-vessel="true"
       data-element="storage"
     />
+    <!-- Pionowa sygnatura na płaszczu, jak na makiecie. -->
+    <text class="storage__side" transform="rotate(-90 822 500)" x="822" y="500">PCM · 200 l</text>
 
-    <text class="label label--strong" x="610" y="284">PCM / Zasobnik 200 l</text>
-
-    <!-- Pręty pozycjonujące, do których przywiązane są sondy. -->
-    <g class="rods">
-      <path class="rod" d="M668 302 V556" />
-      <path class="rod" d="M772 302 V556" />
-      <text class="rod__label" x="668" y="574">przekątna A</text>
-      <text class="rod__label" x="772" y="574">przekątna B</text>
-    </g>
-
-    <g class="levels">
-      <text class="level__label" x="604" y="338">3</text>
-      <text class="level__label" x="604" y="430">2</text>
-      <text class="level__label" x="604" y="522">1</text>
-    </g>
-
-    <!-- Przekątna A · poziomy 3, 2, 1 -->
+    <!-- Sondy przekątnej A — lewa krawędź płaszcza. -->
     <g class="sensor" data-sensor="A3">
-      <rect class="sensor__cell" data-fill-point="A3" x="622" y="304" width="92" height="58" rx="14" />
-      <rect class="sensor__grain" x="622" y="304" width="92" height="58" rx="14" fill="url(#grid)" />
-      <text class="sensor__id" x="632" y="324">A3</text>
-      <text class="sensor__value" data-point="A3" data-unit="°C" x="704" y="352">—</text>
-      <circle class="sensor__phase" cx="704" cy="318" r="5" />
+      <rect class="sensor__hit" x="574" y="378" width="98" height="44" />
+      <circle class="sensor__phase" cx="640" cy="400" r="12" />
+      <circle class="sensor__cell" data-fill-point="A3" cx="640" cy="400" r="7.5" />
+      <text class="sensor__id" x="618" y="388" text-anchor="end">A3</text>
+      <text class="sensor__value" data-point="A3" data-unit="°C" x="618" y="408" text-anchor="end">—</text>
     </g>
 
     <g class="sensor" data-sensor="A2">
-      <rect class="sensor__cell" data-fill-point="A2" x="622" y="396" width="92" height="58" rx="14" />
-      <rect class="sensor__grain" x="622" y="396" width="92" height="58" rx="14" fill="url(#grid)" />
-      <text class="sensor__id" x="632" y="416">A2</text>
-      <text class="sensor__value" data-point="A2" data-unit="°C" x="704" y="444">—</text>
-      <circle class="sensor__phase" cx="704" cy="410" r="5" />
+      <rect class="sensor__hit" x="574" y="478" width="98" height="44" />
+      <circle class="sensor__phase" cx="640" cy="500" r="12" />
+      <circle class="sensor__cell" data-fill-point="A2" cx="640" cy="500" r="7.5" />
+      <text class="sensor__id" x="618" y="488" text-anchor="end">A2</text>
+      <text class="sensor__value" data-point="A2" data-unit="°C" x="618" y="508" text-anchor="end">—</text>
     </g>
 
     <g class="sensor" data-sensor="A1">
-      <rect class="sensor__cell" data-fill-point="A1" x="622" y="488" width="92" height="58" rx="14" />
-      <rect class="sensor__grain" x="622" y="488" width="92" height="58" rx="14" fill="url(#grid)" />
-      <text class="sensor__id" x="632" y="508">A1</text>
-      <text class="sensor__value" data-point="A1" data-unit="°C" x="704" y="536">—</text>
-      <circle class="sensor__phase" cx="704" cy="502" r="5" />
+      <rect class="sensor__hit" x="574" y="578" width="98" height="44" />
+      <circle class="sensor__phase" cx="640" cy="600" r="12" />
+      <circle class="sensor__cell" data-fill-point="A1" cx="640" cy="600" r="7.5" />
+      <text class="sensor__id" x="618" y="588" text-anchor="end">A1</text>
+      <text class="sensor__value" data-point="A1" data-unit="°C" x="618" y="608" text-anchor="end">—</text>
     </g>
 
-    <!-- Przekątna B · poziomy 3, 2, 1 -->
+    <!-- Sondy przekątnej B — prawa krawędź płaszcza. -->
     <g class="sensor" data-sensor="B3">
-      <rect class="sensor__cell" data-fill-point="B3" x="726" y="304" width="92" height="58" rx="14" />
-      <rect class="sensor__grain" x="726" y="304" width="92" height="58" rx="14" fill="url(#grid)" />
-      <text class="sensor__id" x="736" y="324">B3</text>
-      <text class="sensor__value" data-point="B3" data-unit="°C" x="808" y="352">—</text>
-      <circle class="sensor__phase" cx="808" cy="318" r="5" />
+      <rect class="sensor__hit" x="808" y="378" width="104" height="44" />
+      <circle class="sensor__phase" cx="840" cy="400" r="12" />
+      <circle class="sensor__cell" data-fill-point="B3" cx="840" cy="400" r="7.5" />
+      <text class="sensor__id" x="862" y="388">B3</text>
+      <text class="sensor__value" data-point="B3" data-unit="°C" x="862" y="408">—</text>
     </g>
 
     <g class="sensor" data-sensor="B2">
-      <rect class="sensor__cell" data-fill-point="B2" x="726" y="396" width="92" height="58" rx="14" />
-      <rect class="sensor__grain" x="726" y="396" width="92" height="58" rx="14" fill="url(#grid)" />
-      <text class="sensor__id" x="736" y="416">B2</text>
-      <text class="sensor__value" data-point="B2" data-unit="°C" x="808" y="444">—</text>
-      <circle class="sensor__phase" cx="808" cy="410" r="5" />
+      <rect class="sensor__hit" x="808" y="478" width="104" height="44" />
+      <circle class="sensor__phase" cx="840" cy="500" r="12" />
+      <circle class="sensor__cell" data-fill-point="B2" cx="840" cy="500" r="7.5" />
+      <text class="sensor__id" x="862" y="488">B2</text>
+      <text class="sensor__value" data-point="B2" data-unit="°C" x="862" y="508">—</text>
     </g>
 
     <g class="sensor" data-sensor="B1">
-      <rect class="sensor__cell" data-fill-point="B1" x="726" y="488" width="92" height="58" rx="14" />
-      <rect class="sensor__grain" x="726" y="488" width="92" height="58" rx="14" fill="url(#grid)" />
-      <text class="sensor__id" x="736" y="508">B1</text>
-      <text class="sensor__value" data-point="B1" data-unit="°C" x="808" y="536">—</text>
-      <circle class="sensor__phase" cx="808" cy="502" r="5" />
+      <rect class="sensor__hit" x="808" y="578" width="104" height="44" />
+      <circle class="sensor__phase" cx="840" cy="600" r="12" />
+      <circle class="sensor__cell" data-fill-point="B1" cx="840" cy="600" r="7.5" />
+      <text class="sensor__id" x="862" y="588">B1</text>
+      <text class="sensor__value" data-point="B1" data-unit="°C" x="862" y="608">—</text>
     </g>
 
-    <text class="label label--sm storage__note" x="720" y="606">
-      pomiar temperatury zasobnika / PCM
-    </text>
+    <!-- Podpis pod zbiornikiem — kropka i fakt, nie fikcyjny „moduł". -->
+    <circle class="storage__dot" cx="664" cy="742" r="4" />
+    <text class="label" x="676" y="747">Zasobnik 200 l · parafina</text>
   </g>
 
   <!-- =====================================================================
-       PRAWO — źródło ciepła, pomiar i obieg
+       PRAWO — pomiar, obieg i źródło ciepła
        ===================================================================== -->
 
   <!-- Manometr obiegu ładowania. -->
   <g class="gauge" data-element="manometr-prawy">
-    <path class="gauge__stem" d="M880 150 V124" />
-    <circle class="gauge__face" cx="880" cy="112" r="12" />
-    <text class="gauge__text" x="880" y="117">P</text>
+    <path class="gauge__stem" d="M830 200 V150" />
+    <circle class="gauge__face" cx="830" cy="136" r="14" filter="url(#soft-sm)" />
+    <text class="gauge__text" x="830" y="141">P</text>
   </g>
 
-  <!-- Ciepłomierz AXIOMA — ten podaje prawdziwe liczby. -->
-  <g class="meter-box" data-element="meter">
+  <!-- Ciepłomierz: symbol na rurze + karta z prawdziwymi odczytami. -->
+  <g class="device" data-element="meter">
     <rect
-      x="908"
-      y="188"
-      width="36"
-      height="24"
-      rx="5"
-      class="meter-box__body"
+      class="card__body"
+      x="868"
+      y="172"
+      width="64"
+      height="80"
+      rx="14"
+      filter="url(#soft-sm)"
       data-object="meter"
       data-label="Ciepłomierz"
       data-h="1.2"
     />
-    <text class="meter-box__text" x="926" y="205">Wm</text>
+    <text class="meter-box__text" x="900" y="218">Wh</text>
+    <text class="label--sm" x="900" y="160">Ciepłomierz</text>
 
-    <g class="meter-card" filter="url(#soft-sm)">
-      <rect class="meter-card__body" x="880" y="246" width="196" height="118" rx="16" />
-      <text class="label label--sm meter-card__title" x="894" y="268">Ciepłomierz</text>
-
-      <text class="meta" x="894" y="292">zasilanie</text>
-      <text class="sensor__value sensor__value--sm" data-point="METER_T1" data-unit="°C" x="1062" y="292">—</text>
-
-      <text class="meta" x="894" y="312">powrót</text>
-      <text class="sensor__value sensor__value--sm" data-point="METER_T2" data-unit="°C" x="1062" y="312">—</text>
-
-      <text class="meta" x="894" y="332">przepływ</text>
-      <text class="sensor__value sensor__value--sm" data-point="METER_FLOW" data-unit="m³/h" x="1062" y="332">—</text>
-
-      <text class="meta" x="894" y="352">moc</text>
-      <text class="sensor__value sensor__value--sm" data-point="METER_POWER" data-unit="kW" x="1062" y="352">—</text>
+    <g class="meter-card">
+      <rect class="meter-card__body" x="850" y="260" width="180" height="112" rx="14" filter="url(#soft-sm)" />
+      <text class="meta" x="862" y="284">zasilanie</text>
+      <text class="sensor__value sensor__value--sm" data-point="METER_T1" data-unit="°C" x="1018" y="284" text-anchor="end">—</text>
+      <text class="meta" x="862" y="310">powrót</text>
+      <text class="sensor__value sensor__value--sm" data-point="METER_T2" data-unit="°C" x="1018" y="310" text-anchor="end">—</text>
+      <text class="meta" x="862" y="336">przepływ</text>
+      <text class="sensor__value sensor__value--sm" data-point="METER_FLOW" data-unit="m³/h" x="1018" y="336" text-anchor="end">—</text>
+      <text class="meta" x="862" y="362">moc</text>
+      <text class="sensor__value sensor__value--sm" data-point="METER_POWER" data-unit="kW" x="1018" y="362" text-anchor="end">—</text>
     </g>
   </g>
 
-  <!-- Pompa obiegowa — na powrocie, zgodnie z rysunkiem. -->
-  <g class="valve" data-state="PUMP_STATE" data-element="pump" filter="url(#soft-sm)">
-    <circle
-      cx="1000"
-      cy="200"
-      r="17"
-      class="device__body"
+  <!-- Pompa obiegowa — karta na rurze zasilania. -->
+  <g class="device" data-state="PUMP_STATE" data-element="pump">
+    <rect
+      class="card__body"
+      x="1078"
+      y="168"
+      width="64"
+      height="64"
+      rx="14"
+      filter="url(#soft-sm)"
       data-object="pump"
       data-label="Pompa obiegowa"
       data-h="1.3"
     />
-    <path class="valve__pump-glyph" d="M993 191 l14 9 -14 9 z" />
-    <text class="label label--sm" x="1000" y="240">Pompa obiegowa</text>
+    <circle class="card__icon" cx="1110" cy="200" r="15" />
+    <path class="valve__pump-glyph" d="M1104 192 l13 8 -13 8 z" />
+    <text class="label--sm" x="1110" y="152">Pompa obiegowa</text>
   </g>
 
   <!-- Zaworek bezpieczeństwa obiegu ładowania. -->
-  <g class="valve valve--safety" data-element="zawor-bezp-prawy">
-    <path class="valve__safety-glyph" d="M1092 138 l16 -10 v20 z M1100 150 v-12" />
-    <text class="label label--sm" x="1100" y="118">Zaworek bezp.</text>
+  <g class="valve" data-element="zawor-bezp-prawy">
+    <path class="gauge__stem" d="M1240 168 V200" />
+    <path class="valve__arrow" d="M1240 96 V64" />
+    <path class="valve__arrowhead" d="M1234 66 L1240 54 L1246 66 Z" />
+    <rect class="card__body" x="1208" y="104" width="64" height="64" rx="14" filter="url(#soft-sm)" />
+    <path class="card__icon" d="M1228 128 L1252 144 M1228 144 L1252 128 M1232 122 h16 M1240 122 V112" />
+    <text class="label--sm" x="1240" y="34">Zawór</text>
+    <text class="label--sm" x="1240" y="50">bezpieczeństwa</text>
   </g>
 
-  <!-- Zasobnik 80 l z grzałką. Identyfikator „buffer" zostaje bez zmian —
-       historia pomiarów i panel elementu są do niego przywiązane. -->
-  <g class="device" data-element="buffer" filter="url(#soft)">
+  <!-- Zasobnik 80 l z grzałką. Identyfikator „buffer" zostaje — historia
+       pomiarów i panel elementu są do niego przywiązane. -->
+  <g class="device" data-element="buffer">
     <rect
-      x="1130"
-      y="250"
-      width="120"
-      height="300"
-      rx="22"
-      class="device__vessel"
+      class="card__body"
+      x="1000"
+      y="560"
+      width="160"
+      height="220"
+      rx="18"
+      filter="url(#soft)"
       data-object="buffer"
       data-label="Zasobnik 80 l"
       data-h="4.4"
       data-vessel="true"
     />
-    <text class="label label--sm" x="1190" y="576">Zasobnik 80 l</text>
-    <text class="label label--sm" x="1190" y="594">z grzałką</text>
+    <text class="card__title" x="1080" y="592">Zasobnik</text>
+    <text class="card__title" x="1080" y="610">80 l z grzałką</text>
+    <path class="card__icon" d="M1080 636 v-12 M1074 630 h12" />
+    <rect class="card__icon" x="1062" y="640" width="36" height="60" rx="9" />
 
     <g class="sensor sensor--sm" data-sensor="BUFFER_TOP">
-      <rect class="sensor__cell" data-fill-point="BUFFER_TOP" x="1146" y="286" width="88" height="52" rx="12" data-h="1.1" />
-      <text class="sensor__id" x="1156" y="304">góra</text>
-      <text class="sensor__value" data-point="BUFFER_TOP" data-unit="°C" x="1224" y="324">—</text>
+      <circle class="sensor__cell" data-fill-point="BUFFER_TOP" cx="1026" cy="722" r="5" data-h="1.1" />
+      <text class="sensor__id" x="1038" y="726">góra</text>
+      <text class="sensor__value sensor__value--sm" data-point="BUFFER_TOP" data-unit="°C" x="1140" y="726" text-anchor="end">—</text>
     </g>
 
     <g class="sensor sensor--sm" data-sensor="BUFFER_BOTTOM">
-      <rect class="sensor__cell" data-fill-point="BUFFER_BOTTOM" x="1146" y="452" width="88" height="52" rx="12" data-h="1.1" />
-      <text class="sensor__id" x="1156" y="470">dół</text>
-      <text class="sensor__value" data-point="BUFFER_BOTTOM" data-unit="°C" x="1224" y="490">—</text>
+      <circle class="sensor__cell" data-fill-point="BUFFER_BOTTOM" cx="1026" cy="750" r="5" data-h="1.1" />
+      <text class="sensor__id" x="1038" y="754">dół</text>
+      <text class="sensor__value sensor__value--sm" data-point="BUFFER_BOTTOM" data-unit="°C" x="1140" y="754" text-anchor="end">—</text>
     </g>
   </g>
 
-  <!-- Naczynie przeponowe obiegu ładowania — między zasobnikiem a pompą. -->
-  <g class="device" data-element="naczynie-prawe" filter="url(#soft-sm)">
-    <path class="gauge__stem" d="M1290 200 V318" />
+  <!-- Naczynie przeponowe obiegu ładowania. -->
+  <g class="device" data-element="naczynie-prawe">
     <rect
-      x="1268"
-      y="318"
-      width="44"
-      height="62"
+      class="card__body"
+      x="1170"
+      y="560"
+      width="72"
+      height="110"
       rx="16"
-      class="device__body"
+      filter="url(#soft-sm)"
       data-object="naczynie-prawe"
       data-label="Naczynie przeponowe"
       data-h="1.4"
     />
-    <path class="vessel__band" d="M1272 344 H1308 M1272 354 H1308" />
-    <text class="label label--sm" x="1290" y="402">Naczynie</text>
+    <rect class="card__icon" x="1192" y="586" width="28" height="58" rx="14" />
+    <path class="card__icon" d="M1192 615 H1220" />
+    <text class="label--sm" x="1206" y="692">Naczynie</text>
+    <text class="label--sm" x="1206" y="708">przeponowe</text>
   </g>
 
-  <g class="device" data-state="HP_STATE" data-element="heatpump" filter="url(#soft)">
+  <g class="device" data-state="HP_STATE" data-element="heatpump">
     <rect
-      x="1330"
-      y="250"
-      width="110"
-      height="300"
-      rx="20"
-      class="device__body"
+      class="card__body"
+      x="1270"
+      y="560"
+      width="160"
+      height="220"
+      rx="18"
+      filter="url(#soft)"
       data-object="heatpump"
       data-label="Pompa ciepła"
       data-h="3"
     />
-    <rect class="device__bar" x="1346" y="276" width="78" height="10" rx="5" />
-    <circle class="device__led" cx="1424" cy="534" r="6" />
-    <text class="label label--sm" x="1385" y="576">Pompa ciepła</text>
-    <text class="meta meta--center" x="1385" y="594">Fox Blue Line 8.1</text>
+    <text class="card__title" x="1350" y="592">Pompa ciepła</text>
+    <circle class="card__icon" cx="1350" cy="672" r="30" />
+    <ellipse class="card__icon" cx="1350" cy="654" rx="7" ry="13" />
+    <ellipse class="card__icon" cx="1334" cy="681" rx="7" ry="13" transform="rotate(120 1334 681)" />
+    <ellipse class="card__icon" cx="1366" cy="681" rx="7" ry="13" transform="rotate(240 1366 681)" />
+    <circle class="device__led" cx="1410" cy="582" r="5" />
+    <text class="meta meta--center" x="1350" y="742">Fox Blue Line 8.1</text>
   </g>
 
   <!-- =====================================================================
@@ -451,7 +464,7 @@
        ===================================================================== -->
 
   <g class="ambient" data-element="ambient">
-    <text class="meta" x="1130" y="86">Hala · powietrze</text>
-    <text class="ambient__value" data-point="AMBIENT_HALL" data-unit="°C" x="1130" y="124">—</text>
+    <text class="meta" x="1480" y="84" text-anchor="end">Hala · powietrze</text>
+    <text class="ambient__value" data-point="AMBIENT_HALL" data-unit="°C" x="1480" y="122" text-anchor="end">—</text>
   </g>
 </svg>

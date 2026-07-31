@@ -13,7 +13,7 @@
 
 import type { MaterialProfile, PointValue, PointValues, PublicPoint } from '@magazyn-pcm/shared';
 import { NO_DATA, isStale } from '../format.js';
-import { NO_DATA_FILL, inkOn, isInPhaseBand, temperatureFill } from '../scale.js';
+import { NO_DATA_FILL, isInPhaseBand, temperatureFill } from '../scale.js';
 
 export interface BindOptions {
   points: Map<string, PublicPoint>;
@@ -146,9 +146,13 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     group.classList.toggle('is-phase', inBand);
     group.classList.toggle('is-dim', status === 'not-connected');
 
-    // Tekst wartości w tej samej grupie dostaje czytelny kolor na tle skali.
+    // Od v0.3 tekst wartości stoi OBOK kropki, na tle strony — kolor nadaje
+    // arkusz stylów z motywu. Dobieranie koloru do tła skali (inkOn) miało
+    // sens, gdy tekst leżał NA kolorowym kaflu; tu zostawiłoby ciemny napis
+    // na ciemnym tle w trybie nocnym. Czyszczenie zamiast pominięcia, żeby
+    // zejść ze starych wartości inline po przełączeniu motywu na żywo.
     const text = group.querySelector<SVGElement>(`[data-point="${id}"]`);
-    if (text) text.style.fill = usable ? inkOn(numeric, profile) : '';
+    if (text) text.style.fill = '';
   }
 
   // --- Animacja przepływu --------------------------------------------------

@@ -14,6 +14,11 @@
  *         stanowiska (obieg odbioru wody użytkowej po lewej, źródło ciepła
  *         po prawej), znaczniki mapy jako zbiorniki z poziomem naładowania,
  *         ikony pogodowe, tryb pokazowy przepływu.
+ *   v0.3  Nowy język graficzny według zatwierdzonej makiety: rury jako
+ *         metaliczne tuby, urządzenia jako białe karty z ikonami liniowymi,
+ *         zbiornik PCM jako metaliczny walec z kropkami sond, karta pogodowa
+ *         w układzie etykieta–wartość, aktywna zakładka na ciemno, znaczniki
+ *         mapy na kartach. Dane, źródła i interakcje bez zmian.
  */
 
-export const WERSJA = 'v0.2';
+export const WERSJA = 'v0.3';

@@ -161,34 +161,35 @@ export function PasekPrzemiany({
           </span>
 
           <span className="belka__prawa">
-            {stan ? (
-              <span
-                className="belka__stan"
-                style={{ background: cfg.chip[stan].tlo, color: cfg.chip[stan].tekst }}
-              >
-                {OPIS_STANU[stan]}
-                {strzalka ? ` ${strzalka}` : ''}
-              </span>
-            ) : (
-              <span className="belka__stan belka__stan--brak">Brak danych z sond</span>
-            )}
-
-            <svg
-              className="belka__chevron"
-              width={18}
-              height={18}
-              viewBox="0 0 18 18"
-              aria-hidden="true"
+            {/* Chevron mieszka WEWNĄTRZ chipu stanu (makieta v0.3): jeden
+                obiekt „stan + rozwiń" zamiast dwóch osobnych celów wzroku. */}
+            <span
+              className={`belka__stan${stan ? '' : ' belka__stan--brak'}`}
+              style={
+                stan
+                  ? { background: cfg.chip[stan].tlo, color: cfg.chip[stan].tekst }
+                  : undefined
+              }
             >
-              <path
-                d="M4.5 7 9 11.5 13.5 7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.6}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+              {stan ? OPIS_STANU[stan] : 'Brak danych z sond'}
+              {strzalka ? ` ${strzalka}` : ''}
+              <svg
+                className="belka__chevron"
+                width={16}
+                height={16}
+                viewBox="0 0 18 18"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4.5 7 9 11.5 13.5 7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
           </span>
         </span>
 

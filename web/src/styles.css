@@ -41,6 +41,18 @@
   --chlod-jasny: #85b7eb;
   --chlod-tlo: #e6f1fb;
 
+  /* METAL SCHEMATU (v0.3): rury i płaszcz zbiornika. Trzy tony tuby robią
+     złudzenie walca (krawędź / korpus / blik), pięć tonów metalu składa
+     gradient płaszcza — SVG czyta je przez var() w stop-color. */
+  --tube-1: #adada7;
+  --tube-2: #d6d6d0;
+  --tube-3: #f2f2ed;
+  --metal-a: #b7b7b1;
+  --metal-b: #e8e8e3;
+  --metal-c: #f3f3ee;
+  --metal-d: #d9d9d3;
+  --metal-e: #ababa5;
+
   /* Kolory sceny 3D i schematu — osobne, bo muszą znieść oba motywy. */
   --scene-bg: #fafaf9;
   --scene-floor: #e3e2dd;
@@ -85,6 +97,17 @@
   /* Na ciemnym tle pomarańcz z jasnego motywu gaśnie — rozjaśniony. */
   --ladunek: #f08d5f;
   --ladunek-jasny: #f7d9a4;
+
+  /* Metal w nocy: przyciemniony, ale z zachowanym porządkiem tonów —
+     blik nadal najjaśniejszy, krawędź najciemniejsza. */
+  --tube-1: #4a4a50;
+  --tube-2: #5a5a61;
+  --tube-3: #75757d;
+  --metal-a: #45454c;
+  --metal-b: #5b5b62;
+  --metal-c: #67676e;
+  --metal-d: #52525a;
+  --metal-e: #3d3d44;
 
   --scene-bg: #16161a;
   --scene-floor: #202024;
@@ -397,9 +420,12 @@ code {
   color: var(--ink);
 }
 
+/* Aktywna zakładka na ciemno (v0.3) — grafitowa pastylka z jasnym tekstem,
+   jak w makiecie. `--ink`/`--bg` odwracają się razem z motywem, więc w trybie
+   nocnym pastylka robi się jasna na ciemnym pasku i kontrast zostaje. */
 .nav__item.is-active {
-  background: var(--ok-bg);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
   font-weight: 600;
 }
 
@@ -832,9 +858,12 @@ code {
    naładowanie — a nie temperaturę. */
 .belka__stan {
   font-size: 12px;
-  padding: 4px 12px;
+  padding: 4px 8px 4px 12px;
   border-radius: 999px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .belka__stan--brak {
@@ -842,8 +871,8 @@ code {
   color: var(--ink-soft);
 }
 
+/* Chevron dziedziczy kolor chipu (currentColor) — jeden obiekt, jeden kolor. */
 .belka__chevron {
-  color: var(--ink-soft);
   flex: 0 0 auto;
   transition: transform 0.2s ease-out;
 }
@@ -1507,7 +1536,7 @@ code {
 }
 
 /* =========================================================================
-   SCHEMAT SVG — style dla wstrzykniętego rysunku
+   SCHEMAT SVG — style dla wstrzykniętego rysunku (język graficzny v0.3)
    ========================================================================= */
 
 /* Schemat bierze kolory ze zmiennych motywu, więc działa w obu trybach. */
@@ -1515,16 +1544,12 @@ code {
   font-family: var(--font);
 }
 
-.schema .device__body {
+/* --- Karty urządzeń ------------------------------------------------------- */
+
+.schema .card__body {
   fill: var(--surface);
   stroke: var(--hairline);
   stroke-width: 1;
-}
-
-.schema .device__vessel {
-  fill: var(--surface);
-  stroke: var(--hairline);
-  stroke-width: 1.5;
 }
 
 /* Elementy instalacji reagują na kursor — sygnał, że da się w nie kliknąć. */
@@ -1532,18 +1557,39 @@ code {
   cursor: pointer;
 }
 
-.schema [data-element]:hover .device__body,
-.schema [data-element]:hover .device__vessel,
-.schema [data-element]:hover .storage__body {
+.schema [data-element]:hover .card__body,
+.schema [data-element]:hover .gauge__face {
   stroke: var(--ink);
   stroke-width: 2;
 }
 
-.schema [data-element].is-selected .device__body,
-.schema [data-element].is-selected .device__vessel,
-.schema [data-element].is-selected .storage__body {
+/* Zbiornik nosi data-element NA SOBIE (rect), nie na grupie — selektor
+   potomka nigdy by się nie dopasował, więc reguła celuje w sam element. */
+.schema .storage__body[data-element]:hover {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.schema [data-element].is-selected .card__body,
+.schema .storage__body[data-element].is-selected {
   stroke: var(--accent);
   stroke-width: 3;
+}
+
+.schema .card__title {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--ink);
+  text-anchor: middle;
+}
+
+/* Ikony liniowe w kartach — jeden duży gest, nie ilustracja. */
+.schema .card__icon {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .schema .label {
@@ -1559,6 +1605,7 @@ code {
 
 .schema .label--sm {
   font-size: 11px;
+  fill: var(--ink-soft);
   text-anchor: middle;
 }
 
@@ -1571,294 +1618,258 @@ code {
   text-anchor: middle;
 }
 
-.schema .storage__note {
-  fill: var(--ink-faint);
+/* --- Rury: metaliczne tuby ------------------------------------------------
+   Trzy nałożone pociągnięcia tej samej ścieżki: ciemna krawędź, jaśniejszy
+   korpus, wąski blik. Środkowy blik daje złudzenie walca niezależnie od
+   kierunku rury — gradient wzdłuż pociągnięcia nie istnieje w SVG. */
+
+.schema .tube__outer {
+  stroke: var(--tube-1);
+  stroke-width: 13;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
-/* --- Manometry, naczynia przeponowe, zaworki, ciepłomierze --------------- */
+.schema .tube__mid {
+  stroke: var(--tube-2);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
 
-/* Manometr: tarcza z literą P, jak na rysunku technicznym. */
+.schema .tube__hi {
+  stroke: var(--tube-3);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0.9;
+}
+
+/* Woda wodociągowa — cieńszy przewód, poza obiegiem grzewczym. */
+.schema .tube--thin .tube__outer {
+  stroke-width: 9;
+}
+
+.schema .tube--thin .tube__mid {
+  stroke-width: 6;
+}
+
+.schema .tube--thin .tube__hi {
+  stroke-width: 2;
+}
+
+/* Warstwa przepływu: niewidoczna, dopóki nic nie płynie. Gdy płynie, wewnątrz
+   tuby suną kropki w kolorze obiegu: pomarańcz = zasilanie, błękit = powrót.
+   Prędkość ustawia bindSchema przez --flow-duration — z pomiaru, nie na oko. */
+.schema .tube__flow {
+  fill: none;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.schema .tube__flow--supply {
+  stroke: var(--cieplo);
+}
+
+.schema .tube__flow--return {
+  stroke: var(--chlod);
+}
+
+.schema .tube__flow.is-flowing {
+  opacity: 1;
+  stroke-dasharray: 3 14;
+  animation: flow var(--flow-duration, 2s) linear infinite;
+}
+
+/* ZEROWY PRZEPŁYW TO BRAK RUCHU — warstwa znika, tuba stoi jak metal. */
+.schema .tube__flow.is-still {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes flow {
+  to {
+    /* Dokładnie jeden okres wzoru kreskowania (3 + 14), inaczej pętla skacze. */
+    stroke-dashoffset: -17;
+  }
+}
+
+/* Kołnierz na kolanku. */
+.schema .tube__joint {
+  fill: var(--tube-2);
+  stroke: var(--tube-1);
+  stroke-width: 2;
+}
+
+/* --- Manometry, zaworki bezpieczeństwa ------------------------------------ */
+
 .schema .gauge__face {
   fill: var(--surface);
-  stroke: var(--ink-soft);
-  stroke-width: 1.2;
+  stroke: var(--hairline);
+  stroke-width: 1;
 }
 
 .schema .gauge__text {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   fill: var(--ink-soft);
   text-anchor: middle;
 }
 
-/* Odgałęzienie do manometru albo naczynia — cieńsze od rury obiegu, bo nie
-   płynie tam nic w sposób ciągły. */
 .schema .gauge__stem {
+  stroke: var(--tube-1);
+  stroke-width: 4;
+  fill: none;
+}
+
+/* Wydmuch zaworka — przerywana strzałka w górę, jak na makiecie. */
+.schema .valve__arrow {
   stroke: var(--ink-faint);
-  stroke-width: 1.4;
+  stroke-width: 1.6;
+  stroke-dasharray: 4 4;
   fill: none;
 }
 
-.schema .vessel__band {
-  stroke: var(--ink-faint);
-  stroke-width: 1.2;
-  fill: none;
+.schema .valve__arrowhead {
+  fill: var(--ink-faint);
 }
 
-/* Zaworek bezpieczeństwa — trójkąt z trzonkiem, symbol z rysunku. */
-.schema .valve__safety-glyph {
-  stroke: var(--ink-soft);
-  stroke-width: 1.4;
-  fill: none;
+.schema .valve__pump-glyph {
+  fill: var(--ink-soft);
 }
 
-/* Ciepłomierz jako mały prostokąt „Wm" na rurze — tak jest na rysunku. */
-.schema .meter-box__body {
-  fill: var(--surface);
-  stroke: var(--ink);
-  stroke-width: 1.2;
+.schema .valve.is-active .valve__pump-glyph {
+  fill: var(--ok-ink);
 }
+
+/* --- Karta odczytów ciepłomierza ------------------------------------------ */
 
 .schema .meter-box__text {
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   fill: var(--ink);
   text-anchor: middle;
 }
 
-/* Karta z odczytami ciepłomierza. Symbol na rurze mówi „tu jest przyrząd",
-   karta mówi „a to jego liczby" — dwie różne rzeczy, więc dwa elementy. */
 .schema .meter-card__body {
   fill: var(--surface);
   stroke: var(--hairline);
   stroke-width: 1;
 }
 
-.schema .meter-card__title {
-  text-anchor: start;
-  fill: var(--ink);
-  font-weight: 600;
-}
-
-/* Strzałki kierunku obiegu — widoczne także przy zerowym przepływie, bo
-   kierunek instalacji nie zależy od tego, czy pompa właśnie pracuje. */
-.schema .arrow {
-  fill: var(--ink-soft);
-}
-
-/* --- Rury ---------------------------------------------------------------- */
-
-.schema .pipe {
-  stroke: var(--pipe-warm);
-  stroke-width: 2.5;
-  opacity: 0.75;
-}
-
-.schema .pipe--return {
-  stroke: var(--pipe-cool);
-}
-
-/* Woda wodociągowa — poza obiegiem grzewczym, więc innym kluczem graficznym:
-   cieńsza i chłodna, bez animacji przepływu (nic tam nie mierzymy). */
-.schema .pipe--water {
-  stroke: var(--chlod-jasny);
-  stroke-width: 2;
-  opacity: 0.85;
-}
-
-/* Przepływ: kreskowana linia z animowanym przesunięciem. */
-.schema .pipe.is-flowing {
-  stroke-dasharray: 10 8;
-  animation: flow var(--flow-duration, 2s) linear infinite;
-}
-
-/* ZEROWY PRZEPŁYW TO BRAK RUCHU — linia ciągła, nic się nie przesuwa. */
-.schema .pipe.is-still {
-  stroke-dasharray: none;
-  animation: none;
-}
-
-@keyframes flow {
-  to {
-    stroke-dashoffset: -18;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .schema .pipe.is-flowing {
-    animation: none;
-  }
-}
-
-.schema .node {
-  fill: var(--pipe-warm);
-}
-
-.schema .tick {
-  fill: var(--surface);
-  stroke: var(--hairline);
-  stroke-width: 1;
-}
-
-/* --- Urządzenia ---------------------------------------------------------- */
-
-.schema .device__bar {
-  fill: var(--hairline);
-}
+/* --- Dioda pracy urządzenia ------------------------------------------------ */
 
 .schema .device__led {
   fill: var(--ink-faint);
 }
 
 .schema .device.is-active .device__led {
-  fill: #4caf50;
+  fill: var(--ok-ink);
 }
 
 .schema .device.is-inactive .device__led {
-  fill: #cfd4cd;
+  fill: var(--ink-faint);
 }
 
 .schema .device.is-unknown .device__led {
-  fill: none;
-  stroke: var(--ink-faint);
-  stroke-width: 1.5;
-  stroke-dasharray: 2 2;
+  fill: var(--warn-ink);
 }
 
-
-
-.schema .valve__glyph {
-  stroke: var(--ink-faint);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  fill: none;
-}
-
-.schema .valve__glyph-dot {
-  fill: var(--ink-faint);
-}
-
-.schema .valve.is-active .valve__glyph,
-.schema .valve.is-active .valve__glyph-dot {
-  stroke: #2f8a46;
-  fill: none;
-}
-
-.schema .valve.is-active .valve__glyph-dot {
-  fill: #2f8a46;
-}
-
-.schema .valve.is-unknown rect {
-  stroke-dasharray: 4 3;
-}
-
-/* --- Magazyn i sondy ---------------------------------------------------- */
+/* --- Zbiornik PCM ---------------------------------------------------------- */
 
 .schema .storage__body {
-  fill: var(--surface);
-  stroke: var(--hairline);
-  stroke-width: 1.5;
+  stroke: var(--tube-1);
+  stroke-width: 1;
 }
 
-.schema .rod {
-  stroke: var(--hairline);
-  stroke-width: 3;
-  stroke-linecap: round;
-  fill: none;
+.schema .storage__cap {
+  stroke: none;
 }
 
-.schema .rod__label {
+.schema .storage__side {
   font-size: 11px;
-  fill: var(--ink-faint);
+  letter-spacing: 0.1em;
+  fill: color-mix(in srgb, var(--ink) 38%, transparent);
   text-anchor: middle;
 }
 
-.schema .level__label {
-  font-size: 12px;
-  font-weight: 700;
-  fill: var(--ink-faint);
+.schema .storage__dot {
+  fill: var(--ok-ink);
 }
 
+/* --- Sondy: kropki na płaszczu --------------------------------------------- */
+
+/* Niewidoczny prostokąt łapiący kursor — sama kropka byłaby za małym celem. */
+.schema .sensor__hit {
+  fill: none;
+  pointer-events: all;
+}
+
+.schema .sensor {
+  cursor: pointer;
+}
+
+/* Kolor wypełnienia nadaje bindSchema według temperatury. */
 .schema .sensor__cell {
-  stroke: var(--hairline);
-  stroke-width: 1;
-  transition: fill 400ms ease;
+  stroke: var(--surface);
+  stroke-width: 2.5;
 }
 
-.schema .sensor__grain {
-  pointer-events: none;
+.schema .sensor:hover .sensor__cell {
+  stroke: var(--ink);
 }
 
 .schema .sensor__id {
-  font-size: 12px;
-  font-weight: 700;
-  fill: rgba(13, 31, 20, 0.6);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--ink-faint);
+  letter-spacing: 0.04em;
 }
 
 .schema .sensor__value {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 700;
-  text-anchor: end;
   fill: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
 .schema .sensor__value--sm {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  fill: var(--ink);
 }
 
 .schema .sensor__value.is-no-data,
 .schema .sensor__value.is-not-connected {
   fill: var(--ink-faint);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .schema .sensor__value.is-stale {
-  fill: var(--warn-ink);
+  opacity: 0.55;
 }
 
-/* Znacznik pasma przemiany — ukryty, dopóki punkt nie wejdzie w plateau. */
+/* Pierścień przemiany fazowej — zapala się, gdy sonda wchodzi w plateau.
+   To NAJWAŻNIEJSZY stan na tym ekranie, dlatego ma osobne oznaczenie. */
 .schema .sensor__phase {
-  fill: var(--ink);
+  fill: none;
+  stroke: var(--ladunek);
+  stroke-width: 2.5;
   opacity: 0;
-  transition: opacity 200ms ease;
 }
 
 .schema .sensor.is-phase .sensor__phase {
   opacity: 1;
 }
 
-/* Sonda w plateau dostaje wyraźną obwódkę — to inna informacja, nie odcień. */
-.schema .sensor.is-phase .sensor__cell {
-  stroke: var(--ink);
-  stroke-width: 2.5;
+.schema .sensor.is-dim {
+  opacity: 0.45;
 }
 
-.schema .sensor.is-dim .sensor__cell {
-  stroke-dasharray: 5 4;
-  stroke: #c9cfc9;
-}
-
-.schema .sensor--sm .sensor__value {
-  font-size: 14px;
-}
-
-.schema .exchanger__coil {
-  stroke: var(--pipe-cool);
-  stroke-width: 3;
-  fill: none;
-  stroke-linecap: round;
-}
-
-/* --- Rzut z góry i hala ------------------------------------------------- */
-
-
-
-
-
-
+/* --- Hala ------------------------------------------------------------------ */
 
 .schema .ambient__value {
   font-size: 26px;
@@ -1870,20 +1881,11 @@ code {
 .schema .ambient__value.is-no-data,
 .schema .ambient__value.is-not-connected {
   fill: var(--ink-faint);
+  font-weight: 500;
 }
 
 .schema .is-hidden {
   display: none;
-}
-
-/* Sonda reaguje na kursor — sygnał, że da się o niej dowiedzieć więcej. */
-.schema .sensor {
-  cursor: pointer;
-}
-
-.schema .sensor:hover .sensor__cell {
-  stroke: var(--ink);
-  stroke-width: 2;
 }
 
 /* =========================================================================
@@ -1992,7 +1994,7 @@ code {
 }
 
 /* =========================================================================
-   POGODA NA SCHEMACIE
+   POGODA NA SCHEMACIE — karta w lewym górnym rogu (układ v0.3)
    ========================================================================= */
 
 .pogoda {
@@ -2000,81 +2002,79 @@ code {
   left: clamp(1rem, 4vw, 3rem);
   top: 0;
   z-index: 2;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(6px);
-  border-radius: var(--radius);
+  background: var(--surface);
+  border: 0.5px solid var(--hairline);
+  border-radius: 16px;
   box-shadow: var(--shadow-sm);
-  padding: 0.6rem 0.75rem;
+  padding: 0.85rem 1rem;
   display: grid;
-  gap: 0.15rem;
-  width: max-content;
-  min-width: 8.5rem;
-  /* Kafelek MUSI łapać kursor, bo opisy wartości pokazują się po najechaniu. */
+  gap: 0.3rem;
+  width: 15.5rem;
   pointer-events: auto;
 }
 
-/* Wiersz: ikona + wartość. Podpis co to za wartość pojawia się po najechaniu —
-   kafelek leży na rysunku instalacji, więc każdy wiersz podpisu na stałe
-   zasłaniałby schemat. */
-.pogoda__wiersz {
+/* Nagłówek: duża ikona nieba, obok temperatura i podtytuł. */
+.pogoda__glowa {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.55rem;
+  margin-bottom: 0.15rem;
   cursor: help;
 }
 
-.pogoda__ikona {
-  width: 26px;
-  height: 26px;
+.pogoda__ikona-nieba {
+  width: 52px;
+  height: 52px;
   flex: 0 0 auto;
   display: block;
 }
 
-.pogoda__ikona--duza {
-  width: 40px;
-  height: 40px;
-}
-
-.pogoda__wiersz--glowny {
-  gap: 0.2rem;
-  margin-bottom: 0.1rem;
+.pogoda__temp-blok {
+  display: grid;
+  gap: 0.1rem;
 }
 
 .pogoda__temp {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.pogoda__wartosc {
-  font-size: 0.82rem;
-  font-weight: 600;
+.pogoda__sub {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
 }
 
-/* Opis dla czytników ekranu i wyszukiwania w stronie — na ekranie niewidoczny,
-   bo tam jego rolę pełni podpowiedź. Nie `display: none`, bo to usunęłoby go
-   także z odczytu. */
-.pogoda__opis-ukryty {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+/* Wiersze etykieta–wartość, jak w makiecie. */
+.pogoda__rzad {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  cursor: help;
+}
+
+.pogoda__etykieta {
+  color: var(--ink-soft);
+}
+
+.pogoda__wartosc {
+  font-weight: 600;
 }
 
 /* Źródło pogody jest częścią odczytu, nie stopką — dlatego jest czytelne,
    a nie schowane w szarości ledwo widocznej. */
 .pogoda__zrodlo {
-  margin: 0.3rem 0 0;
-  padding-top: 0.3rem;
+  margin: 0.35rem 0 0;
+  padding-top: 0.35rem;
   border-top: 1px solid var(--hairline);
   font-size: 0.66rem;
   color: var(--ink-soft);
 }
 
-/* Dopóki pogoda nie idzie ze sterownika, kafelek nosi znak zapytania w postaci
+/* Dopóki pogoda nie idzie ze sterownika, karta nosi znak zapytania w postaci
    przerywanej obwódki — ten sam sposób, którym reszta aplikacji oznacza dane
    spoza instalacji. */
 .pogoda.is-open-meteo {
@@ -2119,9 +2119,22 @@ code {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
   white-space: nowrap;
   font: inherit;
+}
+
+/* Karta znacznika (v0.3) — ten sam podkład co karty urządzeń na schemacie.
+   Zbiornik i podpis są jej zawartością, nie luźnymi elementami na mapie. */
+.pinezka__karta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface);
+  border: 0.5px solid var(--hairline);
+  border-radius: 14px;
+  padding: 0.45rem 0.6rem 0.35rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .pinezka__zbiornik {
@@ -2161,8 +2174,8 @@ code {
 
 /* Punkty pokazowe: mniejsze i przygaszone. Mają być tłem dla tego jednego,
    nie konkurencją dla niego. */
-.pinezka.is-demo .pinezka__zbiornik {
-  opacity: 0.72;
+.pinezka.is-demo .pinezka__karta {
+  opacity: 0.78;
 }
 
 /* Punkt pokazowy pokazuje dymek, ale nie udaje, że da się w niego wejść.
@@ -2173,7 +2186,7 @@ code {
 
 /* Pulsowanie znaczy „dane płyną" — ten sam sygnał co na pasku stanu
    i przy zegarze. Jeden język: zamarły znacznik = obraz stanął. */
-.pinezka.is-plynie .pinezka__zbiornik {
+.pinezka.is-plynie .pinezka__karta {
   animation: zbiornikPuls 1.9s ease-out infinite;
 }
 
@@ -2196,23 +2209,20 @@ code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pinezka.is-plynie .pinezka__zbiornik {
+  .pinezka.is-plynie .pinezka__karta {
     animation: none;
   }
 }
 
-/* Podpis miasta — kolor ustawia kod, bo zależy od rodzaju magazynu. */
+/* Podpis miasta — kolor ustawia kod, bo zależy od rodzaju magazynu.
+   Bez własnego tła: podkładem jest karta. */
 .pinezka__podpis {
   font-size: 0.72rem;
   font-weight: 600;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border-radius: 4px;
-  padding: 0 0.25rem;
 }
 
 .pinezka.is-demo .pinezka__podpis {
   font-weight: 500;
-  background: none;
 }
 
 .pinezka.is-live .pinezka__podpis {

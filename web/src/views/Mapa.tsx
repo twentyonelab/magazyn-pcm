@@ -308,11 +308,15 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
 
       const el = document.createElement('div');
       el.className = `pinezka is-${punkt.stan} is-${punkt.typ}`;
+      // Karta jak przy urządzeniach na schemacie (v0.3): biały podkład,
+      // w środku zbiornik z poziomem i podpis miasta w kolorze rodzaju.
       el.innerHTML =
+        '<span class="pinezka__karta">' +
         `<span class="pinezka__zbiornik" aria-hidden="true" style="border-color:${paleta.glowny}">` +
         `<span class="pinezka__wypelnienie" style="height:${poziom}%;background:linear-gradient(180deg,${paleta.jasny},${paleta.glowny})"></span>` +
         '</span>' +
-        `<span class="pinezka__podpis" style="color:${paleta.glowny}">${punkt.miasto}</span>`;
+        `<span class="pinezka__podpis" style="color:${paleta.glowny}">${punkt.miasto}</span>` +
+        '</span>';
 
       // Dymek. `offset` odsuwa go nad wierzchołek pinezki, żeby jej nie
       // zasłaniał; `closeButton` zbędny, bo dymek zamyka klik w mapę.

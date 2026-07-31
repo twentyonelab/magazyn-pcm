@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import type { WeatherReading } from '@magazyn-pcm/shared';
 import { NO_DATA } from '../format.js';
-import { IKONY, ikonaNieba } from './IkonyPogody.js';
+import { ikonaNieba } from './IkonyPogody.js';
 
 /** Pogoda zmienia się w minutach — pytamy raz na pięć. */
 const ODSWIEZANIE_MS = 5 * 60 * 1000;
@@ -97,62 +97,46 @@ export function Pogoda() {
   const liczba = (v: number | null, jednostka: string, miejsca = 0): string =>
     v === null ? NO_DATA : `${v.toFixed(miejsca).replace('.', ',')} ${jednostka}`;
 
+  // Układ z makiety v0.3: duża ikona nieba i temperatura w nagłówku, niżej
+  // wiersze etykieta–wartość. Etykiety stoją na stałe (nie tylko w podpowiedzi),
+  // bo karta jest teraz pełnoprawnym elementem kompozycji, nie nakładką.
   return (
     <div className={`pogoda is-${dane.source}`} role="status">
-      {/* Niebo i temperatura — wiersz wiodący. */}
-      <div className="pogoda__wiersz pogoda__wiersz--glowny" title="Temperatura powietrza">
+      <div className="pogoda__glowa" title="Temperatura powietrza na zewnątrz">
         <img
-          className="pogoda__ikona pogoda__ikona--duza"
+          className="pogoda__ikona-nieba"
           src={ikonaNieba(dane.text, dane.cloudCover)}
           alt={dane.text ?? 'stan nieba'}
         />
-        <span className="pogoda__temp mono">
-          {dane.tempC === null ? NO_DATA : `${dane.tempC.toFixed(1).replace('.', ',')} °C`}
-        </span>
+        <div className="pogoda__temp-blok">
+          <span className="pogoda__temp mono">
+            {dane.tempC === null ? NO_DATA : `${dane.tempC.toFixed(1).replace('.', ',')} °C`}
+          </span>
+          <span className="pogoda__sub">zewnętrznie{dane.text ? ` · ${dane.text}` : ''}</span>
+        </div>
       </div>
 
-      {/* Pozostałe wartości: ikona + liczba, opis po najechaniu. Podpisy nie
-          stoją na stałe, bo kafelek leży na rysunku instalacji i każdy zbędny
-          wiersz zasłania schemat. */}
-      <WierszPogody
-        ikona={IKONY.wilgotnosc}
-        wartosc={liczba(dane.humidity, '%')}
-        opis="Wilgotność względna powietrza"
-      />
-      <WierszPogody
-        ikona={IKONY.wiatr}
-        wartosc={liczba(dane.windKmh, 'km/h')}
-        opis="Prędkość wiatru"
-      />
+      <div className="pogoda__rzad" title="Wilgotność względna powietrza">
+        <span className="pogoda__etykieta">wilgotność</span>
+        <span className="pogoda__wartosc mono">{liczba(dane.humidity, '%')}</span>
+      </div>
+      <div className="pogoda__rzad" title="Prędkość wiatru">
+        <span className="pogoda__etykieta">wiatr</span>
+        <span className="pogoda__wartosc mono">{liczba(dane.windKmh, 'km/h')}</span>
+      </div>
       {dane.radiationWm2 !== null ? (
-        <WierszPogody
-          ikona={IKONY.napromienienie}
-          wartosc={liczba(dane.radiationWm2, 'W/m²')}
-          opis="Natężenie promieniowania słonecznego — wpływa na zyski ciepła przez przegrody"
-        />
+        <div
+          className="pogoda__rzad"
+          title="Natężenie promieniowania słonecznego — wpływa na zyski ciepła przez przegrody"
+        >
+          <span className="pogoda__etykieta">nasłonecznienie</span>
+          <span className="pogoda__wartosc mono">{liczba(dane.radiationWm2, 'W/m²')}</span>
+        </div>
       ) : null}
 
       <p className="pogoda__zrodlo" title={`${dane.place} · odczyt ${dane.ts}`}>
         {dane.place} · {OPIS_ZRODLA[dane.source]}
       </p>
-    </div>
-  );
-}
-
-function WierszPogody({
-  ikona,
-  wartosc,
-  opis,
-}: {
-  ikona: string;
-  wartosc: string;
-  opis: string;
-}) {
-  return (
-    <div className="pogoda__wiersz" title={opis}>
-      <img className="pogoda__ikona" src={ikona} alt="" aria-hidden="true" />
-      <span className="pogoda__wartosc mono">{wartosc}</span>
-      <span className="pogoda__opis-ukryty">{opis}</span>
     </div>
   );
 }
