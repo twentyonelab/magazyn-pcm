@@ -18,6 +18,15 @@ import { NO_DATA } from '../format.js';
 /** Pogoda zmienia się w minutach — pytamy raz na pięć. */
 const ODSWIEZANIE_MS = 5 * 60 * 1000;
 
+/**
+ * Po nieudanej próbie pytamy szybciej.
+ *
+ * Najczęstszy powód braku pogody to zaplecze, które właśnie się restartuje.
+ * Przy jednym rytmie pięciu minut kafelek zostawałby wtedy pusty przez całe
+ * pięć minut po tym, jak serwer już dawno wstał.
+ */
+const PONOWNA_PROBA_MS = 20 * 1000;
+
 const OPIS_ZRODLA: Record<WeatherReading['source'], string> = {
   loxone: 'ze sterownika',
   'open-meteo': 'Open-Meteo',
@@ -29,7 +38,12 @@ export function Pogoda() {
 
   useEffect(() => {
     let porzucone = false;
+    let timer = 0;
     const kontroler = new AbortController();
+
+    const zaplanuj = (opoznienie: number): void => {
+      timer = window.setTimeout(() => void pobierz(), opoznienie);
+    };
 
     const pobierz = async (): Promise<void> => {
       try {
@@ -37,21 +51,33 @@ export function Pogoda() {
         if (!res.ok) throw new Error(String(res.status));
         const dto = (await res.json()) as WeatherReading | null;
         if (porzucone) return;
+
+        // Poprawna odpowiedź, ale BEZ ODCZYTU (serwer zwraca wtedy `null`).
+        // Wcześniej kafelek po prostu znikał i wracał dopiero po pięciu
+        // minutach — dokładnie tak, jakby był zepsuty. Traktujemy to jak
+        // nieudaną próbę: mów o tym wprost i pytaj ponownie za chwilę.
+        if (!dto) {
+          setNieudane(true);
+          zaplanuj(PONOWNA_PROBA_MS);
+          return;
+        }
+
         setDane(dto);
         setNieudane(false);
+        zaplanuj(ODSWIEZANIE_MS);
       } catch (error) {
         if (porzucone || (error as Error).name === 'AbortError') return;
         setNieudane(true);
+        zaplanuj(PONOWNA_PROBA_MS);
       }
     };
 
     void pobierz();
-    const timer = window.setInterval(() => void pobierz(), ODSWIEZANIE_MS);
 
     return () => {
       porzucone = true;
       kontroler.abort();
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
     };
   }, []);
 

@@ -25,6 +25,7 @@ import {
   pointState,
 } from '../format.js';
 import { isInPhaseBand } from '../scale.js';
+import { sredniaZSond } from '../naladowanie.js';
 import { setSetting, useSettings } from '../settings.js';
 import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
 import { PanelElementu } from '../components/PanelElementu.js';
@@ -160,14 +161,9 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
 
   // Średnia z sond magazynu — jedna liczba opisująca stan zbiornika,
-  // zaznaczana kreską na pasku przemiany. Liczymy tylko z sond, które
-  // NAPRAWDĘ mają odczyt: brak danych to null, nie zero, więc wliczenie
-  // takiej sondy ściągnęłoby średnią w stronę zera i skłamało o zbiorniku.
-  const pcmValues = pcmPoints
-    .map((p) => values[p.id]?.v)
-    .filter((v): v is number => typeof v === 'number');
-  const averageC =
-    pcmValues.length > 0 ? pcmValues.reduce((sum, v) => sum + v, 0) / pcmValues.length : null;
+  // zaznaczana kreską na pasku przemiany. Definicja siedzi w `naladowanie.ts`,
+  // bo tę samą liczbę pokazuje pinezka na mapie.
+  const averageC = sredniaZSond(points, values);
 
   return (
     <div className="stack magazyn-widok">

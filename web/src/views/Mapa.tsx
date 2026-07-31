@@ -19,9 +19,11 @@
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import type { MaterialProfile } from '@magazyn-pcm/shared';
 import { KADR, LOKALIZACJE, MAX_GRANICE, STANOWISKO } from '../map/lokalizacje.js';
 import type { LiveData } from '../useLiveData.js';
 import { useAppliedTheme } from '../theme.js';
+import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -50,6 +52,10 @@ const DEM_URL = 'mapbox://mapbox.mapbox-terrain-dem-v1';
 /** Pochylenie kamery. Bez niego „3D" jest tylko nazwą. */
 const POCHYLENIE = 52;
 
+/** Pochylenie i przybliżenie po kliknięciu w pinezkę — tak blisko, jak można. */
+const ZOOM_BLISKO = 18;
+const POCHYLENIE_BLISKO = 62;
+
 function ustawieniaBazy(ciemny: boolean): Record<string, string | boolean> {
   return {
     lightPreset: ciemny ? 'night' : 'day',
@@ -59,7 +65,73 @@ function ustawieniaBazy(ciemny: boolean): Record<string, string | boolean> {
     // Znaczniki sklepów i restauracji zabierałyby uwagę naszym dwudziestu
     // jednemu punktom — a to one są tu treścią.
     showPointOfInterestLabels: false,
+    // Numery i nazwy dróg zdjęte — mapa ma pokazywać, GDZIE stoją magazyny,
+    // a nie jak do nich dojechać.
+    showRoadLabels: false,
   };
+}
+
+/**
+ * Zdjęcie lotnicze miejsca — Static Images API Mapboxa.
+ *
+ * NIE MAM zdjęć tych budynków, więc nie podstawiam wymyślonych. To zdjęcie
+ * SATELITARNE z tych samych danych, z których zrobiona jest mapa: prawdziwy
+ * obraz tego miejsca, tylko z góry. Gdy pojawi się fotografia stanowiska,
+ * wystarczy podmienić adres dla punktu w `lokalizacje.ts`.
+ *
+ * Wzór adresu i identyfikator stylu `satellite-v9` wprost z dokumentacji:
+ *   /styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom}/{w}x{h}{@2x}
+ */
+function zdjecieLotnicze(lon: number, lat: number, w: number, h: number, zoom = 16): string {
+  return (
+    `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/` +
+    `${lon},${lat},${zoom}/${w}x${h}@2x?access_token=${TOKEN ?? ''}`
+  );
+}
+
+/**
+ * Treść dymka. Budowana jako HTML, bo Mapbox przyjmuje `setHTML` — to nie jest
+ * drzewo Reacta i nie ma tu jego ochrony przed wstrzyknięciem, więc do środka
+ * wchodzą WYŁĄCZNIE nasze własne teksty z `lokalizacje.ts` i liczby. Żadnych
+ * danych z zewnątrz.
+ */
+function trescDymka(
+  punkt: { miasto: string; opis: string; lon: number; lat: number; stan: 'live' | 'demo' },
+  sredniaC: number | null,
+  procent: number | null,
+): string {
+  const zdjecie =
+    `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.miasto}" loading="lazy" ` +
+    `src="${zdjecieLotnicze(punkt.lon, punkt.lat, 280, 110, punkt.stan === 'live' ? 17 : 14)}">`;
+
+  const naglowek =
+    `<p class="dymek__nazwa">${punkt.miasto}</p><p class="dymek__opis">${punkt.opis}</p>`;
+
+  if (punkt.stan !== 'live') return zdjecie + naglowek;
+
+  // Naładowanie: pomarańczowy pasek i liczba. Słowo „szacunek" jest tu
+  // obowiązkowe — liczba pochodzi z temperatury, nie z pomiaru energii
+  // (dlaczego: patrz naladowanie.ts).
+  const ladunek =
+    procent === null
+      ? '<p class="dymek__akcja">Brak odczytu sond — naładowania nie da się oszacować</p>'
+      : '<div class="ladunek">' +
+        '<div class="ladunek__gora">' +
+        '<span class="ladunek__etykieta">naładowanie · szacunek</span>' +
+        `<span class="ladunek__liczba mono">${procent}%</span>` +
+        '</div>' +
+        `<div class="ladunek__tor"><div class="ladunek__wypelnienie" style="width:${procent}%"></div></div>` +
+        (sredniaC === null
+          ? ''
+          : `<p class="ladunek__spod">średnia z sond ${sredniaC.toFixed(1)} °C</p>`) +
+        '</div>';
+
+  return (
+    zdjecie +
+    naglowek +
+    ladunek +
+    '<p class="dymek__akcja">Klik przybliża, drugi klik otwiera magazyn</p>'
+  );
 }
 
 interface Props {
@@ -72,9 +144,26 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const theme = useAppliedTheme();
   const [blad, setBlad] = useState<string | null>(null);
+  /** Dymek stanowiska — trzymany, żeby odświeżać w nim naładowanie. */
+  const dymekLiveRef = useRef<mapboxgl.Popup | null>(null);
 
   // Dane płyną? To decyduje, czy kropka stanowiska pulsuje.
   const zywe = data.link === 'live';
+
+  // Naładowanie liczone tak samo jak w widoku Magazyn — ta sama definicja,
+  // jedno źródło prawdy w `naladowanie.ts`.
+  //
+  // Hierarchia parafiny jest ta sama co w widoku Magazyn: sesja > rozpoznany
+  // zbiornik > podgląd. Bez tego skala byłaby zgadnięta, a wtedy procent
+  // naładowania nie znaczyłby nic.
+  const rozpoznanyBank =
+    data.health && data.health.bank.detection !== 'unknown' ? data.health.bank.active : null;
+  const materialAktywny = data.session?.material ?? rozpoznanyBank;
+  const profile: MaterialProfile | null = data.materials
+    ? (data.materials.profiles[materialAktywny ?? data.materials.defaultMaterial] ?? null)
+    : null;
+  const sredniaC = sredniaZSond(data.points, data.values);
+  const procent = naladowanieProcent(sredniaC, profile);
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
   otworzRef.current = onOtworzMagazyn;
@@ -105,8 +194,11 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         fitBoundsOptions: { padding: 64, pitch: POCHYLENIE },
         maxBounds: MAX_GRANICE,
         minZoom: 6,
-        maxZoom: 17,
+        maxZoom: 20,
         pitch: POCHYLENIE,
+        // Znak Mapboxa domyślnie siedzi w lewym dolnym rogu, czyli dokładnie
+        // tam, gdzie leży legenda. Przeniesiony w prawo, do atrybucji.
+        logoPosition: 'bottom-right',
       });
     } catch (error) {
       setBlad(`Nie udało się otworzyć mapy: ${(error as Error).message}`);
@@ -139,35 +231,62 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       map.setTerrain({ source: DEM_ID, exaggeration: 1.4 });
     });
 
+    /**
+     * Który punkt jest już przybliżony.
+     *
+     * PIERWSZY KLIK PRZYBLIŻA, DRUGI OTWIERA MAGAZYN. Dzięki temu da się
+     * obejrzeć miejsce z bliska, nie tracąc mapy — a wejście do magazynu jest
+     * decyzją, nie skutkiem ubocznym pokazania szczegółu.
+     */
+    let zblizony: string | null = null;
+
+    // Oddalenie kasuje pamięć przybliżenia — po powrocie do widoku regionu
+    // pierwszy klik znów ma przybliżać, a nie od razu wchodzić w magazyn.
+    //
+    // `originalEvent` jest tu kluczowe: dostają je tylko ruchy WYWOŁANE PRZEZ
+    // UŻYTKOWNIKA (kółko, przeciągnięcie). Bez tego warunku nasz własny przelot
+    // kamery kasował pamięć kliknięcia w chwili, gdy ją właśnie zapisaliśmy —
+    // i drugi klik zachowywał się jak pierwszy.
+    //
+    // Świadomie NIE sprawdzamy też, czy przelot dobiegł końca. Gdyby drugi klik
+    // tego wymagał, wystarczyłoby przerwać przelot przeciągnięciem, żeby
+    // magazyn przestał się otwierać. Liczy się intencja: ten sam punkt
+    // kliknięty po raz drugi.
+    map.on('zoomend', (event) => {
+      const odUzytkownika = (event as { originalEvent?: unknown }).originalEvent !== undefined;
+      if (odUzytkownika && map.getZoom() < ZOOM_BLISKO - 2) zblizony = null;
+    });
+
     for (const punkt of LOKALIZACJE) {
       const live = punkt.stan === 'live';
 
-      // Pinezka jako własny element — kropla z kropką w środku. Mapbox pozwala
-      // podać dowolny element przez opcję `element`; domyślna niebieska kropla
-      // nie umiałaby pulsować ani wyszarzeć się dla punktów pokazowych.
+      // Pinezka jako własny element — kropla ze zdjęciem lotniczym w środku.
+      // Mapbox pozwala podać dowolny element przez opcję `element`; domyślna
+      // niebieska kropla nie umiałaby ani nieść zdjęcia, ani pulsować.
       const el = document.createElement('div');
       el.className = `pinezka is-${punkt.stan}`;
       el.innerHTML =
         '<span class="pinezka__ksztalt" aria-hidden="true">' +
-        '<span class="pinezka__oczko"></span>' +
+        `<img class="pinezka__zdjecie" alt="" loading="lazy" src="${zdjecieLotnicze(
+          punkt.lon,
+          punkt.lat,
+          live ? 96 : 64,
+          live ? 96 : 64,
+          live ? 17 : 15,
+        )}">` +
         '</span>' +
         `<span class="pinezka__podpis">${punkt.miasto}</span>`;
 
-      // Dymek z opisem. `offset` odsuwa go nad wierzchołek pinezki, żeby jej
-      // nie zasłaniał; `closeButton` zbędny, bo dymek zamyka klik w mapę.
+      // Dymek. `offset` odsuwa go nad wierzchołek pinezki, żeby jej nie
+      // zasłaniał; `closeButton` zbędny, bo dymek zamyka klik w mapę.
       const dymek = new mapboxgl.Popup({
-        offset: 26,
+        offset: 30,
         closeButton: false,
         className: `dymek is-${punkt.stan}`,
-        maxWidth: '260px',
-      }).setHTML(
-        live
-          ? `<p class="dymek__nazwa">${punkt.miasto}</p>` +
-              `<p class="dymek__opis">${punkt.opis}</p>` +
-              '<p class="dymek__akcja">Kliknij pinezkę, żeby otworzyć magazyn</p>'
-          : `<p class="dymek__nazwa">${punkt.miasto}</p>` +
-              `<p class="dymek__opis">${punkt.opis}</p>`,
-      );
+        maxWidth: '280px',
+      }).setHTML(trescDymka(punkt, null, null));
+
+      if (live) dymekLiveRef.current = dymek;
 
       const marker = new mapboxgl.Marker({
         element: el,
@@ -182,15 +301,38 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         .setPopup(dymek)
         .addTo(map);
 
+      const kliknij = (): void => {
+        const juzBlisko = zblizony === punkt.id;
+
+        if (!juzBlisko) {
+          zblizony = punkt.id;
+          map.flyTo({
+            center: [punkt.lon, punkt.lat],
+            zoom: ZOOM_BLISKO,
+            pitch: POCHYLENIE_BLISKO,
+            duration: 1400,
+            // `essential` sprawia, że ruch wykona się także u kogoś, kto
+            // w systemie wyłączył animacje — inaczej mapa po prostu stanęłaby.
+            essential: true,
+          });
+          return;
+        }
+
+        // Drugi klik. Magazyn ma tylko stanowisko badawcze; punkt pokazowy
+        // zostaje przybliżony i na tym koniec.
+        if (live) otworzRef.current();
+      };
+
+      el.addEventListener('click', kliknij);
+
       if (live) {
         el.setAttribute('role', 'button');
         el.tabIndex = 0;
-        el.setAttribute('aria-label', `${punkt.miasto} — otwórz magazyn`);
-        el.addEventListener('click', () => otworzRef.current());
+        el.setAttribute('aria-label', `${punkt.miasto} — przybliż, drugim klikiem otwórz magazyn`);
         el.addEventListener('keydown', (event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            otworzRef.current();
+            kliknij();
           }
         });
       }
@@ -206,6 +348,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     }
 
     return () => {
+      dymekLiveRef.current = null;
       map.remove();
     };
   }, [theme]);
@@ -215,6 +358,12 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     const el = hostRef.current?.querySelector('.pinezka.is-live');
     el?.classList.toggle('is-plynie', zywe);
   }, [zywe, theme]);
+
+  // Naładowanie w dymku stanowiska odświeża się z danymi. Podmieniamy samą
+  // treść dymka, żeby nie przebudowywać mapy przy każdym odczycie sond.
+  useEffect(() => {
+    dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent));
+  }, [sredniaC, procent]);
 
   return (
     <section className="mapa">

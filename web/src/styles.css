@@ -24,6 +24,12 @@
   --bad-ink: #9b2c2c;
   --hairline: #e6e6e3;
 
+  /* Naładowanie magazynu. Pomarańcz nie jest tu dowolny — to ten sam odcień,
+     którym rampa temperatury barwi naładowany koniec skali (patrz scale.ts).
+     Dzięki temu pasek i kolor zbiornika mówią to samo. */
+  --ladunek: #de7854;
+  --ladunek-jasny: #f4cd8a;
+
   /* Kolory sceny 3D i schematu — osobne, bo muszą znieść oba motywy. */
   --scene-bg: #fafaf9;
   --scene-floor: #e3e2dd;
@@ -64,6 +70,10 @@
   --bad-bg: #3a1f1f;
   --bad-ink: #f09a9a;
   --hairline: #33332b;
+
+  /* Na ciemnym tle pomarańcz z jasnego motywu gaśnie — rozjaśniony. */
+  --ladunek: #f08d5f;
+  --ladunek-jasny: #f7d9a4;
 
   --scene-bg: #16161a;
   --scene-floor: #202024;
@@ -1814,15 +1824,25 @@ code {
 
 /* Legenda leży NA mapie, u dołu, zamiast zabierać jej pasek wysokości.
    Przy mapie na cały ekran każdy oddany jej wiersz to mniej widocznego Śląska. */
+/* Legenda leży NA mapie, u dołu. Prawy margines robi miejsce znakowi Mapboxa
+   i atrybucji — oba siedzą teraz w prawym dolnym rogu i wcześniej zasłaniały
+   koniec tekstu. */
 .mapa__legenda {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.6rem clamp(1rem, 4vw, 3rem) 0.7rem;
+  padding: 0.6rem clamp(1rem, 4vw, 3rem) 1.9rem;
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   backdrop-filter: blur(6px);
   border-top: 1px solid var(--hairline);
+}
+
+@media (min-width: 900px) {
+  .mapa__legenda {
+    padding-right: 320px;
+    padding-bottom: 0.7rem;
+  }
 }
 
 .mapa__plotno canvas {
@@ -1861,33 +1881,35 @@ code {
   font: inherit;
 }
 
+/* Kropla z okrągłym zdjęciem w środku. Obrót -45 stopni robi wierzchołek
+   u dołu; zdjęcie odkręcamy z powrotem, żeby nie stało krzywo. */
 .pinezka__ksztalt {
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   display: grid;
   place-items: center;
+  overflow: hidden;
   box-shadow: 0 3px 8px rgba(13, 31, 20, 0.35);
+  border: 2px solid var(--surface);
 }
 
-.pinezka__oczko {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  transform: rotate(45deg);
+.pinezka__zdjecie {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: rotate(45deg) scale(1.45);
+  display: block;
 }
 
-/* Stanowisko badawcze — jedyny punkt, który coś znaczy, więc jedyny w kolorze
-   i jedyny większy. */
+/* Stanowisko badawcze — jedyny punkt, który coś znaczy: większy, w kolorze
+   i z wyraźniejszą obwódką. */
 .pinezka.is-live .pinezka__ksztalt {
-  background: var(--ok-ink);
-  width: 32px;
-  height: 32px;
-}
-
-.pinezka.is-live .pinezka__oczko {
-  background: #fff;
+  width: 46px;
+  height: 46px;
+  border-color: var(--ok-ink);
+  border-width: 3px;
 }
 
 .pinezka.is-live {
@@ -1895,20 +1917,14 @@ code {
   z-index: 2;
 }
 
-/* Punkty pokazowe: wyszarzone i mniejsze. Mają być tłem dla tego jednego,
+/* Punkty pokazowe: mniejsze i przygaszone. Mają być tłem dla tego jednego,
    nie konkurencją dla niego. */
 .pinezka.is-demo .pinezka__ksztalt {
-  background: var(--ink-faint);
-  opacity: 0.6;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
+  opacity: 0.65;
+  filter: grayscale(0.7);
   box-shadow: 0 2px 5px rgba(13, 31, 20, 0.25);
-}
-
-.pinezka.is-demo .pinezka__oczko {
-  background: var(--surface);
-  width: 6px;
-  height: 6px;
 }
 
 /* Punkt pokazowy pokazuje dymek, ale nie udaje, że da się w niego wejść.
@@ -1918,7 +1934,9 @@ code {
 }
 
 /* Pulsowanie znaczy „dane płyną" — ten sam sygnał co na pasku stanu
-   i przy zegarze. Jeden język: zamarła kropka = obraz stanął. */
+   i przy zegarze. Jeden język: zamarła kropka = obraz stanął.
+   Pulsuje sama otoczka, nie kropla, bo kropla ma `overflow: hidden`
+   pod zdjęcie i obcinałaby własną poświatę. */
 .pinezka.is-plynie .pinezka__ksztalt {
   animation: pinpuls 1.9s ease-out infinite;
 }
@@ -1927,12 +1945,12 @@ code {
   0% {
     box-shadow:
       0 3px 8px rgba(13, 31, 20, 0.35),
-      0 0 0 0 color-mix(in srgb, var(--ok-ink) 50%, transparent);
+      0 0 0 0 color-mix(in srgb, var(--ok-ink) 55%, transparent);
   }
   70% {
     box-shadow:
       0 3px 8px rgba(13, 31, 20, 0.35),
-      0 0 0 14px color-mix(in srgb, var(--ok-ink) 0%, transparent);
+      0 0 0 16px color-mix(in srgb, var(--ok-ink) 0%, transparent);
   }
   100% {
     box-shadow:
@@ -1988,6 +2006,17 @@ code {
   border-bottom-color: var(--surface);
 }
 
+/* Zdjęcie lotnicze na całą szerokość dymka, bez marginesów — Mapbox daje
+   zawartości własny padding, więc zdejmujemy go ujemnym marginesem. */
+.dymek__zdjecie {
+  display: block;
+  width: calc(100% + 1.5rem);
+  margin: -0.6rem -0.75rem 0.55rem;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
 .dymek__nazwa {
   margin: 0;
   font-size: 0.9rem;
@@ -2006,6 +2035,54 @@ code {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--ok-ink);
+  white-space: normal;
+}
+
+/* --- Pasek naładowania --------------------------------------------------- */
+
+/* Pomarańczowy, bo to kolor ciepła na skali temperatury w tej aplikacji —
+   ten sam odcień, którym barwiony jest naładowany koniec rampy. */
+.ladunek {
+  margin-top: 0.55rem;
+}
+
+.ladunek__gora {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ladunek__etykieta {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+}
+
+.ladunek__liczba {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ladunek);
+}
+
+.ladunek__tor {
+  margin-top: 0.25rem;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.ladunek__wypelnienie {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ladunek-jasny), var(--ladunek));
+  transition: width 600ms ease;
+}
+
+.ladunek__spod {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  color: var(--ink-faint);
 }
 
 /* --- Kropki w legendzie -------------------------------------------------- */
@@ -2030,6 +2107,11 @@ code {
 
 .legenda__kropka.is-plynie {
   animation: statusled 1.8s ease-out infinite;
+}
+
+/* Znak Mapboxa i atrybucja leżą nad legendą, więc muszą być nad jej tłem. */
+.mapa .mapboxgl-ctrl-bottom-right {
+  z-index: 3;
 }
 
 /* Mapbox wstawia własne kontrolki z jasnym tłem — w trybie ciemnym trzeba je
