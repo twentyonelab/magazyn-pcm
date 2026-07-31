@@ -38,10 +38,24 @@ export default defineConfig({
   },
 
   server: {
-    // Jawnie IPv4. Domyslnie Vite nasluchuje tylko na [::1], wiec adres
-    // http://127.0.0.1:5173 nie odpowiadal — a to on najczesciej trafia
-    // do paska adresu. Przy tym ustawieniu dzialaja oba zapisy.
-    host: '127.0.0.1',
+    /**
+     * Nasluch na WSZYSTKICH interfejsach.
+     *
+     * Wczesniej bylo tu jawne `127.0.0.1`, zeby ten adres w ogole odpowiadal
+     * (domyslnie Vite bierze tylko [::1]). Skutek uboczny: serwer byl widoczny
+     * WYLACZNIE z tego jednego komputera. Adres 127.0.0.1 znaczy „ta maszyna",
+     * wiec z telefonu, tabletu czy drugiego laptopa nie da sie go otworzyc
+     * nigdy — i nie ma to nic wspolnego z tym, czy serwer dziala.
+     *
+     * `true` odpowiada na 127.0.0.1, [::1] i na adres tego komputera w sieci
+     * lokalnej, wiec kazdy z tych zapisow dziala.
+     *
+     * UWAGA NA WIDOCZNOSC: to otwiera podglad dla calej sieci lokalnej.
+     * W laboratorium (router z SIM) i w studiu to sensowne. Jesli aplikacja
+     * ma kiedys stanac w sieci, ktorej nie kontrolujesz, wlacz haslo —
+     * AUTH_ENABLED w pliku .env, hash generuje `npm run haslo`.
+     */
+    host: true,
     port: 5173,
     proxy: {
       '/api': {
