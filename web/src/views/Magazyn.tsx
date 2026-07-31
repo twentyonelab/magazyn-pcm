@@ -26,6 +26,8 @@ import {
 } from '../format.js';
 import { isInPhaseBand } from '../scale.js';
 import { sredniaZSond } from '../naladowanie.js';
+import { socZTemperatury } from '../soc.js';
+import { KONFIGURACJA } from '../components/belka/konfiguracja.js';
 import { setSetting, useSettings } from '../settings.js';
 import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
 import { PanelElementu } from '../components/PanelElementu.js';
@@ -161,13 +163,74 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
 
   // Średnia z sond magazynu — jedna liczba opisująca stan zbiornika,
-  // zaznaczana kreską na pasku przemiany. Definicja siedzi w `naladowanie.ts`,
+  // zaznaczana markerem na belce. Definicja siedzi w `naladowanie.ts`,
   // bo tę samą liczbę pokazuje pinezka na mapie.
   const averageC = sredniaZSond(points, values);
 
+  // Skrajne odczyty. Gdy sondy się rozjeżdżają, sama średnia to ukrywa —
+  // belka pokazuje wtedy dodatkowo pas od najzimniejszej do najcieplejszej.
+  const odczytyPcm = pcmPoints
+    .map((p) => values[p.id]?.v)
+    .filter((v): v is number => typeof v === 'number');
+  const zakresC =
+    odczytyPcm.length > 1
+      ? { min: Math.min(...odczytyPcm), max: Math.max(...odczytyPcm) }
+      : null;
+
+  // TO JEST SZEW DO PODMIANY ŹRÓDŁA SOC. Dziś naładowanie liczy się
+  // z temperatury; gdy ciepłomierz zacznie podawać wiarygodną energię, w tym
+  // jednym miejscu wstawi się odczyt z bilansu — belka nie zauważy różnicy.
+  const soc =
+    profile && averageC !== null
+      ? socZTemperatury(
+          averageC,
+          {
+            tMin: profile.scaleMin,
+            tMax: profile.scaleMax,
+            solidus: KONFIGURACJA[profile.id].solidus,
+            liquidus: KONFIGURACJA[profile.id].liquidus,
+            cieploPrzemiany: KONFIGURACJA[profile.id].cieploPrzemiany,
+            cp: KONFIGURACJA[profile.id].cp,
+          },
+          KONFIGURACJA[profile.id].kierunek,
+        )
+      : null;
+
+  // Kierunek zmiany do chipu stanu.
+  //
+  // Pierwszeństwo ma znak mocy z ciepłomierza, bo to pomiar, a nie wnioskowanie.
+  // Moc dokładnie 0 kW znaczy „nic nie płynie" — wtedy świadomie NIE pokazujemy
+  // strzałki, choćby średnia właśnie drgnęła o dziesiątą stopnia. Dopiero gdy
+  // ciepłomierz milczy, sięgamy po trend temperatury.
+  const mocKW = values.METER_POWER?.v ?? null;
+  const poprzedniaSredniaRef = useRef<number | null>(null);
+  const [trend, setTrend] = useState<'ladowanie' | 'rozladowanie' | null>(null);
+
+  // Trend liczony w efekcie, nie podczas renderowania. React w trybie ścisłym
+  // renderuje dwa razy, więc porównywanie z poprzednią wartością wewnątrz
+  // renderu zjadałoby co drugą zmianę i pokazywało strzałkę w losowych chwilach.
+  //
+  // Progu 0,05 K nie da się obniżyć: sondy DS18B20 mają rozdzielczość 0,0625 K,
+  // więc mniejsze „zmiany" to szum ostatniego bitu, nie ruch temperatury.
+  useEffect(() => {
+    if (averageC === null) return;
+    const poprzednia = poprzedniaSredniaRef.current;
+    if (poprzednia === null) {
+      poprzedniaSredniaRef.current = averageC;
+      return;
+    }
+    if (Math.abs(averageC - poprzednia) >= 0.05) {
+      setTrend(averageC > poprzednia ? 'ladowanie' : 'rozladowanie');
+      poprzedniaSredniaRef.current = averageC;
+    }
+  }, [averageC]);
+
+  const kierunekZmiany =
+    mocKW === null ? trend : mocKW === 0 ? null : mocKW > 0 ? 'ladowanie' : 'rozladowanie';
+
   return (
     <div className="stack magazyn-widok">
-      {/* Pasek skali z pasmem przemiany — centralnie pod menu, rozwijany. */}
+      {/* Belka stanu naładowania — centralnie pod menu, rozwijana. */}
       <PasekPrzemiany
         profile={profile}
         materials={materials}
@@ -177,6 +240,9 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
         onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
         volumesL={materials?.volumesL}
         averageC={averageC}
+        zakresC={zakresC}
+        soc={soc}
+        kierunekZmiany={kierunekZmiany}
       />
 
       {/* ------------------------- Schemat ------------------------- */}

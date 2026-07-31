@@ -1,21 +1,35 @@
 /**
- * Pasek skali barwnej z pasmem przemiany — nagłówek widoku Magazyn.
+ * Belka stanu naładowania — nagłówek widoku Magazyn.
  *
- * Zwinięty pokazuje to, co trzeba wiedzieć od pierwszego spojrzenia: jaka
- * parafina jest w zbiorniku i gdzie leży jej pasmo przemiany. Rozwinięty
- * dodaje wybór parafiny i dane materiału.
+ * ZWINIĘTA pokazuje to, bez czego reszta ekranu nic nie znaczy: jaki materiał
+ * jest w zbiorniku, w której strefie stoi teraz i jak daleko mu do przemiany.
+ * Pasek jest STREFOWY, a nie gradientowy — ciągły gradient mówił „jest cieplej
+ * albo zimniej", a strefy mówią „rozładowany / w przemianie / naładowany",
+ * czyli to, o co przy magazynie ciepła naprawdę chodzi.
  *
- * Dlaczego pasmo przemiany jest tutaj, a nie w panelu bocznym: to jedyna
- * informacja, bez której kolory na schemacie nic nie znaczą. Punkt wewnątrz
- * plateau to zupełnie inny stan niż punkt poza nim — i to musi być widoczne
- * zanim spojrzy się na zbiornik, nie po.
+ * ROZWINIĘTA dokłada krzywą entalpii i dane materiału. Rozwinięcie jest
+ * NAKŁADKĄ nad schematem, nie elementem układu — inaczej każde zajrzenie
+ * w szczegóły przestawiałoby rysunek instalacji pod kursorem.
+ *
+ * Dwa materiały, jeden komponent: wszystko, co je różni, siedzi w configu
+ * (`belka/konfiguracja.ts`). W tym pliku nie ma ani jednego rozgałęzienia na
+ * „a jeśli chłód".
  */
 
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MaterialProfile, MaterialsResponse, PcmMaterial } from '@magazyn-pcm/shared';
-import { phaseBandBounds, rampColor, scalePosition } from '../scale.js';
+import {
+  KONFIGURACJA,
+  OPIS_STANU,
+  stanZTemperatury,
+  strefyOdLewej,
+  wypelnienieStrefy,
+} from './belka/konfiguracja.js';
+import { liczba, utworzSkale } from './belka/skala.js';
+import { KrzywaEntalpii } from './belka/KrzywaEntalpii.js';
+import { energiaKWh, type OdczytSoc, type ParametryEntalpii } from '../soc.js';
 
-interface Props {
+export interface Props {
   profile: MaterialProfile | null;
   materials: MaterialsResponse | null;
   /** Parafina narzucona przez trwającą sesję albo null. */
@@ -26,15 +40,21 @@ interface Props {
   onPreviewChange: (material: PcmMaterial) => void;
   /** Objętości zbiorników — pokazywane po rozwinięciu. */
   volumesL?: { storage: number; buffer: number };
-  /**
-   * Średnia z sond magazynu albo null, gdy żadna nie ma danych.
-   *
-   * Średnia z sześciu sond to najbliższe, co mamy do „stanu naładowania"
-   * magazynu jedną liczbą. Na pasku zaznaczamy ją kreską, bo dopiero
-   * położenie tej kreski wobec pasma przemiany mówi, co się w zbiorniku
-   * dzieje: przed pasmem, w środku plateau, czy już za nim.
-   */
+  /** Średnia z sond magazynu albo null, gdy żadna nie ma danych. */
   averageC?: number | null;
+  /**
+   * Skrajne odczyty sond. Gdy sondy się rozjeżdżają (część kafli przeszła
+   * przemianę, część nie), średnia sama tego nie pokaże — dlatego na pasku
+   * pojawia się wtedy wąski pas od min do max.
+   */
+  zakresC?: { min: number; max: number } | null;
+  /**
+   * Gotowy odczyt naładowania. Liczy go strona wywołująca, więc podmiana
+   * źródła (temperatura → bilans energii z ciepłomierza) nie dotyka tego pliku.
+   */
+  soc?: OdczytSoc | null;
+  /** Kierunek zmiany do chipu stanu albo null, gdy nie wiadomo. */
+  kierunekZmiany?: 'ladowanie' | 'rozladowanie' | null;
 }
 
 export function PasekPrzemiany({
@@ -46,97 +66,250 @@ export function PasekPrzemiany({
   onPreviewChange,
   volumesL,
   averageC = null,
+  zakresC = null,
+  soc = null,
+  kierunekZmiany = null,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const kartaRef = useRef<HTMLElement>(null);
+  const paskaRef = useRef<HTMLDivElement>(null);
+  /** Zmierzona szerokość paska — z niej powstaje wspólna skala. */
+  const [szerokosc, setSzerokosc] = useState(0);
+
+  // Szerokość mierzymy, a nie zakładamy: od niej zależy pokrycie osi wykresu
+  // z paskiem. Przy każdej zmianie rozmiaru liczymy od nowa.
+  //
+  // DWA ŹRÓDŁA ZDARZEŃ, i to nie z nadmiaru ostrożności. `ResizeObserver`
+  // dostarcza powiadomienia dopiero na koniec klatki, więc gdy przeglądarka
+  // klatek nie rysuje (karta w tle, panel podglądu), pomiar zostaje stary
+  // i oś wykresu rozjeżdża się z paskiem. Zdarzenie `resize` okna przychodzi
+  // niezależnie od rysowania i domyka tę lukę.
+  useLayoutEffect(() => {
+    const el = paskaRef.current;
+    if (!el) return;
+
+    const zmierz = (): void => {
+      const nowa = el.getBoundingClientRect().width;
+      setSzerokosc((stara) => (Math.abs(stara - nowa) < 0.5 ? stara : nowa));
+    };
+
+    zmierz();
+    const observer = new ResizeObserver(zmierz);
+    observer.observe(el);
+    window.addEventListener('resize', zmierz);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', zmierz);
+    };
+  }, [profile?.id]);
+
+  // Klik poza belką zwija ją.
+  useEffect(() => {
+    if (!open) return;
+    const naZewnatrz = (event: MouseEvent): void => {
+      if (!kartaRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', naZewnatrz);
+    return () => document.removeEventListener('mousedown', naZewnatrz);
+  }, [open]);
 
   if (!profile || !materials) return null;
 
-  const band = phaseBandBounds(profile);
-  const avgLeft = averageC === null ? null : scalePosition(averageC, profile) * 100;
-  const avgInBand =
-    averageC !== null && averageC >= profile.phaseBandMin && averageC <= profile.phaseBandMax;
-  // Skala parafiny 57HC zaczyna się na 40 °C, a zimny magazyn ma 25 °C.
-  // Kreska przyklejona wtedy do lewej krawędzi wyglądałaby jak 40 °C —
-  // dlatego taki przypadek podpisujemy wprost, zamiast go zamiatać.
-  const avgOffScale =
-    averageC !== null && (averageC < profile.scaleMin || averageC > profile.scaleMax);
-  const gradient = `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1]
-    .map((stop) => `${rampColor(stop)} ${stop * 100}%`)
-    .join(', ')})`;
+  const cfg = KONFIGURACJA[profile.id];
+  const skala = utworzSkale(szerokosc, profile.scaleMin, profile.scaleMax);
 
-  const locked = fromSession !== null || detected !== null;
-  const source = fromSession ? 'z sesji' : detected ? 'z sond' : 'podgląd';
-  const profiles = Object.values(materials.profiles) as MaterialProfile[];
+  const parametry: ParametryEntalpii = {
+    tMin: profile.scaleMin,
+    tMax: profile.scaleMax,
+    solidus: cfg.solidus,
+    liquidus: cfg.liquidus,
+    cieploPrzemiany: cfg.cieploPrzemiany,
+    cp: cfg.cp,
+  };
+
+  const maDane = averageC !== null;
+  const stan = maDane ? stanZTemperatury(averageC, cfg) : null;
+  const poza = maDane ? skala.pozaSkala(averageC) : null;
+
+  const zrodlo = fromSession ? 'z sesji' : detected ? 'z sond' : 'podgląd';
+  const zablokowane = fromSession !== null || detected !== null;
+  const profile2 = Object.values(materials.profiles) as MaterialProfile[];
+
+  const opisKierunku = cfg.kierunek === 'chlod' ? 'chłód' : 'ciepło';
+  const energia =
+    soc?.soc == null ? null : energiaKWh(soc.soc, cfg.pojemnoscKWh);
+
+  const strzalka =
+    kierunekZmiany === 'ladowanie' ? '↑' : kierunekZmiany === 'rozladowanie' ? '↓' : '';
 
   return (
-    <section className={`bandbar${open ? ' is-open' : ''}`}>
+    <section className={`belka${open ? ' is-open' : ''}`} ref={kartaRef}>
       <button
         type="button"
-        className="bandbar__head"
-        onClick={() => setOpen((value) => !value)}
+        className="belka__glowa"
+        onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        title={open ? 'Zwiń szczegóły' : 'Rozwiń szczegóły parafiny'}
+        title={open ? 'Zwiń szczegóły' : 'Rozwiń krzywą entalpii i dane materiału'}
       >
-        <span className="bandbar__material">
-          <span className="bandbar__name">{profile.label}</span>
-          <span className="bandbar__source">{source}</span>
+        <span className="belka__naglowek">
+          <span className="belka__lewa">
+            <span className="belka__material">{profile.label}</span>
+            <span className="belka__zrodlo">{zrodlo}</span>
+          </span>
+
+          <span className="belka__prawa">
+            {stan ? (
+              <span
+                className="belka__stan"
+                style={{ background: cfg.chip[stan].tlo, color: cfg.chip[stan].tekst }}
+              >
+                {OPIS_STANU[stan]}
+                {strzalka ? ` ${strzalka}` : ''}
+              </span>
+            ) : (
+              <span className="belka__stan belka__stan--brak">Brak danych z sond</span>
+            )}
+
+            <svg
+              className="belka__chevron"
+              width={18}
+              height={18}
+              viewBox="0 0 18 18"
+              aria-hidden="true"
+            >
+              <path
+                d="M4.5 7 9 11.5 13.5 7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
         </span>
 
-        <span className="bandbar__scale">
-          <span className="bandbar__min mono">{profile.scaleMin} °C</span>
-          <span className="bandbar__track" style={{ background: gradient }}>
-            {/* Pasmo przemiany — osobne oznaczenie, nie odcień. */}
+        {/* Wartość nad markerem — w osobnym pasie, żeby nie podnosiła paska. */}
+        <span className="belka__nadpasek">
+          {maDane ? (
             <span
-              className="bandbar__band"
-              style={{ left: `${band.left}%`, width: `${band.width}%` }}
-            />
+              className="belka__wartosc mono"
+              style={
+                // Przy temperaturze poza skalą marker stoi na krawędzi, więc
+                // wyśrodkowanie liczby wypchnęłoby ją za kartę. Wtedy liczba
+                // trzyma się krawędzi, a prefiks mówi, że to nie jest odczyt
+                // z tego miejsca skali.
+                poza === 'ponizej'
+                  ? { left: 0, transform: 'none' }
+                  : poza === 'powyzej'
+                    ? { left: 'auto', right: 0, transform: 'none' }
+                    : { left: skala.xOf(averageC), transform: 'translateX(-50%)' }
+              }
+            >
+              {poza === 'ponizej' ? '<' : poza === 'powyzej' ? '>' : ''}
+              {liczba(averageC)}°
+            </span>
+          ) : null}
+        </span>
 
-            {/* Kreska średniej z sond — gdzie magazyn jest teraz. */}
-            {avgLeft !== null ? (
+        {/* Pasek strefowy. Pole jest mierzone — z jego szerokości bierze się
+            wspólna skala dla paska i osi wykresu. */}
+        <span className="belka__pasek-pole" ref={paskaRef}>
+          <span className="belka__pasek">
+            {szerokosc > 0
+              ? strefyOdLewej(cfg).map((stanStrefy, i) => {
+                  const granice: Array<[number, number]> = [
+                    [profile.scaleMin, cfg.solidus],
+                    [cfg.solidus, cfg.liquidus],
+                    [cfg.liquidus, profile.scaleMax],
+                  ];
+                  const [od, doT] = granice[i]!;
+                  const x = skala.xOf(od);
+                  return (
+                    <span
+                      key={stanStrefy}
+                      className="belka__strefa"
+                      style={{
+                        left: x,
+                        width: Math.max(skala.xOf(doT) - x, 0),
+                        background: wypelnienieStrefy(stanStrefy, cfg),
+                      }}
+                    />
+                  );
+                })
+              : null}
+
+            {/* Rozjazd sond — wąski pas od najzimniejszej do najcieplejszej. */}
+            {zakresC && szerokosc > 0 ? (
               <span
-                className={`bandbar__avg${avgInBand ? ' is-phase' : ''}${
-                  avgOffScale ? ' is-off' : ''
-                }`}
-                style={{ left: `${avgLeft}%` }}
-                title={
-                  avgOffScale
-                    ? `Średnia z sond magazynu: ${averageC!.toFixed(1)} °C — poza skalą ${profile.scaleMin}–${profile.scaleMax} °C`
-                    : `Średnia z sond magazynu: ${averageC!.toFixed(1)} °C`
-                }
-              >
-                <span className="bandbar__avg-value mono">
-                  {averageC! < profile.scaleMin ? '‹' : ''}
-                  {averageC!.toFixed(1)}
-                  {averageC! > profile.scaleMax ? '›' : ''}
-                </span>
-              </span>
+                className="belka__zakres"
+                style={{
+                  left: skala.xOf(zakresC.min),
+                  width: Math.max(skala.xOf(zakresC.max) - skala.xOf(zakresC.min), 2),
+                }}
+                title={`Rozrzut sond: ${liczba(zakresC.min)}–${liczba(zakresC.max)} °C`}
+              />
             ) : null}
           </span>
-          <span className="bandbar__max mono">{profile.scaleMax} °C</span>
+
+          {maDane && szerokosc > 0 ? (
+            <span className="belka__marker" style={{ left: skala.xOf(averageC) }} />
+          ) : null}
         </span>
 
-        <span className="bandbar__phase mono">
-          przemiana {profile.phaseBandMin}–{profile.phaseBandMax} °C
-        </span>
-
-        <span className="bandbar__chevron" aria-hidden="true">
-          {open ? '▴' : '▾'}
-        </span>
+        {/* Podpisy stref. */}
+        {szerokosc > 0 ? (
+          <span className="belka__podpisy">
+            <span className="belka__podpis belka__podpis--lewy">
+              {OPIS_STANU[strefyOdLewej(cfg)[0]!]}
+            </span>
+            <span
+              className="belka__podpis belka__podpis--srodek"
+              style={{
+                left: (skala.xOf(cfg.solidus) + skala.xOf(cfg.liquidus)) / 2,
+              }}
+            >
+              przemiana {cfg.solidus}–{cfg.liquidus}°
+            </span>
+            <span className="belka__podpis belka__podpis--prawy">
+              {OPIS_STANU[strefyOdLewej(cfg)[2]!]}
+            </span>
+          </span>
+        ) : null}
       </button>
 
       {open ? (
-        <div className="bandbar__body">
-          <div className="bandbar__switch" role="group" aria-label="Wybór parafiny">
-            {profiles.map((item) => {
-              const active = item.id === profile.id;
+        <div className="belka__panel">
+          <KrzywaEntalpii
+            skala={skala}
+            cfg={cfg}
+            parametry={parametry}
+            sredniaC={averageC}
+            soc={soc?.soc ?? null}
+            opisKierunku={opisKierunku}
+          />
+
+          <div
+            className="belka__przelacznik"
+            role="group"
+            aria-label="Wybór parafiny"
+            // Klik w przełącznik nie może zwijać belki — i nie zwinie, bo panel
+            // jest rodzeństwem przycisku, nie jego dzieckiem. `stopPropagation`
+            // zostaje jako zabezpieczenie na wypadek przeniesienia kontrolek
+            // do środka nagłówka.
+            onClick={(event) => event.stopPropagation()}
+          >
+            {profile2.map((item) => {
+              const aktywny = item.id === profile.id;
               return (
                 <button
                   key={item.id}
                   type="button"
-                  className={`parafina__option${active ? ' is-active' : ''}`}
-                  disabled={locked && !active}
-                  aria-pressed={active}
-                  onClick={() => !locked && onPreviewChange(item.id)}
+                  className={`parafina__option${aktywny ? ' is-active' : ''}`}
+                  disabled={zablokowane && !aktywny}
+                  aria-pressed={aktywny}
+                  onClick={() => !zablokowane && onPreviewChange(item.id)}
                   title={
                     fromSession
                       ? 'Parafina pochodzi z trwającej sesji — zmień ją, kończąc sesję'
@@ -151,38 +324,38 @@ export function PasekPrzemiany({
             })}
           </div>
 
-          <dl className="bandbar__facts">
-            <div>
-              <dt>ciepło utajone</dt>
-              <dd className="mono">{profile.latentHeat} kJ/kg</dd>
-            </div>
-            <div>
-              <dt>temperatura maks.</dt>
-              <dd className="mono">{profile.tMax} °C</dd>
-            </div>
-            <div>
-              <dt>szczyt topnienia</dt>
-              <dd className="mono">{profile.peak} °C</dd>
-            </div>
-            {volumesL ? (
-              <div>
-                <dt>magazyn / bufor</dt>
-                <dd className="mono">
-                  {volumesL.storage} / {volumesL.buffer} l
-                </dd>
-              </div>
-            ) : null}
-          </dl>
+          <div className="belka__kafle">
+            <Kafel label="ciepło utajone" wartosc={`${profile.latentHeat} kJ/kg`} />
+            <Kafel label="temperatura maks." wartosc={`${profile.tMax} °C`} />
+            <Kafel label="szczyt topnienia" wartosc={`${profile.peak} °C`} />
+            <Kafel
+              label="magazyn / bufor"
+              wartosc={volumesL ? `${volumesL.storage} / ${volumesL.buffer} l` : '—'}
+            />
+          </div>
 
-          <p className="bandbar__note">
+          <p className="belka__spod">
+            {energia === null
+              ? 'Energia: brak odczytu sond. '
+              : `Energia: ${liczba(energia)} / ${liczba(cfg.pojemnoscKWh)} kWh · `}
             {fromSession
-              ? 'Parafina pochodzi z trwającej sesji. Żeby ją zmienić, zakończ sesję i zacznij nową.'
+              ? 'parafina z trwającej sesji.'
               : detected
-                ? 'Rozpoznana po sondach podłączonego zbiornika. Po wymianie zbiornika przełączy się sama.'
-                : 'Podgląd bez sesji i bez rozpoznanego zbiornika. Przy prawdziwym teście parafinę wybierasz, zakładając sesję.'}
+                ? 'rozpoznana po sondach podłączonego zbiornika.'
+                : 'podgląd bez sesji i bez rozpoznanego zbiornika.'}
+            {soc?.zrodlo === 'temperatura' ? ' Naładowanie szacowane z temperatury.' : ''}
           </p>
         </div>
       ) : null}
     </section>
+  );
+}
+
+function Kafel({ label, wartosc }: { label: string; wartosc: string }) {
+  return (
+    <div className="belka__kafel">
+      <span className="belka__kafel-label">{label}</span>
+      <span className="belka__kafel-wartosc mono">{wartosc}</span>
+    </div>
   );
 }

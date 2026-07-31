@@ -740,249 +740,302 @@ code {
    PASEK SKALI Z PASMEM PRZEMIANY (nagłówek widoku Magazyn)
    ========================================================================= */
 
-.bandbar {
+/* =========================================================================
+   BELKA STANU NAŁADOWANIA — nagłówek widoku Magazyn
+   =========================================================================
+   Karta jest punktem odniesienia dla nakładki, dlatego `position: relative`.
+   Rozwinięty panel leży NAD schematem (absolutnie), więc rozwinięcie nie
+   przestawia rysunku instalacji pod kursorem. */
+
+.belka {
+  position: relative;
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--hairline);
+  border-radius: 12px;
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  /* Nad schematem, ale pod panelami sond (te mają z-index 3). */
+  z-index: 4;
 }
 
-.bandbar__head {
+.belka.is-open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Cała zwinięta belka jest przyciskiem — klik w dowolne miejsce rozwija. */
+.belka__glowa {
+  display: block;
   width: 100%;
   border: 0;
   background: transparent;
   font: inherit;
   color: inherit;
-  cursor: pointer;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.75rem 1.25rem;
-  /* Górny zapas robi miejsce dla liczby średniej nad paskiem skali. */
-  padding: 1.35rem 1.25rem 0.85rem;
   text-align: left;
+  cursor: pointer;
+  padding: 16px 20px;
 }
 
-@media (max-width: 760px) {
-  .bandbar__head {
-    grid-template-columns: 1fr auto;
-  }
-  .bandbar__scale {
-    grid-column: 1 / -1;
-  }
-}
-
-.bandbar__material {
+.belka__naglowek {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.belka__lewa,
+.belka__prawa {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.bandbar__name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.belka__material {
+  font-size: 16px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
-.bandbar__source {
-  font-size: 0.68rem;
-  color: var(--ok-ink);
+/* Chip źródła materiału — skąd wiadomo, co jest w zbiorniku. */
+.belka__zrodlo {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
   background: var(--ok-bg);
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
+  color: var(--ok-ink);
   white-space: nowrap;
 }
 
-.bandbar__scale {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+/* Chip stanu. Kolory podaje config materiału (styl inline), bo to one kodują
+   naładowanie — a nie temperaturę. */
+.belka__stan {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
-.bandbar__min,
-.bandbar__max {
-  font-size: 0.72rem;
+.belka__stan--brak {
+  background: var(--surface-sunken);
   color: var(--ink-soft);
+}
+
+.belka__chevron {
+  color: var(--ink-soft);
+  flex: 0 0 auto;
+  transition: transform 0.2s ease-out;
+}
+
+.belka.is-open .belka__chevron {
+  transform: rotate(180deg);
+}
+
+/* Pas na wartość nad markerem. Stała wysokość, żeby pojawienie się liczby
+   nie podnosiło paska o kilka pikseli. */
+.belka__nadpasek {
+  position: relative;
+  display: block;
+  height: 20px;
+  margin-top: 10px;
+}
+
+.belka__wartosc {
+  position: absolute;
+  bottom: 0;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
-.bandbar__track {
+/* --- Pasek strefowy ------------------------------------------------------ */
+
+/* Pole paska. To ONO jest mierzone i z jego szerokości powstaje wspólna skala.
+   Marker musi wystawać 6 px nad pasek i pod niego, a pasek musi obcinać
+   segmenty — te dwa wymagania wykluczają się w jednym elemencie, więc pasek
+   i marker są rodzeństwem wewnątrz tego pola. */
+.belka__pasek-pole {
   position: relative;
-  flex: 1;
-  height: 14px;
-  border-radius: 999px;
-  box-shadow: inset 0 0 0 1px rgba(13, 31, 20, 0.12);
+  display: block;
+  height: 12px;
 }
 
-/* Pasmo przemiany — osobne oznaczenie, nie odcień. */
-.bandbar__band {
+.belka__pasek {
   position: absolute;
-  top: -3px;
-  bottom: -3px;
-  border-radius: 4px;
-  box-shadow:
-    inset 0 0 0 2px var(--ink),
-    0 0 0 2px var(--surface);
+  inset: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-sunken);
 }
 
-/* Kreska średniej z sond magazynu.
-   Pasmo przemiany jest ramką (obwódką), więc średnia musi być czymś innego
-   rodzaju — pionową kreską przecinającą pasek na wylot. Inaczej dwa
-   oznaczenia zlałyby się w jeden nieczytelny prostokąt. */
-.bandbar__avg {
+/* Segmenty stykają się bez przerw — pozycje w pikselach z jednej wspólnej
+   funkcji xOf(), więc krawędzie wypadają dokładnie na granicach stref. */
+.belka__strefa {
   position: absolute;
-  top: -7px;
-  bottom: -7px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--ink);
-  border-radius: 1px;
-  box-shadow: 0 0 0 1.5px var(--surface);
+  top: 0;
+  bottom: 0;
 }
 
-/* W pasmie przemiany kreska zmienia się w akcent — to najważniejszy moment
-   badania i ma być widoczny bez czytania liczby. */
-.bandbar__avg.is-phase {
-  background: var(--accent);
+/* Rozrzut sond — półprzezroczysty pas od najzimniejszej do najcieplejszej. */
+.belka__zakres {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
+.belka__marker {
+  position: absolute;
+  top: -6px;
+  height: 24px;
   width: 3px;
   margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--ink);
+  z-index: 2;
 }
 
-/* Średnia poza zakresem skali: kreska przerywana, żeby nie udawała odczytu
-   z pozycji, na której stoi. */
-.bandbar__avg.is-off {
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--ink-faint) 0 3px,
-    transparent 3px 6px
-  );
+/* --- Podpisy stref ------------------------------------------------------- */
+
+.belka__podpisy {
+  position: relative;
+  display: block;
+  height: 18px;
+  margin-top: 8px;
 }
 
-.bandbar__avg-value {
+.belka__podpis {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(100% + 3px);
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--ink);
-  background: var(--surface);
-  padding: 0 0.25rem;
-  border-radius: 3px;
-  white-space: nowrap;
-}
-
-.bandbar__phase {
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.bandbar__chevron {
-  color: var(--ink-faint);
-  font-size: 0.8rem;
-}
-
-.bandbar__body {
-  border-top: 1px solid var(--hairline);
-  padding: 1rem 1.25rem 1.15rem;
-  display: grid;
-  gap: 0.85rem;
-}
-
-.bandbar__switch {
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: 0.3rem;
-  background: var(--surface-sunken);
-  padding: 0.25rem;
-  border-radius: 999px;
-  justify-self: start;
-}
-
-.bandbar__facts {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0.5rem;
-}
-
-.bandbar__facts > div {
-  background: var(--surface-sunken);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.7rem;
-}
-
-.bandbar__facts dt {
-  font-size: 0.68rem;
-  color: var(--ink-faint);
-  margin-bottom: 0.15rem;
-}
-
-.bandbar__facts dd {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.bandbar__note {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.5;
+  top: 0;
+  font-size: 12px;
   color: var(--ink-soft);
+  white-space: nowrap;
 }
 
-/* Identyfikator punktu jako odnośnik do wykresu. */
-.linkish {
+.belka__podpis--lewy {
+  left: 0;
+}
+
+.belka__podpis--prawy {
+  right: 0;
+}
+
+.belka__podpis--srodek {
+  transform: translateX(-50%);
+}
+
+/* --- Panel rozwinięty (nakładka) ---------------------------------------- */
+
+.belka__panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: var(--surface);
+  /* Obramowanie TYLKO u góry i u dołu.
+     Boczne dodawałoby pół piksela wcięcia i oś wykresu przestawałaby pokrywać
+     się z paskiem co do piksela — a to warunek krytyczny tej belki. Krawędzie
+     boczne wyznacza cień. */
   border: 0;
-  background: none;
-  font: inherit;
-  color: var(--ink);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  padding: 0;
+  border-top: 0.5px solid var(--hairline);
+  border-bottom: 0.5px solid var(--hairline);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 18px 40px rgba(13, 31, 20, 0.16);
+  margin-top: 10px;
+  padding: 10px 20px 16px;
+  animation: belkaRozwin 0.2s ease-out;
 }
 
-/* --- Przelacznik parafiny -------------------------------------------------- */
-
-.parafina {
-  display: grid;
-  gap: 0.4rem;
-  padding-bottom: 0.9rem;
-  border-bottom: 1px solid var(--hairline);
+@keyframes belkaRozwin {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.parafina__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
+@media (prefers-reduced-motion: reduce) {
+  .belka__panel {
+    animation: none;
+  }
 }
 
-.parafina__title {
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-faint);
+/* --- Wykres entalpii ----------------------------------------------------- */
+
+.belka__wykres {
+  display: block;
 }
 
-.parafina__lock {
-  font-size: 0.68rem;
-  color: var(--ok-ink);
-  background: var(--ok-bg);
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
+.belka__os {
+  stroke: var(--hairline);
 }
 
-.parafina__switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.belka__tick {
+  fill: var(--ink-faint);
+  font-size: 11px;
+}
+
+.belka__prowadnica {
+  stroke: var(--ink-faint);
+}
+
+.belka__punkt {
+  stroke: var(--surface);
+}
+
+.belka__etykieta-punktu {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* --- Przełącznik i kafle ------------------------------------------------- */
+
+.belka__przelacznik {
+  display: inline-flex;
   gap: 0.3rem;
   background: var(--surface-sunken);
   padding: 0.25rem;
   border-radius: 999px;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.belka__kafle {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .belka__kafle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.belka__kafel {
+  background: var(--surface-sunken);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.belka__kafel-label {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.belka__kafel-wartosc {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.belka__spod {
+  margin: 0.6rem 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
 }
 
 .parafina__option {
@@ -1096,12 +1149,12 @@ code {
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-/* Pasek przemiany wraca do szerokości treści i zostaje wyśrodkowany. */
-/* `justify-self`, a nie „margin-inline: auto" — widok jest siatką, a element
-   siatki o zadanej szerokości nie wyśrodkuje się samymi marginesami. */
-/* Rama nie ma już marginesów, więc pasek przemiany bierze własne — inaczej
-   przyklejałby się do menu i do krawędzi ekranu. */
-.magazyn-widok .bandbar {
+/* Belka wraca do szerokości treści i zostaje wyśrodkowana.
+   `justify-self`, a nie „margin-inline: auto" — widok jest siatką, a element
+   siatki o zadanej szerokości nie wyśrodkuje się samymi marginesami.
+   Rama nie ma marginesów, więc belka bierze własne — inaczej przyklejałaby się
+   do menu i do krawędzi ekranu. */
+.magazyn-widok .belka {
   width: min(1400px, 100% - 2 * clamp(1rem, 4vw, 3rem));
   justify-self: center;
   margin-top: clamp(0.5rem, 1.5vw, 1rem);
