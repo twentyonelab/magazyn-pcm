@@ -75,6 +75,8 @@ export function PasekPrzemiany({
   const paskaRef = useRef<HTMLDivElement>(null);
   /** Zmierzona szerokość paska — z niej powstaje wspólna skala. */
   const [szerokosc, setSzerokosc] = useState(0);
+  /** Pozycja kursora nad paskiem w pikselach albo null. */
+  const [kursorX, setKursorX] = useState<number | null>(null);
 
   // Szerokość mierzymy, a nie zakładamy: od niej zależy pokrycie osi wykresu
   // z paskiem. Przy każdej zmianie rozmiaru liczymy od nowa.
@@ -214,8 +216,21 @@ export function PasekPrzemiany({
         </span>
 
         {/* Pasek strefowy. Pole jest mierzone — z jego szerokości bierze się
-            wspólna skala dla paska i osi wykresu. */}
-        <span className="belka__pasek-pole" ref={paskaRef}>
+            wspólna skala dla paska i osi wykresu.
+
+            Najechanie kursorem czyta temperaturę z tej samej skali i rysuje
+            cienką kreskę — na pasku i, gdy belka jest rozwinięta, przez cały
+            wykres. Dzięki wspólnej `xOf`/`tempOf` kreska i liczba nie mogą
+            wskazywać dwóch różnych miejsc. */}
+        <span
+          className="belka__pasek-pole"
+          ref={paskaRef}
+          onMouseMove={(event) => {
+            const pole = event.currentTarget.getBoundingClientRect();
+            setKursorX(event.clientX - pole.left);
+          }}
+          onMouseLeave={() => setKursorX(null)}
+        >
           <span className="belka__pasek">
             {szerokosc > 0
               ? strefyOdLewej(cfg).map((stanStrefy, i) => {
@@ -256,6 +271,21 @@ export function PasekPrzemiany({
           {maDane && szerokosc > 0 ? (
             <span className="belka__marker" style={{ left: skala.xOf(averageC) }} />
           ) : null}
+
+          {/* Kreska i odczyt pod kursorem. */}
+          {kursorX !== null && szerokosc > 0 ? (
+            <>
+              <span className="belka__kursor" style={{ left: kursorX }} />
+              <span
+                className="belka__kursor-wartosc mono"
+                style={{
+                  left: Math.min(Math.max(kursorX, 26), szerokosc - 26),
+                }}
+              >
+                {liczba(skala.tempOf(kursorX))}°
+              </span>
+            </>
+          ) : null}
         </span>
 
         {/* Podpisy stref. */}
@@ -288,6 +318,7 @@ export function PasekPrzemiany({
             sredniaC={averageC}
             soc={soc?.soc ?? null}
             opisKierunku={opisKierunku}
+            kursorX={kursorX}
           />
 
           <div

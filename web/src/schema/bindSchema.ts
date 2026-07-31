@@ -28,6 +28,19 @@ export interface BindOptions {
   flowFullSpeed: number;
   /** Czy kanał do serwera żyje — decyduje, kto ocenia przestarzałość. */
   channelAlive?: boolean;
+  /**
+   * PRZEPŁYW UDAWANY, w m³/h, albo null przy pracy na prawdziwych danych.
+   *
+   * Ciepłomierz jest podłączony, ale pompa nie pracuje, więc przepływ wynosi
+   * 0,000 m³/h i rury na schemacie stoją — poprawnie, tylko nie da się na tym
+   * pokazać, jak wygląda działający układ. Ten parametr istnieje wyłącznie do
+   * pokazu i jest włączany świadomie przyciskiem w widoku.
+   *
+   * Dlaczego nie zwykłe „wymuś animację": prędkość kreski ma dalej wynikać
+   * z liczby, tak jak przy prawdziwym pomiarze. Inaczej tryb pokazowy uczyłby
+   * czytania rysunku inaczej niż tryb prawdziwy.
+   */
+  przeplywDemo?: number | null;
 }
 
 /** Klasy stanu — dokładnie jedna z nich siedzi na elemencie. */
@@ -145,7 +158,8 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     const point = sourceId ? points.get(sourceId) : undefined;
     const status = statusOf(point, value, staleAfterMs, now, channelAlive);
 
-    const flow = status === 'ok' && value?.v !== null ? (value?.v ?? 0) : 0;
+    const zmierzony = status === 'ok' && value?.v !== null ? (value?.v ?? 0) : 0;
+    const flow = opts.przeplywDemo ?? zmierzony;
 
     if (flow <= 0) {
       // ZEROWY PRZEPŁYW TO BRAK RUCHU, nie ruch wolny. Wolno sunąca kreska

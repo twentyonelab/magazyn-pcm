@@ -20,10 +20,17 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { MaterialProfile } from '@magazyn-pcm/shared';
-import { KADR, LOKALIZACJE, MAX_GRANICE, STANOWISKO } from '../map/lokalizacje.js';
+import {
+  KADR,
+  LOKALIZACJE,
+  MAX_GRANICE,
+  STANOWISKO,
+  type Lokalizacja,
+} from '../map/lokalizacje.js';
 import type { LiveData } from '../useLiveData.js';
 import { useAppliedTheme } from '../theme.js';
 import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
+import { PALETA } from '../kolory-magazynu.js';
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -96,7 +103,7 @@ function zdjecieLotnicze(lon: number, lat: number, w: number, h: number, zoom = 
  * danych z zewnątrz.
  */
 function trescDymka(
-  punkt: { miasto: string; opis: string; lon: number; lat: number; stan: 'live' | 'demo' },
+  punkt: Lokalizacja,
   sredniaC: number | null,
   procent: number | null,
 ): string {
@@ -104,27 +111,35 @@ function trescDymka(
     `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.miasto}" loading="lazy" ` +
     `src="${zdjecieLotnicze(punkt.lon, punkt.lat, 280, 110, punkt.stan === 'live' ? 17 : 14)}">`;
 
+  const paleta = PALETA[punkt.typ];
+
+  // Nazwa miasta w kolorze rodzaju magazynu — ten sam kod barwny co pinezka
+  // i co reszta interfejsu.
   const naglowek =
-    `<p class="dymek__nazwa">${punkt.miasto}</p><p class="dymek__opis">${punkt.opis}</p>`;
+    `<p class="dymek__nazwa" style="color:${paleta.glowny}">${punkt.miasto}</p>` +
+    `<p class="dymek__opis">${punkt.opis}</p>`;
 
-  if (punkt.stan !== 'live') return zdjecie + naglowek;
+  // Poziom naładowania: dla stanowiska z prawdziwych sond, dla punktów
+  // pokazowych z wartości wpisanej na stałe — i wtedy podpisany jako pokazowy.
+  const poziom = punkt.stan === 'live' ? procent : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
-  // Naładowanie: pomarańczowy pasek i liczba. Słowo „szacunek" jest tu
-  // obowiązkowe — liczba pochodzi z temperatury, nie z pomiaru energii
-  // (dlaczego: patrz naladowanie.ts).
   const ladunek =
-    procent === null
+    poziom === null
       ? '<p class="dymek__akcja">Brak odczytu sond — naładowania nie da się oszacować</p>'
       : '<div class="ladunek">' +
         '<div class="ladunek__gora">' +
-        '<span class="ladunek__etykieta">naładowanie · szacunek</span>' +
-        `<span class="ladunek__liczba mono">${procent}%</span>` +
+        `<span class="ladunek__etykieta">naładowanie · ${
+          punkt.stan === 'live' ? 'szacunek z temperatury' : 'wartość pokazowa'
+        }</span>` +
+        `<span class="ladunek__liczba mono" style="color:${paleta.glowny}">${poziom}%</span>` +
         '</div>' +
-        `<div class="ladunek__tor"><div class="ladunek__wypelnienie" style="width:${procent}%"></div></div>` +
-        (sredniaC === null
-          ? ''
-          : `<p class="ladunek__spod">średnia z sond ${sredniaC.toFixed(1)} °C</p>`) +
+        `<div class="ladunek__tor"><div class="ladunek__wypelnienie" style="width:${poziom}%;background:linear-gradient(90deg,${paleta.jasny},${paleta.glowny})"></div></div>` +
+        (punkt.stan === 'live' && sredniaC !== null
+          ? `<p class="ladunek__spod">średnia z sond ${sredniaC.toFixed(1).replace('.', ',')} °C</p>`
+          : '') +
         '</div>';
+
+  if (punkt.stan !== 'live') return zdjecie + naglowek + ladunek;
 
   return (
     zdjecie +
@@ -146,6 +161,14 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const [blad, setBlad] = useState<string | null>(null);
   /** Dymek stanowiska — trzymany, żeby odświeżać w nim naładowanie. */
   const dymekLiveRef = useRef<mapboxgl.Popup | null>(null);
+  /** Wypełnienie zbiornika stanowiska — podnoszone bez przebudowy mapy. */
+  const wypelnienieLiveRef = useRef<HTMLElement | null>(null);
+  /**
+   * Naładowanie stanowiska widziane przez kod budujący znaczniki.
+   * Efekt tworzący mapę nie może zależeć od `procent`, bo przy każdym odczycie
+   * sond przebudowywałby całą mapę — dlatego wartość wchodzi referencją.
+   */
+  const procentRef = useRef<number | null>(null);
 
   // Dane płyną? To decyduje, czy kropka stanowiska pulsuje.
   const zywe = data.link === 'live';
@@ -164,6 +187,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     : null;
   const sredniaC = sredniaZSond(data.points, data.values);
   const procent = naladowanieProcent(sredniaC, profile);
+  procentRef.current = procent;
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
   otworzRef.current = onOtworzMagazyn;
@@ -196,10 +220,24 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         minZoom: 6,
         maxZoom: 20,
         pitch: POCHYLENIE,
-        // Znak Mapboxa domyślnie siedzi w lewym dolnym rogu, czyli dokładnie
-        // tam, gdzie leży legenda. Przeniesiony w prawo, do atrybucji.
         logoPosition: 'bottom-right',
+        /**
+         * ATRYBUCJI NIE WOLNO USUNĄĆ — i dlatego jej nie usuwam.
+         *
+         * Warunki Mapboxa: „Maps using Mapbox map styles or data supplied by
+         * Mapbox must display both the Mapbox logo and text attribution".
+         * Wyjątek dotyczy wyłącznie własnych stylów i własnych danych; my
+         * używamy stylu i danych Mapboxa, więc wyjątek nas nie obejmuje.
+         * Ukrycie tego napisu byłoby naruszeniem licencji.
+         *
+         * `compact: true` to najmniejsza forma, jaką Mapbox przewiduje:
+         * zamiast pełnego wiersza zostaje mały krążek „i", który rozwija tekst
+         * po kliknięciu. Tyle da się zredukować i nie więcej.
+         */
+        attributionControl: false,
       });
+
+      map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
     } catch (error) {
       setBlad(`Nie udało się otworzyć mapy: ${(error as Error).message}`);
       return;
@@ -260,22 +298,21 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     for (const punkt of LOKALIZACJE) {
       const live = punkt.stan === 'live';
 
-      // Pinezka jako własny element — kropla ze zdjęciem lotniczym w środku.
-      // Mapbox pozwala podać dowolny element przez opcję `element`; domyślna
-      // niebieska kropla nie umiałaby ani nieść zdjęcia, ani pulsować.
+      // Znacznik to PIONOWY ZBIORNIK o proporcjach 2:1, wypełniony od dołu
+      // do poziomu naładowania. Kropla wskazywała tylko miejsce; zbiornik
+      // pokazuje przy tym stan — a to jest właściwa treść tej mapy.
+      // Obrys w kolorze rodzaju magazynu: pomarańcz = ciepło, lodowy = chłód.
+      const paleta = PALETA[punkt.typ];
+      const poziom =
+        live ? (procentRef.current ?? 0) : Math.round((punkt.demoNaladowanie ?? 0) * 100);
+
       const el = document.createElement('div');
-      el.className = `pinezka is-${punkt.stan}`;
+      el.className = `pinezka is-${punkt.stan} is-${punkt.typ}`;
       el.innerHTML =
-        '<span class="pinezka__ksztalt" aria-hidden="true">' +
-        `<img class="pinezka__zdjecie" alt="" loading="lazy" src="${zdjecieLotnicze(
-          punkt.lon,
-          punkt.lat,
-          live ? 96 : 64,
-          live ? 96 : 64,
-          live ? 17 : 15,
-        )}">` +
+        `<span class="pinezka__zbiornik" aria-hidden="true" style="border-color:${paleta.glowny}">` +
+        `<span class="pinezka__wypelnienie" style="height:${poziom}%;background:linear-gradient(180deg,${paleta.jasny},${paleta.glowny})"></span>` +
         '</span>' +
-        `<span class="pinezka__podpis">${punkt.miasto}</span>`;
+        `<span class="pinezka__podpis" style="color:${paleta.glowny}">${punkt.miasto}</span>`;
 
       // Dymek. `offset` odsuwa go nad wierzchołek pinezki, żeby jej nie
       // zasłaniał; `closeButton` zbędny, bo dymek zamyka klik w mapę.
@@ -286,7 +323,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         maxWidth: '280px',
       }).setHTML(trescDymka(punkt, null, null));
 
-      if (live) dymekLiveRef.current = dymek;
+      if (live) {
+        dymekLiveRef.current = dymek;
+        wypelnienieLiveRef.current = el.querySelector('.pinezka__wypelnienie');
+      }
 
       const marker = new mapboxgl.Marker({
         element: el,
@@ -359,32 +399,19 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     el?.classList.toggle('is-plynie', zywe);
   }, [zywe, theme]);
 
-  // Naładowanie w dymku stanowiska odświeża się z danymi. Podmieniamy samą
-  // treść dymka, żeby nie przebudowywać mapy przy każdym odczycie sond.
+  // Naładowanie stanowiska odświeża się z danymi: treść dymka i wysokość
+  // wypełnienia zbiornika. Podmieniamy tylko te dwie rzeczy, żeby nie
+  // przebudowywać całej mapy przy każdym odczycie sond.
   useEffect(() => {
     dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent));
+    if (wypelnienieLiveRef.current) {
+      wypelnienieLiveRef.current.style.height = `${procent ?? 0}%`;
+    }
   }, [sredniaC, procent]);
 
   return (
     <section className="mapa">
       <div className="mapa__plotno" ref={hostRef} aria-label="Mapa stanowisk na Śląsku" />
-
-      <div className="mapa__legenda">
-        <p className="mapa__legenda-wiersz">
-          <span className="legenda__kropka is-live is-plynie" aria-hidden="true" />
-          <span>
-            <strong>{STANOWISKO.miasto}</strong> — stanowisko badawcze, {STANOWISKO.opis}
-          </span>
-        </p>
-        <p className="mapa__legenda-wiersz">
-          <span className="legenda__kropka is-demo" aria-hidden="true" />
-          <span>
-            Pozostałe <strong>20 punktów to demonstracja</strong> — pokazują, jak taka sieć
-            mogłaby się rozłożyć w regionie. Nie stoją za nimi instalacje ani pomiary.
-          </span>
-        </p>
-      </div>
-
       {blad ? <p className="note is-bad mapa__blad">{blad}</p> : null}
     </section>
   );

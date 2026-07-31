@@ -38,6 +38,24 @@ const ZOOM_STEP = 0.15;
 const ZOOM_MIN = 0.6;
 const ZOOM_MAX = 2;
 
+/**
+ * Schemat startuje ODDALONY o 20%.
+ *
+ * Wpisany w pole co do piksela dotykał krawędzi ekranu i sprawiał wrażenie
+ * przyciętego, nawet gdy nic nie było ucięte. Dwadzieścia procent zapasu daje
+ * rysunkowi oddech i miejsce na kafelek pogody oraz narzędzia w rogach.
+ * Przycisk „dopasuj do okna" wraca właśnie do tej wartości, nie do 1.
+ */
+const ZOOM_STARTOWY = 0.8;
+
+/**
+ * Przepływ pokazywany w trybie demo, m³/h.
+ *
+ * 0,5 m³/h to wartość ROBOCZA tej instalacji — nie maksimum ciepłomierza
+ * (qp 2,5 m³/h). Pokaz ma wyglądać jak normalna praca, nie jak stan skrajny.
+ */
+const PRZEPLYW_DEMO_M3H = 0.5;
+
 /** Odlicza sekundy, żeby wiek wartości i przestarzałość żyły bez zdarzeń SSE. */
 function useTicker(intervalMs: number): number {
   const [now, setNow] = useState(() => Date.now());
@@ -58,7 +76,12 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
   const now = useTicker(1000);
   const settings = useSettings();
   const hostRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(ZOOM_STARTOWY);
+  /**
+   * Tryb pokazowy przepływu. Domyślnie WYŁĄCZONY — ekran ma domyślnie mówić
+   * prawdę o instalacji, a udawanie ruchu wymaga świadomego kliknięcia.
+   */
+  const [demo, setDemo] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   /** Sonda, dla której otwarty jest panel z wykresem historii. */
   const [selected, setSelected] = useState<string | null>(null);
@@ -106,8 +129,9 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
       now,
       flowFullSpeed: materials?.flowFullSpeed ?? 0.8,
       channelAlive,
+      przeplywDemo: demo ? PRZEPLYW_DEMO_M3H : null,
     });
-  }, [pointMap, values, profile, staleAfterMs, now, materials, channelAlive]);
+  }, [pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo]);
 
   // --- Najechanie i klikanie sond na schemacie ------------------------------
   useEffect(() => {
@@ -252,6 +276,33 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
         {/* Pogoda dla stanowiska — lewy górny róg rysunku. */}
         <Pogoda />
 
+        {/* Tryb pokazowy przepływu — lewy dolny róg, nad zegarem na pasku
+            stanu. Gdy włączony, mówi o sobie wprost: rury animują się nie
+            dlatego, że coś płynie, tylko dlatego, że tak ustawiliśmy. */}
+        <div className="demo-przeplyw">
+          <button
+            type="button"
+            className={`demo-przeplyw__przycisk${demo ? ' is-on' : ''}`}
+            onClick={() => setDemo((v) => !v)}
+            aria-pressed={demo}
+            title={
+              demo
+                ? 'Wyłącz pokaz — wróć do prawdziwego przepływu z ciepłomierza'
+                : 'Pokaż, jak wygląda działający obieg. Ciepłomierz mierzy teraz 0,000 m³/h, więc rury stoją.'
+            }
+          >
+            <span className="demo-przeplyw__dioda" aria-hidden="true" />
+            demo przepływu
+            <span className="demo-przeplyw__stan mono">{demo ? 'on' : 'off'}</span>
+          </button>
+          {demo ? (
+            <p className="demo-przeplyw__uwaga">
+              Przepływ udawany ({PRZEPLYW_DEMO_M3H.toFixed(1).replace('.', ',')} m³/h). Temperatury
+              są prawdziwe.
+            </p>
+          ) : null}
+        </div>
+
         <div className="canvas__tools">
           <button
             type="button"
@@ -272,7 +323,7 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
           <button
             type="button"
             className="tool"
-            onClick={() => setZoom(1)}
+            onClick={() => setZoom(ZOOM_STARTOWY)}
             aria-label="Dopasuj do okna"
           >
             ⤢
@@ -282,11 +333,11 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
         <div className="canvas__scroll">
           {/* Powiększenie skaluje rysunek, a NIE zmienia jego szerokości.
               Szerokość procentowa kłóciłaby się z dopasowaniem do wysokości
-              ekranu: przy skali 1 rysunek ma się mieścić w polu w całości,
-              a dopiero powiększony wychodzić poza nie i dawać się przesuwać. */}
+              ekranu: rysunek ma się mieścić w polu w całości, a dopiero
+              powiększony wychodzić poza nie i dawać się przesuwać. */}
           <div
             className="canvas__stage"
-            style={zoom === 1 ? undefined : { transform: `scale(${zoom})` }}
+            style={{ transform: `scale(${zoom})` }}
             ref={hostRef}
             aria-label="Schemat instalacji"
           />

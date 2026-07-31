@@ -23,6 +23,12 @@ export interface Skala {
   xOf: (tempC: number) => number;
   /** Czy temperatura wypada poza skalą — i z której strony. */
   pozaSkala: (tempC: number) => 'ponizej' | 'powyzej' | null;
+  /**
+   * Odwrotność `xOf`: piksel na temperaturę. Potrzebna do odczytu pod kursorem,
+   * i musi być odwrotnością TEJ SAMEJ funkcji, inaczej kreska pod kursorem
+   * stanęłaby w innym miejscu, niż mówi wyświetlona liczba.
+   */
+  tempOf: (px: number) => number;
 }
 
 export function utworzSkale(szerokosc: number, min: number, max: number): Skala {
@@ -40,7 +46,13 @@ export function utworzSkale(szerokosc: number, min: number, max: number): Skala 
     return null;
   };
 
-  return { szerokosc, min, max, xOf, pozaSkala };
+  const tempOf = (px: number): number => {
+    if (szerokosc <= 0) return min;
+    const udzial = Math.min(1, Math.max(0, px / szerokosc));
+    return min + udzial * rozpietosc;
+  };
+
+  return { szerokosc, min, max, xOf, pozaSkala, tempOf };
 }
 
 /**

@@ -21,6 +21,7 @@
 
 import type { PcmMaterial } from '@magazyn-pcm/shared';
 import type { Kierunek } from '../../soc.js';
+import { PALETA } from '../../kolory-magazynu.js';
 
 export type StanNaladowania = 'rozladowany' | 'przemiana' | 'naladowany';
 
@@ -65,15 +66,15 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     cp: 2,
     // 200 l × ~0,85 kg/l × 240 kJ/kg = 40 800 kJ = 11,3 kWh
     pojemnoscKWh: 11.3,
-    kolorKrzywej: '#D85A30',
+    kolorKrzywej: PALETA.cieplo.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
-    kolorNaladowany: '#F0997B',
-    hatchPrzemiany: 'repeating-linear-gradient(45deg, #FAC775 0 4px, #FAEEDA 4px 8px)',
-    tloStrefyWykres: '#FAEEDA',
+    kolorNaladowany: PALETA.cieplo.jasny,
+    hatchPrzemiany: `repeating-linear-gradient(45deg, #FAC775 0 4px, ${PALETA.cieplo.tlo} 4px 8px)`,
+    tloStrefyWykres: PALETA.cieplo.tlo,
     chip: {
       rozladowany: CHIP_ROZLADOWANY,
-      przemiana: { tlo: '#FAEEDA', tekst: '#633806' },
-      naladowany: { tlo: '#FAECE7', tekst: '#712B13' },
+      przemiana: { tlo: PALETA.cieplo.tlo, tekst: '#633806' },
+      naladowany: { tlo: '#FAECE7', tekst: PALETA.cieplo.ciemny },
     },
   },
 
@@ -84,17 +85,17 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     cieploPrzemiany: 150,
     cp: 2,
     pojemnoscKWh: 9.3,
-    kolorKrzywej: '#378ADD',
+    kolorKrzywej: PALETA.chlod.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
-    kolorNaladowany: '#85B7EB',
-    hatchPrzemiany: 'repeating-linear-gradient(45deg, #B5D4F4 0 4px, #E6F1FB 4px 8px)',
-    tloStrefyWykres: '#E6F1FB',
+    kolorNaladowany: PALETA.chlod.jasny,
+    hatchPrzemiany: `repeating-linear-gradient(45deg, #B5D4F4 0 4px, ${PALETA.chlod.tlo} 4px 8px)`,
+    tloStrefyWykres: PALETA.chlod.tlo,
     // Przy chłodzie kolor koduje NAŁADOWANIE, nie temperaturę: zimno znaczy
     // naładowany, więc niebieski należy do stanu naładowanego i przemiany.
     chip: {
       rozladowany: CHIP_ROZLADOWANY,
-      przemiana: { tlo: '#E6F1FB', tekst: '#0C447C' },
-      naladowany: { tlo: '#E6F1FB', tekst: '#0C447C' },
+      przemiana: { tlo: PALETA.chlod.tlo, tekst: PALETA.chlod.ciemny },
+      naladowany: { tlo: PALETA.chlod.tlo, tekst: PALETA.chlod.ciemny },
     },
   },
 };

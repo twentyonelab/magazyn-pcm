@@ -31,6 +31,12 @@ interface Props {
   soc: number | null;
   /** Podpis kierunku pod procentem: „ciepło" albo „chłód". */
   opisKierunku: string;
+  /**
+   * Pozycja kursora nad paskiem, w pikselach tej samej skali.
+   * Kreska idzie przez CAŁY wykres, żeby dało się odczytać, ile entalpii
+   * odpowiada temperaturze pod kursorem.
+   */
+  kursorX?: number | null;
 }
 
 export function KrzywaEntalpii({
@@ -40,6 +46,7 @@ export function KrzywaEntalpii({
   sredniaC,
   soc,
   opisKierunku,
+  kursorX = null,
 }: Props) {
   const { szerokosc, min, max, xOf } = skala;
   if (szerokosc <= 0) return null;
@@ -133,6 +140,27 @@ export function KrzywaEntalpii({
       <text x={2} y={GORA - 8} className="belka__tick">
         kWh
       </text>
+
+      {/* Kreska pod kursorem — przez całą wysokość wykresu, plus kropka na
+          krzywej w miejscu odczytu. */}
+      {kursorX !== null ? (
+        <>
+          <line
+            x1={kursorX}
+            x2={kursorX}
+            y1={GORA - 6}
+            y2={osY}
+            className="belka__kursor-linia"
+            strokeWidth={1}
+          />
+          <circle
+            cx={kursorX}
+            cy={yOf(udzialEntalpii(skala.tempOf(kursorX), parametry))}
+            r={3.5}
+            fill={cfg.kolorKrzywej}
+          />
+        </>
+      ) : null}
 
       {/* Punkt pracy: prowadnica do osi, kropka, etykieta. */}
       {maPunkt ? (
