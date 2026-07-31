@@ -87,6 +87,37 @@ const DEMO: ReadonlyArray<{
   { miasto: 'Wodzisław Śląski', lon: 18.4658, lat: 50.0026, typ: 'cieplo', poziom: 0.77 },
 ];
 
+/**
+ * Rozsunięcie punktów pokazowych od środków miast.
+ *
+ * Znacznik postawiony dokładnie na współrzędnych miasta siadał na jego
+ * podpisie z mapy Mapboxa — czytało się „Katowice Katowice". Przesuwamy więc
+ * każdy o kilkaset metrów w inną stronę: dość, żeby zszedł z nazwy, i za mało,
+ * żeby wyszedł z obszaru miasta.
+ *
+ * Przesunięcia są WYLICZANE Z NAZWY, nie losowane. Losowanie przy każdym
+ * otwarciu mapy przestawiałoby znaczniki w kółko — a punkt pokazowy ma stać
+ * tam, gdzie stał wczoraj. Ta sama nazwa zawsze daje to samo przesunięcie.
+ */
+function rozsuniecie(nazwa: string): { lon: number; lat: number } {
+  // Prosta suma kodów znaków wystarcza: potrzebujemy powtarzalnego rozrzutu,
+  // a nie dobrej funkcji skrótu.
+  let suma = 0;
+  for (let i = 0; i < nazwa.length; i += 1) suma += nazwa.charCodeAt(i) * (i + 1);
+
+  const kat = (suma % 360) * (Math.PI / 180);
+  // 0,012–0,022 stopnia to około 1–2,5 km — poza podpisem, w granicach miasta.
+  const promien = 0.012 + ((suma % 7) / 7) * 0.01;
+
+  return {
+    // Długość geograficzna zwęża się z szerokością; na 50°N stopień długości
+    // ma około 0,64 stopnia szerokości, więc bez tej poprawki rozrzut byłby
+    // spłaszczony w pionie.
+    lon: Math.cos(kat) * (promien / 0.64),
+    lat: Math.sin(kat) * promien,
+  };
+}
+
 export const LOKALIZACJE: ReadonlyArray<Lokalizacja> = [
   STANOWISKO,
   ...DEMO.map((d) => ({
@@ -96,8 +127,8 @@ export const LOKALIZACJE: ReadonlyArray<Lokalizacja> = [
       d.typ === 'chlod'
         ? 'Punkt demonstracyjny · magazyn chłodu — bez instalacji i bez pomiarów'
         : 'Punkt demonstracyjny · magazyn ciepła — bez instalacji i bez pomiarów',
-    lon: d.lon,
-    lat: d.lat,
+    lon: d.lon + rozsuniecie(d.miasto).lon,
+    lat: d.lat + rozsuniecie(d.miasto).lat,
     stan: 'demo' as const,
     typ: d.typ,
     demoNaladowanie: d.poziom,

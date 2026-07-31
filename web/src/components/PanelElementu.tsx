@@ -96,6 +96,84 @@ const ELEMENTS: Record<string, ElementInfo> = {
     pointIds: ['AMBIENT_HALL'],
     notes: ['Punkt zadeklarowany, ale jeszcze niepodłączony.'],
   },
+
+  // --- Elementy z rysunku technicznego bez własnych punktów pomiarowych ----
+  // Są klikalne, bo są częścią instalacji i badacz musi móc się o nie zapytać.
+  // Żaden nie udaje, że coś mierzy.
+  podgrzewacz: {
+    title: 'Podgrzewacz wody wodociągowej',
+    subtitle: 'Odbiór ciepła z magazynu na wodę użytkową',
+    pointIds: [],
+    notes: [
+      'To ODBIORNIK ciepła z magazynu PCM: woda wodociągowa przechodzi przez wymiennik i odbiera ciepło zmagazynowane w parafinie.',
+      'Bez sond temperatury po tej stronie nie da się policzyć, ile ciepła faktycznie trafia do wody — na razie mierzymy tylko sam magazyn.',
+    ],
+  },
+  filtr: {
+    title: 'Filtr odkamieniający',
+    subtitle: 'Na wlocie wody wodociągowej',
+    pointIds: [],
+    notes: [
+      'Chroni wymiennik podgrzewacza przed osadem wapiennym. Bez niego kamień odkłada się na ściankach i z każdym tygodniem pogarsza przejmowanie ciepła — co przy badaniu wyglądałoby jak spadek sprawności magazynu.',
+    ],
+  },
+  woda: {
+    title: 'Woda wodociągowa',
+    subtitle: 'Wlot zimnej wody',
+    pointIds: [],
+    notes: [
+      'Strona odbioru. Temperatura wody wlotowej nie jest mierzona, a bez niej nie policzymy energii oddanej do wody — to pierwszy punkt do dołożenia, gdy dojdą kolejne sondy.',
+    ],
+  },
+  'naczynie-lewe': {
+    title: 'Naczynie przeponowe · obieg odbioru',
+    subtitle: 'Kompensacja rozszerzalności cieplnej',
+    pointIds: [],
+    notes: [
+      'Przejmuje przyrost objętości wody przy nagrzewaniu. Element bezpieczeństwa, nie pomiarowy.',
+    ],
+  },
+  'naczynie-prawe': {
+    title: 'Naczynie przeponowe · obieg ładowania',
+    subtitle: 'Kompensacja rozszerzalności cieplnej',
+    pointIds: [],
+    notes: [
+      'Przejmuje przyrost objętości wody przy nagrzewaniu. Element bezpieczeństwa, nie pomiarowy.',
+    ],
+  },
+  'zawor-bezp-lewy': {
+    title: 'Zaworek bezpieczeństwa · obieg odbioru',
+    subtitle: 'Zabezpieczenie przed nadciśnieniem',
+    pointIds: [],
+    notes: ['Otwiera się samoczynnie po przekroczeniu ciśnienia dopuszczalnego.'],
+  },
+  'zawor-bezp-prawy': {
+    title: 'Zaworek bezpieczeństwa · obieg ładowania',
+    subtitle: 'Zabezpieczenie przed nadciśnieniem',
+    pointIds: [],
+    notes: ['Otwiera się samoczynnie po przekroczeniu ciśnienia dopuszczalnego.'],
+  },
+  'manometr-lewy': {
+    title: 'Manometr · obieg odbioru',
+    subtitle: 'Ciśnienie w obiegu',
+    pointIds: [],
+    notes: ['Wskazanie odczytywane z tarczy — nie trafia do Miniservera.'],
+  },
+  'manometr-prawy': {
+    title: 'Manometr · obieg ładowania',
+    subtitle: 'Ciśnienie w obiegu',
+    pointIds: [],
+    notes: ['Wskazanie odczytywane z tarczy — nie trafia do Miniservera.'],
+  },
+  'cieplomierz-odbior': {
+    title: 'Ciepłomierz · obieg odbioru',
+    subtitle: 'Drugi ciepłomierz, po stronie wody użytkowej',
+    pointIds: [],
+    notes: [
+      'Jest w instalacji, ale NIE JEST wpięty do Miniservera — dlatego nie pokazuje wartości, a animacja tego obiegu na schemacie korzysta z przepływu zmierzonego po stronie ładowania.',
+      'Dopóki nie zacznie raportować, bilansu odbioru ciepła nie policzymy.',
+    ],
+  },
 };
 
 interface Props {

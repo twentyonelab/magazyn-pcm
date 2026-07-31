@@ -15,6 +15,7 @@ import { Bilans } from './views/Bilans.js';
 import { Ustawienia } from './views/Ustawienia.js';
 import { useSettings } from './settings.js';
 import { useAppliedTheme } from './theme.js';
+import { WERSJA } from './wersja.js';
 import { BladWidoku } from './components/BladWidoku.js';
 import { Logowanie } from './components/Logowanie.js';
 import { PasekStanu } from './components/PasekStanu.js';
@@ -128,8 +129,13 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand__mark">Magazyn PCM</span>
-          <span className="brand__dot">.</span>
+          <span className="brand__nazwa">
+            <span className="brand__mark">Magazyn PCM</span>
+            <span className="brand__dot">.</span>
+          </span>
+          {/* Wersja pod nazwą — mała, bo to metryczka, nie tytuł. Numer siedzi
+              w `wersja.ts`, żeby był jeden dla całej aplikacji. */}
+          <span className="brand__wersja mono">{WERSJA}</span>
         </div>
 
         {/* Pastylka menu jest wyśrodkowana wobec całego ekranu, a nie wobec

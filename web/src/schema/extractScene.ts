@@ -61,7 +61,32 @@ function num(value: string | null | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ * Prostokąt otaczający kształt.
+ *
+ * Obsługuje prostokąt, okrąg i elipsę, bo na schemacie bryłą 3D bywa każde
+ * z nich — pompa obiegowa jest kółkiem, filtr soczewką. Bez tego okrąg dawał
+ * pudełko {0,0,0,0}, czyli bryłę zerowej wielkości wciśniętą w punkt zerowy
+ * układu, i psuł całą scenę zamiast tylko jednego obiektu.
+ */
 function boxOf(element: Element): SvgBox {
+  const nazwa = element.tagName.toLowerCase();
+
+  if (nazwa === 'circle') {
+    const cx = num(element.getAttribute('cx'), 0);
+    const cy = num(element.getAttribute('cy'), 0);
+    const r = num(element.getAttribute('r'), 0);
+    return { x: cx - r, y: cy - r, w: r * 2, h: r * 2 };
+  }
+
+  if (nazwa === 'ellipse') {
+    const cx = num(element.getAttribute('cx'), 0);
+    const cy = num(element.getAttribute('cy'), 0);
+    const rx = num(element.getAttribute('rx'), 0);
+    const ry = num(element.getAttribute('ry'), 0);
+    return { x: cx - rx, y: cy - ry, w: rx * 2, h: ry * 2 };
+  }
+
   return {
     x: num(element.getAttribute('x'), 0),
     y: num(element.getAttribute('y'), 0),

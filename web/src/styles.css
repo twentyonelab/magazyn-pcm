@@ -353,6 +353,18 @@ code {
   font-weight: 800;
   letter-spacing: -0.02em;
   white-space: nowrap;
+  display: grid;
+  gap: 0;
+  line-height: 1.1;
+}
+
+/* Wersja jest metryczką, nie tytułem — najmniejszy stopień w interfejsie
+   i kolor wycofany, żeby nie konkurowała z nazwą. */
+.brand__wersja {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-faint);
 }
 
 .brand__dot {
@@ -1555,6 +1567,85 @@ code {
   fill: var(--ink-faint);
 }
 
+.schema .meta--center {
+  text-anchor: middle;
+}
+
+.schema .storage__note {
+  fill: var(--ink-faint);
+}
+
+/* --- Manometry, naczynia przeponowe, zaworki, ciepłomierze --------------- */
+
+/* Manometr: tarcza z literą P, jak na rysunku technicznym. */
+.schema .gauge__face {
+  fill: var(--surface);
+  stroke: var(--ink-soft);
+  stroke-width: 1.2;
+}
+
+.schema .gauge__text {
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--ink-soft);
+  text-anchor: middle;
+}
+
+/* Odgałęzienie do manometru albo naczynia — cieńsze od rury obiegu, bo nie
+   płynie tam nic w sposób ciągły. */
+.schema .gauge__stem {
+  stroke: var(--ink-faint);
+  stroke-width: 1.4;
+  fill: none;
+}
+
+.schema .vessel__band {
+  stroke: var(--ink-faint);
+  stroke-width: 1.2;
+  fill: none;
+}
+
+/* Zaworek bezpieczeństwa — trójkąt z trzonkiem, symbol z rysunku. */
+.schema .valve__safety-glyph {
+  stroke: var(--ink-soft);
+  stroke-width: 1.4;
+  fill: none;
+}
+
+/* Ciepłomierz jako mały prostokąt „Wm" na rurze — tak jest na rysunku. */
+.schema .meter-box__body {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.schema .meter-box__text {
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--ink);
+  text-anchor: middle;
+}
+
+/* Karta z odczytami ciepłomierza. Symbol na rurze mówi „tu jest przyrząd",
+   karta mówi „a to jego liczby" — dwie różne rzeczy, więc dwa elementy. */
+.schema .meter-card__body {
+  fill: var(--surface);
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.schema .meter-card__title {
+  text-anchor: start;
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+/* Strzałki kierunku obiegu — widoczne także przy zerowym przepływie, bo
+   kierunek instalacji nie zależy od tego, czy pompa właśnie pracuje. */
+.schema .arrow {
+  fill: var(--ink-soft);
+}
+
 /* --- Rury ---------------------------------------------------------------- */
 
 .schema .pipe {
@@ -1565,6 +1656,14 @@ code {
 
 .schema .pipe--return {
   stroke: var(--pipe-cool);
+}
+
+/* Woda wodociągowa — poza obiegiem grzewczym, więc innym kluczem graficznym:
+   cieńsza i chłodna, bez animacji przepływu (nic tam nie mierzymy). */
+.schema .pipe--water {
+  stroke: var(--chlod-jasny);
+  stroke-width: 2;
+  opacity: 0.85;
 }
 
 /* Przepływ: kreskowana linia z animowanym przesunięciem. */
