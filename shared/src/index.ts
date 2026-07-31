@@ -288,6 +288,35 @@ export interface PointMapping {
   available: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Pogoda dla stanowiska
+// ---------------------------------------------------------------------------
+
+/**
+ * Skad przyszla pogoda.
+ *
+ * Zrodlo jest czescia ODCZYTU, a nie szczegolem technicznym: na ekranie
+ * badawczym trzeba wiedziec, czy liczba pochodzi ze sterownika przy
+ * instalacji, czy z prognozy dla okolicy. To dwie rozne rzeczy.
+ */
+export type WeatherSource = 'loxone' | 'open-meteo';
+
+export interface WeatherReading {
+  source: WeatherSource;
+  /** Znacznik czasu odczytu w ISO. */
+  ts: string;
+  /** Opis miejsca, dla ktorego liczona jest pogoda. */
+  place: string;
+  /** Brak pomiaru to null, nigdy zero. */
+  tempC: number | null;
+  humidity: number | null;
+  windKmh: number | null;
+  radiationWm2: number | null;
+  cloudCover: number | null;
+  /** Slowny opis warunkow, gdy zrodlo go podaje. */
+  text: string | null;
+}
+
 export interface ConfigResponse {
   sourceKind: SourceKind;
   loxoneHost: string;

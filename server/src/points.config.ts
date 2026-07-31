@@ -281,6 +281,64 @@ export const POINTS: readonly PointDef[] = [
   },
 
   // -------------------------------------------------------------------------
+  // Pogoda ze STEROWNIKA — miejsca przygotowane, jeszcze niepodlaczone.
+  //
+  // Miniserver ma modul pogody, ale 2026-07-31 nie oddaje z niego danych:
+  // nie ma ustawionej lokalizacji, a stan pogody idzie po WebSockecie, nie po
+  // HTTP (szczegoly w server/src/weather.ts). Do tego czasu aplikacja pokazuje
+  // pogode z Open-Meteo i wprost pisze, ze to nie sterownik.
+  //
+  // ZEBY PRZELACZYC NA LOXONE, po stronie Loxone Config trzeba:
+  //   1. ustawic lokalizacje projektu (Gliwice) i wlaczyc usluge pogodowa;
+  //   2. wystawic wartosci jako kontrolki InfoOnlyAnalog o nazwach POGODA_*
+  //      — dokladnie tak, jak zrobiono z cieplomierzem (ZRODLO_*);
+  //   3. uruchomic `npm run uuid -- --zapisz` i ustawic `available: true`.
+  // Zrodlo przelaczy sie samo, bo Loxone ma pierwszenstwo.
+  // -------------------------------------------------------------------------
+  {
+    id: 'WEATHER_TEMP',
+    uuid: null,
+    label: 'Pogoda · temperatura zewnętrzna',
+    unit: '°C',
+    kind: 'temperature',
+    group: 'ambient',
+    precision: 1,
+    available: false,
+  },
+  {
+    id: 'WEATHER_HUMIDITY',
+    uuid: null,
+    label: 'Pogoda · wilgotność względna',
+    unit: '%',
+    kind: 'state',
+    group: 'ambient',
+    precision: 0,
+    available: false,
+  },
+  {
+    id: 'WEATHER_WIND',
+    uuid: null,
+    label: 'Pogoda · prędkość wiatru',
+    unit: 'km/h',
+    kind: 'state',
+    group: 'ambient',
+    precision: 0,
+    available: false,
+  },
+  {
+    // Natezenie napromienienia ma znaczenie dla badania: to ono mowi, ile
+    // ciepla moze wejsc do magazynu ze slonca, jesli kiedys dolaczy kolektor.
+    id: 'WEATHER_RADIATION',
+    uuid: null,
+    label: 'Pogoda · natężenie napromienienia',
+    unit: 'W/m²',
+    kind: 'power',
+    group: 'ambient',
+    precision: 0,
+    available: false,
+  },
+
+  // -------------------------------------------------------------------------
   // Otoczenie
   // -------------------------------------------------------------------------
   {

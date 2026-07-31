@@ -3,6 +3,7 @@
  * ze Loxone istnieje.
  *
  *   GET  /api/points          rejestr punktow (bez UUID-ow)
+ *   GET  /api/weather         pogoda dla stanowiska (Loxone albo Open-Meteo)
  *   GET  /api/snapshot        biezacy stan wszystkich wartosci
  *   GET  /api/stream          strumien zmian (SSE)
  *   GET  /api/materials       profile PCM, objetosci, przeplyw odniesienia
@@ -28,6 +29,7 @@ import type {
   MaterialsResponse,
   Session,
   Snapshot,
+  WeatherReading,
 } from '@magazyn-pcm/shared';
 import {
   DEFAULT_MATERIAL,
@@ -42,6 +44,7 @@ import type { PointRegistry } from '../registry.js';
 import type { StreamHub } from '../stream.js';
 import type { SqliteHistoryStore } from '../history/sqlite-store.js';
 import { SessionStore, SessionStoreError } from '../session-store.js';
+import type { WeatherService } from '../weather.js';
 
 export interface ApiDeps {
   registry: PointRegistry;
@@ -55,6 +58,7 @@ export interface ApiDeps {
    * "niedostepne", ktory frontend obsluguje od poczatku.
    */
   historyReader: SqliteHistoryStore | null;
+  weather: WeatherService;
   cfg: AppConfig;
   getSession: () => Session | null;
 }
@@ -98,13 +102,15 @@ function parseTime(value: string): number | null {
 }
 
 export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<void> {
-  const { registry, cache, health, stream, sessions, historyReader, cfg, getSession } = deps;
+  const { registry, cache, health, stream, sessions, historyReader, weather, cfg, getSession } =
+    deps;
 
   // Krótka lista endpointow — dla czlowieka, ktory wpisze adres w przegladarce.
   app.get('/', async () => ({
     app: 'magazyn-pcm',
     endpoints: [
       '/api/points',
+      '/api/weather',
       '/api/snapshot',
       '/api/stream',
       '/api/materials',
@@ -118,6 +124,19 @@ export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<
   }));
 
   app.get('/api/points', async () => registry.publicPoints());
+
+  /**
+   * Pogoda dla stanowiska. `null` znaczy „nie wiem" — i tak to jest pokazywane.
+   *
+   * Zapytanie do sluzby zewnetrznej idzie z SERWERA, nie z przegladarki:
+   * jedno na dziesiec minut zamiast jednego na kazda otwarta karte, a przy
+   * okazji przegladarka nie musi siegac nigdzie poza nasze /api.
+   */
+  app.get('/api/weather', async (_request, reply): Promise<WeatherReading | null> => {
+    // Krotki cache po stronie przegladarki — pogoda i tak zmienia sie rzadziej.
+    reply.header('Cache-Control', 'public, max-age=120');
+    return weather.current();
+  });
 
   /**
    * Konfiguracja materiałów i zbiorników. Bez tego frontend nie mógłby

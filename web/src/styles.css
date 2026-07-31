@@ -1689,6 +1689,227 @@ code {
   border-top: 1px solid var(--hairline);
 }
 
+/* =========================================================================
+   POGODA NA SCHEMACIE
+   ========================================================================= */
+
+.pogoda {
+  position: absolute;
+  left: clamp(1rem, 4vw, 3rem);
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 0.6rem 0.8rem;
+  display: grid;
+  gap: 0.2rem;
+  max-width: 15rem;
+  pointer-events: none;
+}
+
+.pogoda__temp {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.pogoda__opis {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.pogoda__pola {
+  margin: 0.25rem 0 0;
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.72rem;
+}
+
+.pogoda__pola > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.pogoda__pola dt {
+  color: var(--ink-faint);
+}
+
+.pogoda__pola dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Źródło pogody jest częścią odczytu, nie stopką — dlatego jest czytelne,
+   a nie schowane w szarości ledwo widocznej. */
+.pogoda__zrodlo {
+  margin: 0.3rem 0 0;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+}
+
+/* Dopóki pogoda nie idzie ze sterownika, kafelek nosi znak zapytania w postaci
+   przerywanej obwódki — ten sam sposób, którym reszta aplikacji oznacza dane
+   spoza instalacji. */
+.pogoda.is-open-meteo {
+  outline: 1px dashed var(--hairline);
+  outline-offset: -1px;
+}
+
+.pogoda__brak {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--warn-ink);
+}
+
+/* =========================================================================
+   WIDOK MAPA
+   ========================================================================= */
+
+.mapa {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.mapa__plotno {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  min-height: 0;
+}
+
+.mapa__plotno canvas {
+  outline: none;
+}
+
+.mapa__legenda {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.mapa__legenda-wiersz {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.mapa__blad {
+  margin: 0;
+}
+
+/* --- Znaczniki na mapie --------------------------------------------------- */
+
+.mapmark {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.mapmark.is-live {
+  cursor: pointer;
+}
+
+/* Punkt pokazowy daje podpowiedź, ale nie udaje, że da się w niego wejść.
+   Mapbox ustawia własny kursor na znaczniku, stąd `!important`. */
+.mapmark.is-demo {
+  cursor: default !important;
+}
+
+.mapmark__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* Stanowisko badawcze — jedyny punkt, który coś znaczy, więc jedyny w kolorze. */
+.mapmark.is-live .mapmark__dot,
+.mapmark__dot.is-live {
+  background: var(--ok-ink);
+}
+
+/* Punkty pokazowe: wyszarzone i mniejsze. Mają być tłem dla tego jednego,
+   nie konkurencją dla niego. */
+.mapmark.is-demo .mapmark__dot,
+.mapmark__dot.is-demo {
+  background: var(--ink-faint);
+  width: 8px;
+  height: 8px;
+  opacity: 0.55;
+}
+
+/* Pulsowanie znaczy „dane płyną" — ten sam sygnał co na pasku stanu
+   i przy zegarze. Jeden język: zamarła kropka = obraz stanął. */
+.mapmark.is-plynie .mapmark__dot,
+.mapmark__dot.is-plynie {
+  animation: statusled 1.8s ease-out infinite;
+}
+
+.mapmark__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+}
+
+.mapmark.is-demo .mapmark__label {
+  font-weight: 500;
+  color: var(--ink-faint);
+  background: none;
+}
+
+.mapmark.is-live .mapmark__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.mapmark.is-live:hover .mapmark__label {
+  color: var(--accent);
+}
+
+/* Mapbox wstawia własne kontrolki z jasnym tłem — w trybie ciemnym trzeba je
+   przyciemnić, inaczej świecą jak dziury w mapie. */
+:root[data-theme='dark'] .mapboxgl-ctrl-group {
+  background: var(--surface);
+}
+
+:root[data-theme='dark'] .mapboxgl-ctrl-group button + button {
+  border-top-color: var(--hairline);
+}
+
+:root[data-theme='dark'] .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(1);
+}
+
+:root[data-theme='dark'] .mapboxgl-ctrl-attrib {
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+
+:root[data-theme='dark'] .mapboxgl-ctrl-attrib a {
+  color: var(--ink-soft);
+}
+
 .tool.is-on {
   background: var(--accent);
   color: var(--accent-ink);

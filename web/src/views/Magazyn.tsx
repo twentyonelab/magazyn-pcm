@@ -29,6 +29,7 @@ import { setSetting, useSettings } from '../settings.js';
 import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
 import { PanelElementu } from '../components/PanelElementu.js';
 import { PanelSondy } from '../components/PanelSondy.js';
+import { Pogoda } from '../components/Pogoda.js';
 
 const ZOOM_STEP = 0.15;
 const ZOOM_MIN = 0.6;
@@ -186,6 +187,9 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
       {/* Wylaczenie animacji w opcjach zatrzymuje ruch kreski na rurach —
           niezaleznie od tego zerowy przeplyw i tak nigdy sie nie animuje. */}
       <section className={`canvas${settings.animacjePrzeplywu ? '' : ' no-flow-anim'}`}>
+        {/* Pogoda dla stanowiska — lewy górny róg rysunku. */}
+        <Pogoda />
+
         <div className="canvas__tools">
           <button
             type="button"

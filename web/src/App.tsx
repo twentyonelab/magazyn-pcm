@@ -33,6 +33,14 @@ const Magazyn3D = lazy(() =>
 );
 
 /**
+ * Mapa też wchodzi osobną paczką — Mapbox GL waży podobnie do three.js.
+ * Jest widokiem startowym, więc jej paczka pobiera się od razu; wydzielenie
+ * służy temu, żeby nie siedziała w tym samym pliku co reszta aplikacji
+ * i nie opóźniała pierwszego rysunku interfejsu.
+ */
+const Mapa = lazy(() => import('./views/Mapa.js').then((module) => ({ default: module.Mapa })));
+
+/**
  * Ściągnięcie paczki 3D w tle, gdy przeglądarka nie ma nic pilnego do roboty.
  *
  * Leniwe wczytywanie oszczędza czas pierwszego otwarcia aplikacji, ale bez tego
@@ -63,6 +71,7 @@ function usePobierzWczesniej3D(wlaczony: boolean): void {
 }
 
 type ViewId =
+  | 'mapa'
   | 'magazyn'
   | 'magazyn3d'
   | 'przebiegi'
@@ -72,6 +81,7 @@ type ViewId =
   | 'ustawienia';
 
 const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
+  { id: 'mapa', label: 'Mapa' },
   { id: 'magazyn', label: 'Magazyn' },
   { id: 'magazyn3d', label: 'Magazyn 3D' },
   { id: 'przebiegi', label: 'Przebiegi' },
@@ -82,7 +92,7 @@ const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
 ];
 
 export function App() {
-  const [view, setView] = useState<ViewId>('magazyn');
+  const [view, setView] = useState<ViewId>('mapa');
   /** Sondy przekazane z widoku Magazyn do Przebiegów (klik w sondę). */
   const [przebiegiIds, setPrzebiegiIds] = useState<string[]>([]);
   const data = useLiveData();
@@ -167,6 +177,11 @@ export function App() {
 
       <main className="main">
         <BladWidoku resetKey={activeView}>
+          {activeView === 'mapa' ? (
+            <Suspense fallback={<div className="note">Wczytuję mapę…</div>}>
+              <Mapa data={data} onOtworzMagazyn={() => setView('magazyn')} />
+            </Suspense>
+          ) : null}
           {activeView === 'magazyn' ? (
             <Magazyn data={data} onOpenInPrzebiegi={openInPrzebiegi} />
           ) : null}

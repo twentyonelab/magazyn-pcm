@@ -173,6 +173,10 @@ export interface PointDef {
 | `HP_STATE` | Pompa ciepła · praca | — | state | heatpump | ❌ |
 | `PUMP_STATE` | Pompa obiegowa · praca | — | state | actuator | ❌ |
 | `VALVE_STATE` | Zawór AFRISO · otwarty | — | state | actuator | ❌ |
+| `WEATHER_TEMP` | Pogoda · temperatura zewnętrzna | °C | temperature | ambient | ❌ ² |
+| `WEATHER_HUMIDITY` | Pogoda · wilgotność względna | % | state | ambient | ❌ ² |
+| `WEATHER_WIND` | Pogoda · prędkość wiatru | km/h | state | ambient | ❌ ² |
+| `WEATHER_RADIATION` | Pogoda · natężenie napromienienia | W/m² | power | ambient | ❌ ² |
 | `AMBIENT_HALL` | Hala · powietrze | °C | temperature | ambient | ❌ |
 
 Punkty z `available: false` muszą się renderować jako **wyraźnie nieaktywne** —
@@ -187,6 +191,27 @@ być potrzebna — cała wiedza o rejestrach siedzi w Loxone Config.
 format `%.3f` bez jednostki (dla pozostałych punktów jednostki są: `m³/h`,
 `kW`, `°C`, `K`). Dopóki nie jest ustawiona w Loxone Config, pokazujemy samą
 liczbę bez podpisu — zamiast zgadywać między kWh a MWh.
+
+² **Pogoda — moduł Loxone jest, ale nie oddaje danych.** Sprawdzone 2026-07-31
+na Miniserverze21: w strukturze projektu jest `weatherServer` z UUID-ami stanów
+`actual` i `forecast`, ale odczyt `actual` po HTTP zwraca `"0"`, a `forecast`
+odpowiada błędem 404. Powody są trzy i każdy wystarcza:
+
+1. Miniserver **nie ma ustawionej lokalizacji** (`latitude` i `longitude` = 0),
+   więc usługa pogodowa nie ma dla czego liczyć pogody.
+2. Usługa pogodowa Loxone wymaga aktywnej licencji.
+3. Stan pogody w Loxone to złożona struktura wysyłana **po WebSockecie**,
+   a nasz klient rozmawia ze sterownikiem po HTTP.
+
+Żeby pogoda przyszła ze sterownika, po stronie Loxone Config trzeba: ustawić
+lokalizację projektu (Gliwice), włączyć usługę pogodową i wystawić wartości
+jako kontrolki `POGODA_*` — dokładnie tak, jak zrobiono z ciepłomierzem
+(`ZRODLO_*`). Potem `npm run uuid -- --zapisz` i `available: true`.
+
+Do tego czasu aplikacja pokazuje pogodę z **Open-Meteo** (darmowa, bez klucza)
+i **zawsze pisze, z którego źródła korzysta** — bo „22 °C przy instalacji"
+i „22 °C w prognozie dla Gliwic" to dwie różne informacje. Gdy punkty
+`POGODA_*` dostaną UUID-y, źródło przełączy się samo; Loxone ma pierwszeństwo.
 
 **Otwarte: oba kanały energii pokazują tę samą wartość co ΔT.** Odczyt
 2026-07-30: `ZRODLO_Energia_Grzania` = `ZRODLO_Energia_Chlodzenia` = `-0.41`,

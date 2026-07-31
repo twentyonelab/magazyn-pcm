@@ -27,6 +27,7 @@ import { SqliteHistoryStore } from './history/sqlite-store.js';
 import { NullHistoryStore, type HistoryRecord, type HistoryStore } from './history/store.js';
 import { SessionStore } from './session-store.js';
 import { StreamHub } from './stream.js';
+import { WeatherService } from './weather.js';
 import path from 'node:path';
 import type { LoxoneSource } from './loxone/source.js';
 import { LoxoneClient } from './loxone/client.js';
@@ -360,6 +361,16 @@ async function main(): Promise<void> {
     logger,
   });
 
+  // Pogoda dla stanowiska. W trybie syntetycznym nie wychodzimy w internet —
+  // praca bez sieci ma wygladac tak samo jak z siecia, tylko bez pogody.
+  const weather = new WeatherService({
+    registry,
+    cache,
+    allowExternal: !cfg.isMock,
+    timeoutMs: cfg.LOXONE_TIMEOUT_MS,
+    log: logger,
+  });
+
   await registerApi(app, {
     registry,
     cache,
@@ -367,6 +378,7 @@ async function main(): Promise<void> {
     stream,
     sessions: sessionStore,
     historyReader,
+    weather,
     cfg,
     getSession,
   });

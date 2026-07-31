@@ -7,6 +7,14 @@ import react from '@vitejs/plugin-react';
  * przegladarki — i ze nie ma problemu z CORS.
  */
 export default defineConfig({
+  /**
+   * Zmienne srodowiskowe czytamy z KORZENIA repozytorium, nie z web/.
+   * Caly projekt ma jeden plik .env (i jeden .gitignore go pilnujacy) —
+   * drugi, osobny plik dla frontendu byloby latwo przeoczyc przy wdrozeniu.
+   * Do przegladarki i tak trafiaja wylacznie zmienne z prefiksem VITE_.
+   */
+  envDir: '..',
+
   plugins: [react()],
 
   /**
