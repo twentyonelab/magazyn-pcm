@@ -1,8 +1,8 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 1400 640"
-  width="1400"
-  height="640"
+  viewBox="0 0 1300 614"
+  width="1300"
+  height="614"
   class="schema"
   role="img"
   aria-label="Schemat instalacji magazynu ciepła PCM"
@@ -13,6 +13,13 @@
     Rysunek jest danymi, nie kodem. Można go przerysować w dowolnym narzędziu
     graficznym i podmienić bez dotykania logiki aplikacji. Warunek jest jeden:
     zachować atrybuty data-*.
+
+    VIEWBOX OBEJMUJE RYSUNEK CIASNO (1300 x 614 przy zasięgu treści 1288 x 607).
+    Wcześniej było 1400 x 640, czyli 112 jednostek martwego marginesu po prawej
+    i 33 u dołu. Na ekranie schemat dopasowuje się do wysokości pola, więc każda
+    pusta jednostka w viewBox to realnie mniejszy rysunek — te marginesy kosztowały
+    około 8% wielkości. Po przerysowaniu schematu warto sprawdzić zasięg jeszcze
+    raz (w konsoli przeglądarki: svg.getBBox()) i dociągnąć viewBox.
 
     UKŁAD: magazyn PCM stoi CENTRALNIE, a elementy instalacji odchodzą od niego
     w lewo (źródło ciepła: pompa ciepła, bufor) i w prawo (pomiar i odbiór:

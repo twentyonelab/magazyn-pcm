@@ -1059,13 +1059,24 @@ code {
    rozjechałby się razem z nim — sprawdzone. Pasek dostaje więc z powrotem
    swoje marginesy osobno. */
 
-.magazyn-widok {
+/* Trzy widoki obrazowe — schemat, mapa i scena 3D — dostają CAŁY ekran:
+   pełną szerokość okna i całą wysokość ramy. W nich obraz JEST treścią, więc
+   ograniczanie go do kolumny tekstu (1400 px) i marginesów byłoby marnowaniem
+   tego, co użytkownik ma pokazane. Pozostałe widoki zostają w kolumnie, bo
+   tam treścią są liczby i tabele, a te czyta się gorzej na całą szerokość. */
+.magazyn-widok,
+.mapa,
+.canvas--3d {
   width: 100vw;
   margin-left: 50%;
   transform: translateX(-50vw);
-  /* Widok wypełnia dokładnie wysokość ramy: pasek przemiany bierze tyle, ile
-     potrzebuje, schemat dostaje całą resztę i sam się do niej dopasowuje. */
   height: 100%;
+  min-height: 0;
+}
+
+/* Wysokość ramy dzieli się tak: pasek przemiany bierze tyle, ile potrzebuje,
+   schemat dostaje całą resztę i sam się do niej dopasowuje. */
+.magazyn-widok {
   grid-template-rows: auto minmax(0, 1fr);
 }
 
@@ -1674,6 +1685,10 @@ code {
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
+  /* Scena od krawędzi do krawędzi — bez papieru, zaokrągleń i cienia. */
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .stage3d {
@@ -1685,8 +1700,9 @@ code {
 
 .canvas--3d .flow-note {
   margin: 0;
-  padding: 0.9rem 1.25rem 1.1rem;
+  padding: 0.7rem clamp(1rem, 4vw, 3rem) 0.8rem;
   border-top: 1px solid var(--hairline);
+  background: var(--surface);
 }
 
 /* =========================================================================
@@ -1774,18 +1790,30 @@ code {
    ========================================================================= */
 
 .mapa {
-  height: 100%;
-  min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  grid-template-rows: minmax(0, 1fr);
+  /* Punkt odniesienia dla legendy leżącej na mapie. */
+  position: relative;
 }
 
+/* Mapa idzie od krawędzi do krawędzi, więc bez zaokrągleń i cienia — one mają
+   sens na karcie leżącej na tle, a nie na płótnie wypełniającym ekran. */
 .mapa__plotno {
-  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow);
   min-height: 0;
+}
+
+/* Legenda leży NA mapie, u dołu, zamiast zabierać jej pasek wysokości.
+   Przy mapie na cały ekran każdy oddany jej wiersz to mniej widocznego Śląska. */
+.mapa__legenda {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.6rem clamp(1rem, 4vw, 3rem) 0.7rem;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--hairline);
 }
 
 .mapa__plotno canvas {
