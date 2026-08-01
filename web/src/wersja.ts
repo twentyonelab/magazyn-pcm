@@ -19,6 +19,11 @@
  *         zbiornik PCM jako metaliczny walec z kropkami sond, karta pogodowa
  *         w układzie etykieta–wartość, aktywna zakładka na ciemno, znaczniki
  *         mapy na kartach. Dane, źródła i interakcje bez zmian.
+ *   v0.4  Rastry zamiast wektorów: rury, złączki i płaszcz zbiornika to PNG
+ *         liczone programowo (web/public/schemat). Topologia połączeń
+ *         poprawiona według ponownej analizy makiety: ślepa odnoga zaworka
+ *         po lewej, jedna linia do podgrzewacza, rozdzielacz z trzema
+ *         zejściami po prawej. Dane i interakcje bez zmian.
  */
 
-export const WERSJA = 'v0.3';
+export const WERSJA = 'v0.4';

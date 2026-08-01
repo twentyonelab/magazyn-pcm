@@ -41,17 +41,9 @@
   --chlod-jasny: #85b7eb;
   --chlod-tlo: #e6f1fb;
 
-  /* METAL SCHEMATU (v0.3): rury i płaszcz zbiornika. Trzy tony tuby robią
-     złudzenie walca (krawędź / korpus / blik), pięć tonów metalu składa
-     gradient płaszcza — SVG czyta je przez var() w stop-color. */
+  /* Metal schematu: od v0.4 rury i płaszcz to rastry PNG, więc z palety
+     metalu została jedna zmienna — kolor odgałęzień do manometrów. */
   --tube-1: #adada7;
-  --tube-2: #d6d6d0;
-  --tube-3: #f2f2ed;
-  --metal-a: #b7b7b1;
-  --metal-b: #e8e8e3;
-  --metal-c: #f3f3ee;
-  --metal-d: #d9d9d3;
-  --metal-e: #ababa5;
 
   /* Kolory sceny 3D i schematu — osobne, bo muszą znieść oba motywy. */
   --scene-bg: #fafaf9;
@@ -98,16 +90,8 @@
   --ladunek: #f08d5f;
   --ladunek-jasny: #f7d9a4;
 
-  /* Metal w nocy: przyciemniony, ale z zachowanym porządkiem tonów —
-     blik nadal najjaśniejszy, krawędź najciemniejsza. */
+  /* Odgałęzienia manometrów w nocy — rastry przyciemnia filtr (.raster). */
   --tube-1: #4a4a50;
-  --tube-2: #5a5a61;
-  --tube-3: #75757d;
-  --metal-a: #45454c;
-  --metal-b: #5b5b62;
-  --metal-c: #67676e;
-  --metal-d: #52525a;
-  --metal-e: #3d3d44;
 
   --scene-bg: #16161a;
   --scene-floor: #202024;
@@ -1618,47 +1602,16 @@ code {
   text-anchor: middle;
 }
 
-/* --- Rury: metaliczne tuby ------------------------------------------------
-   Trzy nałożone pociągnięcia tej samej ścieżki: ciemna krawędź, jaśniejszy
-   korpus, wąski blik. Środkowy blik daje złudzenie walca niezależnie od
-   kierunku rury — gradient wzdłuż pociągnięcia nie istnieje w SVG. */
+/* --- Rury: grafiki rastrowe (v0.4) ----------------------------------------
+   Pasy i złączki to PNG z web/public/schemat/, liczone programowo — patrz
+   komentarz w schema.svg. Tu zostaje tylko to, czego raster nie umie:
+   tryb ciemny i warstwa przepływu. */
 
-.schema .tube__outer {
-  stroke: var(--tube-1);
-  stroke-width: 13;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-.schema .tube__mid {
-  stroke: var(--tube-2);
-  stroke-width: 9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-.schema .tube__hi {
-  stroke: var(--tube-3);
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-  opacity: 0.9;
-}
-
-/* Woda wodociągowa — cieńszy przewód, poza obiegiem grzewczym. */
-.schema .tube--thin .tube__outer {
-  stroke-width: 9;
-}
-
-.schema .tube--thin .tube__mid {
-  stroke-width: 6;
-}
-
-.schema .tube--thin .tube__hi {
-  stroke-width: 2;
+/* Jeden zestaw plików obsługuje oba motywy: w nocy rastry przyciemnia filtr.
+   Osobny zestaw „nocnych" PNG byłby czystszy kolorystycznie, ale każda zmiana
+   palety wymagałaby wtedy dwóch regeneracji — i któraś kiedyś by uciekła. */
+:root[data-theme='dark'] .schema .raster {
+  filter: brightness(0.42) saturate(0.85);
 }
 
 /* Warstwa przepływu: niewidoczna, dopóki nic nie płynie. Gdy płynie, wewnątrz
@@ -1696,13 +1649,6 @@ code {
     /* Dokładnie jeden okres wzoru kreskowania (3 + 14), inaczej pętla skacze. */
     stroke-dashoffset: -17;
   }
-}
-
-/* Kołnierz na kolanku. */
-.schema .tube__joint {
-  fill: var(--tube-2);
-  stroke: var(--tube-1);
-  stroke-width: 2;
 }
 
 /* --- Manometry, zaworki bezpieczeństwa ------------------------------------ */
@@ -1781,13 +1727,13 @@ code {
 
 /* --- Zbiornik PCM ---------------------------------------------------------- */
 
+/* Nakładka na raster zbiornika: przezroczysta, ale ZAMALOWANA (transparent,
+   nie none) — inaczej nie łapałaby kliknięcia. Obrys pojawia się dopiero
+   przy najechaniu i zaznaczeniu. */
 .schema .storage__body {
-  stroke: var(--tube-1);
-  stroke-width: 1;
-}
-
-.schema .storage__cap {
-  stroke: none;
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2;
 }
 
 .schema .storage__side {
