@@ -175,16 +175,9 @@ export function App() {
         </div>
 
         <div className="topbar__right">
-          {/* Logo w dwóch wersjach — ciemne na jasnym tle i odwrotnie. */}
-          <img
-            className="topbar__logo"
-            src={
-              theme === 'dark'
-                ? '/logo-21zmyslow-ciemnytryb.webp'
-                : '/logo-21zmyslow-jasnytryb.webp'
-            }
-            alt="21 zmysłów"
-          />
+          {/* Logo klienta w prawym górnym rogu (v0.6). Żyje na białej
+              pastylce, bo jego kolory potrzebują białego tła w obu motywach. */}
+          <img className="topbar__logo--tauron" src="/tauron-cieplo.png" alt="Tauron Ciepło" />
         </div>
       </header>
 
@@ -225,6 +218,13 @@ export function App() {
           {activeView === 'ustawienia' ? <Ustawienia data={data} /> : null}
         </BladWidoku>
       </main>
+
+      {/* 21 zmysłów — prawy dolny róg, nad stopką (v0.6). */}
+      <img
+        className="logo-21"
+        src={theme === 'dark' ? '/logo-21zmyslow-ciemnytryb.webp' : '/logo-21zmyslow-jasnytryb.webp'}
+        alt="21 zmysłów"
+      />
 
       <PasekStanu data={data} />
     </div>

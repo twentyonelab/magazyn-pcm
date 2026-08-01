@@ -112,6 +112,8 @@ export function PasekStanu({ data }: { data: LiveData }) {
       ) : (
         <Pole label="sesja" value="brak" />
       )}
+
+      <span className="statusbar__copy">copyright 2026 · 21 zmysłów LAB</span>
     </footer>
   );
 }

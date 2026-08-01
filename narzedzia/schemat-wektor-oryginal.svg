@@ -1,37 +1,6 @@
-﻿<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-16 -20 1384 536" class="schema" role="img" aria-label="Schemat instalacji magazynu ciepła PCM">
-  <!--
-    SCHEMAT INSTALACJI — PLIK PROJEKTANTA. Wersja graficzna v0.6.
-
-    GRAFIKA POCHODZI Z ILLUSTRATORA (schemat_instalacji_wektor.svg, oryginał
-    w narzedzia/schemat-wektor-oryginal.svg). Geometria, gradienty i style .stXX
-    są NIETKNIĘTE — to plik projektanta. Dopisany jest wyłącznie kontrakt
-    aplikacji: atrybuty data-*, warstwa przepływu, prostokąty łapiące kursor
-    i kilka reguł stylu na końcu bloku <style>. Po kolejnej edycji w
-    Illustratorze wystarczy nanieść te same dopiski — są oznaczone
-    komentarzami „KONTRAKT".
-
-    KONTRAKT WIĄZANIA
-      data-point="A1"              element pokazuje wartość punktu (textContent)
-      data-unit="°C"               jednostka dopisywana po wartości
-      data-fill-point="A1"         element barwi się według wartości punktu
-      data-flow="pcm-supply"       ścieżka animuje przepływ
-      data-flow-source="METER_FLOW"  prędkość animacji z tej wartości
-      data-state="PUMP_STATE"      element przełącza klasę is-active/is-inactive
-      data-sensor="A1"             grupa sondy: kursor, podpowiedź, klik
-      data-element="meter"         KLIKALNY element instalacji (nie sonda)
-      data-object / data-label / data-h / data-vessel — bryły widoku 3D
-
-    ŚCIEŻKI PRZEPŁYWU aproksymują osie rur prostymi M/H/V (parser 3D nie czyta
-    łuków); kreski mijają zaokrąglone narożniki o 2-3 px — niezauważalne.
-
-    DECYZJE PROJEKTANTA ZACHOWANE ŚWIADOMIE: podpis „Moduł 1 z 4" i sygnatura
-    „ECOM POWER 2.0" są częścią projektu pokazowego; karta odczytów
-    ciepłomierza i temperatura hali zeszły ze schematu — wartości ciepłomierza
-    są w panelu po kliknięciu karty Wh.
-
-    UKŁAD SOND: lewa kolumna = przekątna A, prawa = B; góra = poziom 3,
-    dół = poziom 1 (potwierdzone 2026-07-29).
-  -->
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1352 495.66">
+  <!-- Generator: Adobe Illustrator 30.6.0, SVG Export Plug-In . SVG Version: 2.1.4 Build 109)  -->
   <defs>
     <style>
       .st0 {
@@ -218,29 +187,6 @@
       .st23 {
         fill: url(#Gradient_bez_nazwy_8);
       }
-
-      /* ================= KONTRAKT — dopiski aplikacji ==================
-         Reguły żyją w pliku, bo wygrywają kolejnością dokumentu ze stylem
-         aplikacji i z regułami .stXX — dzięki temu najechania i stany sond
-         działają niezależnie od arkusza strony. */
-      .sensor { cursor: pointer; }
-      .sensor__hit { fill: none; pointer-events: all; }
-      /* Kropka sondy: obwódka jak st26, ale BEZ fill w CSS — wypełnienie
-         ustawia aplikacja ATRYBUTEM według temperatury, a reguła CSS by je
-         przykryła (dlatego kropki nie używają st26). */
-      .sensor__cell--wektor { stroke: #ff5b1a; stroke-width: 2.5px; }
-      .sensor:hover .sensor__cell--wektor { stroke: #202322; }
-      .sensor__phase { fill: none; stroke: #de7854; stroke-width: 2.5px; opacity: 0; }
-      .sensor.is-phase .sensor__phase { opacity: 1; }
-      .sensor.is-dim { opacity: .45; }
-      text.is-no-data, text.is-not-connected { fill: #a3a3a0; }
-      text.is-stale { opacity: .55; }
-      [data-element] { cursor: pointer; }
-      [data-element]:hover .karta { stroke: #202322; stroke-width: 2px; }
-      [data-element].is-selected .karta { stroke: #d85a30; stroke-width: 3px; }
-      .device__led--wektor { fill: #a3a3a0; }
-      .device.is-active .device__led--wektor { fill: #20a969; }
-      .device.is-unknown .device__led--wektor { fill: #f0c674; }
     </style>
     <linearGradient id="Gradient_bez_nazwy_2" data-name="Gradient bez nazwy 2" x1="376.78" y1="673.24" x2="377.78" y2="673.24" gradientTransform="translate(-214649.5 231204.8992) scale(570 -343)" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#596060"/>
@@ -410,72 +356,50 @@
       <rect class="st18" x="1275.5" y="150.16" width="13" height="16" rx="2" ry="2"/>
     </g>
   </g>
-  <!-- KONTRAKT: warstwa przepływu — osie rur aproksymowane M/H/V. -->
-  <g id="warstwa-przeplywu" fill="none">
-    <path
-      class="tube__flow tube__flow--supply"
-      data-flow="dhw-supply"
-      data-flow-source="METER_FLOW"
-      d="M684.5 156 V111 H541.5 V454 H467.5 M322.5 454 H276.5 M158.5 454 H114.5"
-    />
-    <path
-      class="tube__flow tube__flow--supply"
-      data-flow="pcm-supply"
-      data-flow-source="METER_FLOW"
-      d="M1336.5 206 V92 H771.5 V156"
-    />
-    <path
-      class="tube__flow tube__flow--return"
-      data-flow="pcm-return"
-      data-flow-source="METER_FLOW"
-      d="M787.5 156 V111 H954.5 V206"
-    />
-  </g>
   <g id="upper-controls">
-    <g id="safety-valve-left" data-element="zawor-bezp-lewy">
+    <g id="safety-valve-left">
       <text class="st29" transform="translate(341.44 11.16)"><tspan x="0" y="0">Zawór</tspan></text>
       <text class="st29" transform="translate(313.25 29.16)"><tspan x="0" y="0">bezpieczeństwa</tspan></text>
       <path class="st1" d="M359.5,59.16v-17M355.5,49.16l4-7,4,7"/>
-      <rect class="st24 karta" x="326.5" y="61.16" width="65" height="64" rx="14" ry="14"/>
+      <rect class="st24" x="326.5" y="61.16" width="65" height="64" rx="14" ry="14"/>
       <g>
         <path class="st4" d="M359.5,73.16v10M348.5,79.16l21,23M369.5,79.16l-21,23"/>
         <path class="st4" d="M355.5,86.16l-7,4,7,4M363.5,86.16l7,4-7,4"/>
         <path class="st4" d="M359.5,102.16v11"/>
       </g>
     </g>
-    <g id="pressure-left" data-element="manometr-lewy">
+    <g id="pressure-left">
       <line class="st9" x1="521.5" y1="40.16" x2="521.5" y2="87.16"/>
-      <circle class="st25 karta" cx="521.5" cy="24.16" r="15"/>
+      <circle class="st25" cx="521.5" cy="24.16" r="15"/>
       <text class="st28" transform="translate(517.16 29.16)"><tspan x="0" y="0">P</tspan></text>
     </g>
-    <g id="pressure-right" data-element="manometr-prawy">
+    <g id="pressure-right">
       <line class="st9" x1="905.5" y1="40.16" x2="905.5" y2="87.16"/>
-      <circle class="st25 karta" cx="905.5" cy="24.16" r="15"/>
+      <circle class="st25" cx="905.5" cy="24.16" r="15"/>
       <text class="st28" transform="translate(901.16 29.16)"><tspan x="0" y="0">P</tspan></text>
     </g>
-    <g id="heat-meter" data-element="meter">
+    <g id="heat-meter">
       <text class="st29" transform="translate(967.18 26.16)"><tspan x="0" y="0">Ciepłomierz</tspan></text>
       <line class="st7" x1="1001.5" y1="34.16" x2="1001.5" y2="59.16"/>
-      <rect class="st24 karta" x="969.5" y="60.16" width="64" height="64" rx="14" ry="14" data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>
+      <rect class="st24" x="969.5" y="60.16" width="64" height="64" rx="14" ry="14"/>
       <rect class="st4" x="984.5" y="79.16" width="34" height="23" rx="5" ry="5"/>
       <text class="st28" transform="translate(991.39 96.16)"><tspan x="0" y="0">Wh</tspan></text>
     </g>
-    <g id="circulation-pump" class="device" data-state="PUMP_STATE" data-element="pump">
+    <g id="circulation-pump">
       <text class="st29" transform="translate(1074.905 24.1561)"><tspan x="0" y="0">Pompa</tspan></text>
       <text class="st29" transform="translate(1067.6719 41.1561)"><tspan x="0" y="0">obiegowa</tspan></text>
       <line class="st7" x1="1095.5" y1="48.16" x2="1095.5" y2="59.16"/>
-      <rect class="st24 karta" x="1063.5" y="60.16" width="64" height="64" rx="14" ry="14" data-object="pump" data-label="Pompa obiegowa" data-h="1.3"/>
+      <rect class="st24" x="1063.5" y="60.16" width="64" height="64" rx="14" ry="14"/>
       <g>
         <circle class="st4" cx="1095.5" cy="92.16" r="16"/>
         <path class="st4" d="M1087.5,80.16l20,12-20,12v-24ZM1105.5,82.16c4,6.67,4,13.33,0,20"/>
       </g>
-      <circle class="device__led--wektor" cx="1119.5" cy="68.16" r="4"/>
     </g>
-    <g id="safety-valve-right" data-element="zawor-bezp-prawy">
+    <g id="safety-valve-right">
       <text class="st29" transform="translate(1177.4409 11.1561)"><tspan x="0" y="0">Zawór</tspan></text>
       <text class="st29" transform="translate(1149.251 29.1561)"><tspan x="0" y="0">bezpieczeństwa</tspan></text>
       <path class="st1" d="M1195.5,59.16v-17M1191.5,49.16l4-7,4,7"/>
-      <rect class="st24 karta" x="1163.5" y="61.16" width="65" height="64" rx="14" ry="14"/>
+      <rect class="st24" x="1163.5" y="61.16" width="65" height="64" rx="14" ry="14"/>
       <g>
         <path class="st4" d="M1195.5,73.16v10M1184.5,79.16l21,23M1205.5,79.16l-21,23"/>
         <path class="st4" d="M1191.5,86.16l-7,4,7,4M1199.5,86.16l7,4-7,4"/>
@@ -484,14 +408,14 @@
     </g>
   </g>
   <g id="water-treatment">
-    <g id="water-supply" data-element="woda">
-      <rect class="st24 karta" x=".5" y="379.16" width="114" height="116" rx="15" ry="15"/>
+    <g id="water-supply">
+      <rect class="st24" x=".5" y="379.16" width="114" height="116" rx="15" ry="15"/>
       <text class="st29" transform="translate(40.64 408.16)"><tspan x="0" y="0">Woda</tspan></text>
       <text class="st29" transform="translate(18.11 426.16)"><tspan x="0" y="0">wodociągowa</tspan></text>
       <path class="st4" d="M57.5,447.16c-5,8-9,13-9,18s4.03,9,9,9,9-4.03,9-9-4-10-9-18Z"/>
     </g>
-    <g id="filter" data-element="filtr">
-      <rect class="st24 karta" x="158.5" y="379.16" width="118" height="116" rx="15" ry="15" data-object="filtr" data-label="Filtr odkamieniający" data-h="0.8"/>
+    <g id="filter">
+      <rect class="st24" x="158.5" y="379.16" width="118" height="116" rx="15" ry="15"/>
       <text class="st29" transform="translate(206.67 408.16)"><tspan x="0" y="0">Filtr</tspan></text>
       <text class="st29" transform="translate(172.7 426.16)"><tspan x="0" y="0">odkamieniający</tspan></text>
       <g>
@@ -499,8 +423,8 @@
         <path class="st4" d="M213.5,449.16h8"/>
       </g>
     </g>
-    <g id="water-heater" data-element="podgrzewacz">
-      <rect class="st24 karta" x="322.5" y="379.16" width="145" height="116" rx="15" ry="15" data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="3.4" data-vessel="true"/>
+    <g id="water-heater">
+      <rect class="st24" x="322.5" y="379.16" width="145" height="116" rx="15" ry="15"/>
       <text class="st29" transform="translate(339 407.16)"><tspan x="0" y="0">Podgrzewacz wody</tspan></text>
       <text class="st29" transform="translate(354.17 425.16)"><tspan x="0" y="0">wodociągowej</tspan></text>
       <g>
@@ -509,64 +433,38 @@
       </g>
     </g>
   </g>
-  <g id="central-module" data-element="storage">
-    <rect class="st24 karta" x="605.5" y="129.16" width="270" height="351" rx="15" ry="15"/>
+  <g id="central-module">
+    <rect class="st24" x="605.5" y="129.16" width="270" height="351" rx="15" ry="15"/>
     <g id="tank">
-      <rect class="st0" x="673.5" y="158.16" width="129" height="255" data-object="storage" data-label="Magazyn PCM" data-h="8" data-vessel="true"/>
+      <rect class="st0" x="673.5" y="158.16" width="129" height="255"/>
       <rect class="st11" x="673.5" y="154.16" width="129" height="10" rx="3" ry="3"/>
       <path class="st31" d="M673.5,404.16h129v9c0,2.67-1.33,4-4,4h-121c-2.67,0-4-1.33-4-4v-9Z"/>
       <path class="st30" d="M678.5,168.16v231"/>
       <path class="st33" d="M797.5,168.16v231"/>
     </g>
     <text class="st27" transform="translate(786.5 359.16) rotate(-90)"><tspan x="0" y="0">ECOM POWER 2.0</tspan></text>
-    <!-- KONTRAKT: sondy — grupy z data-sensor, kropki z data-fill-point,
-         teksty z data-point (wartości wpisuje aplikacja). -->
     <g id="sensors-left">
-      <g class="sensor" data-sensor="A3">
-        <rect class="sensor__hit" x="607" y="189.16" width="82" height="38"/>
-        <circle class="sensor__phase" cx="673.5" cy="208.16" r="9"/>
-        <text class="st29" data-point="A3" data-unit="°C" transform="translate(619 213.16)">—</text>
-        <circle class="sensor__cell--wektor" fill="#fff" data-fill-point="A3" cx="673.5" cy="208.16" r="4.5"/>
-      </g>
-      <g class="sensor" data-sensor="A2">
-        <rect class="sensor__hit" x="607" y="277.16" width="82" height="38"/>
-        <circle class="sensor__phase" cx="673.5" cy="296.16" r="9"/>
-        <text class="st29" data-point="A2" data-unit="°C" transform="translate(619 301.16)">—</text>
-        <circle class="sensor__cell--wektor" fill="#fff" data-fill-point="A2" cx="673.5" cy="296.16" r="4.5"/>
-      </g>
-      <g class="sensor" data-sensor="A1">
-        <rect class="sensor__hit" x="607" y="360.16" width="82" height="38"/>
-        <circle class="sensor__phase" cx="673.5" cy="379.16" r="9"/>
-        <text class="st29" data-point="A1" data-unit="°C" transform="translate(619 384.16)">—</text>
-        <circle class="sensor__cell--wektor" fill="#fff" data-fill-point="A1" cx="673.5" cy="379.16" r="4.5"/>
-      </g>
+      <text class="st29" transform="translate(619 213.16)"><tspan x="0" y="0">24.8 °C</tspan></text>
+      <text class="st29" transform="translate(619 301.16)"><tspan x="0" y="0">24.7 °C</tspan></text>
+      <text class="st29" transform="translate(619 384.16)"><tspan x="0" y="0">24.6 °C</tspan></text>
+      <circle class="st26" cx="673.5" cy="208.16" r="4.5"/>
+      <circle class="st26" cx="673.5" cy="296.16" r="4.5"/>
+      <circle class="st26" cx="673.5" cy="379.16" r="4.5"/>
     </g>
     <g id="sensors-right">
-      <g class="sensor" data-sensor="B3">
-        <rect class="sensor__hit" x="790" y="189.16" width="82" height="38"/>
-        <circle class="sensor__phase" cx="801.5" cy="208.16" r="9"/>
-        <text class="st29" data-point="B3" data-unit="°C" transform="translate(813.5 213.16)">—</text>
-        <circle class="sensor__cell--wektor" fill="#fff" data-fill-point="B3" cx="801.5" cy="208.16" r="4.5"/>
-      </g>
-      <g class="sensor" data-sensor="B2">
-        <rect class="sensor__hit" x="790" y="277.16" width="82" height="38"/>
-        <circle class="sensor__phase" cx="801.5" cy="296.16" r="9"/>
-        <text class="st29" data-point="B2" data-unit="°C" transform="translate(813.5 301.16)">—</text>
-        <circle class="sensor__cell--wektor" fill="#fff" data-fill-point="B2" cx="801.5" cy="296.16" r="4.5"/>
-      </g>
-      <g class="sensor" data-sensor="B1">
-        <rect class="sensor__hit" x="790" y="360.16" width="82" height="38"/>
-        <circle class="sensor__phase" cx="801.5" cy="379.16" r="9"/>
-        <text class="st29" data-point="B1" data-unit="°C" transform="translate(813.5 384.16)">—</text>
-        <circle class="sensor__cell--wektor" fill="#fff" data-fill-point="B1" cx="801.5" cy="379.16" r="4.5"/>
-      </g>
+      <text class="st29" transform="translate(813.5 213.16)"><tspan x="0" y="0">24.8 °C</tspan></text>
+      <text class="st29" transform="translate(813.5 301.16)"><tspan x="0" y="0">24.7 °C</tspan></text>
+      <text class="st29" transform="translate(813.5 384.16)"><tspan x="0" y="0">24.6 °C</tspan></text>
+      <circle class="st26" cx="801.5" cy="208.16" r="4.5"/>
+      <circle class="st26" cx="801.5" cy="296.16" r="4.5"/>
+      <circle class="st26" cx="801.5" cy="379.16" r="4.5"/>
     </g>
     <circle class="st32" cx="702.5" cy="447.16" r="3.2"/>
     <text class="st29" transform="translate(713.5 452.16)"><tspan x="0" y="0">Moduł 1 z 4</tspan></text>
   </g>
   <g id="right-devices">
-    <g id="storage-tank" data-element="buffer">
-      <rect class="st24 karta" x="933.5" y="206.16" width="90" height="161" rx="15" ry="15" data-object="buffer" data-label="Zasobnik 80 l" data-h="4.4" data-vessel="true"/>
+    <g id="storage-tank">
+      <rect class="st24" x="933.5" y="206.16" width="90" height="161" rx="15" ry="15"/>
       <g>
         <path class="st4" d="M969.5,251.16h18c2.67,0,4,1.33,4,4v29c0,2.67-1.33,4-4,4h-18c-2.67,0-4-1.33-4-4v-29c0-2.67,1.33-4,4-4Z"/>
         <path class="st4" d="M970.5,247.16h16M971.5,288.16v5M985.5,288.16v5M968.5,282.16h20"/>
@@ -576,15 +474,15 @@
       <text class="st29" transform="translate(952.13 325.16)"><tspan x="0" y="0">Zasobnik</tspan></text>
       <text class="st29" transform="translate(940.2 344.16)"><tspan x="0" y="0">80 l z grzałką</tspan></text>
     </g>
-    <g id="expansion-tank" data-element="naczynie-prawe">
-      <rect class="st24 karta" x="1096.5" y="206.16" width="91" height="101" rx="15" ry="15" data-object="naczynie-prawe" data-label="Naczynie przeponowe" data-h="1.4"/>
+    <g id="expansion-tank">
+      <rect class="st24" x="1096.5" y="206.16" width="91" height="101" rx="15" ry="15"/>
       <g>
         <path class="st4" d="M1134.5,231.16h18c2,0,3,1.33,3,4v30c0,2.67-1.33,4-4,4h-17c-2.67,0-4-1.33-4-4v-30c0-2.67,1.33-4,4-4Z"/>
         <path class="st4" d="M1138.5,228.16h9M1131.5,262.16h23M1136.5,269.16v5M1149.5,269.16v5M1138.5,274.16h10"/>
       </g>
     </g>
-    <g id="heat-pump" class="device" data-state="HP_STATE" data-element="heatpump">
-      <rect class="st24 karta" x="1261.5" y="206.16" width="90" height="161" rx="15" ry="15" data-object="heatpump" data-label="Pompa ciepła" data-h="3"/>
+    <g id="heat-pump">
+      <rect class="st24" x="1261.5" y="206.16" width="90" height="161" rx="15" ry="15"/>
       <g>
         <circle class="st4" cx="1306.5" cy="269.16" r="19"/>
         <circle class="st4" cx="1306.5" cy="269.16" r="3"/>
@@ -594,7 +492,6 @@
       </g>
       <text class="st29" transform="translate(1285.905 325.1561)"><tspan x="0" y="0">Pompa</tspan></text>
       <text class="st29" transform="translate(1289.5168 344.1561)"><tspan x="0" y="0">ciepła</tspan></text>
-      <circle class="device__led--wektor" cx="1339.5" cy="218.16" r="4"/>
     </g>
   </g>
 </svg>

@@ -29,6 +29,11 @@
  *         wycinki z renderów. Topologia: dwie ciągłe linie nad zbiornikiem,
  *         CZTERY piony z dekla (skrajne do górnej, para do dolnej), piony
  *         skrajne przecinają dolną linię bez złączki. Dane bez zmian.
+ *   v0.6  Schemat to wektorowy plik projektanta z Illustratora
+ *         (schemat_instalacji_wektor.svg) z dopisanym kontraktem danych.
+ *         Szkło (mrożone tafle) na elementach interfejsu, ciepła pulsująca
+ *         poświata w tle, logo Tauron Ciepło w prawym górnym rogu,
+ *         21 zmysłów nad stopką, copyright na stopce.
  */
 
-export const WERSJA = 'v0.5';
+export const WERSJA = 'v0.6';

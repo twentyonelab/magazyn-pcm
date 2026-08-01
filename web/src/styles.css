@@ -8,7 +8,9 @@
 
 :root {
   /* --- Motyw jasny (domyślny) --- */
-  --bg: #f2f2f0;
+  /* Od v0.6 tło jest CIEPŁE (krem zamiast neutralnej szarości) — na nim leży
+     pomarańczowa poświata (patrz blok POŚWIATA na końcu arkusza). */
+  --bg: #f7f1ea;
   --surface: #ffffff;
   --surface-sunken: #f7f7f5;
   --ink: #0d0d0d;
@@ -1520,78 +1522,27 @@ code {
 }
 
 /* =========================================================================
-   SCHEMAT SVG — style dla wstrzykniętego rysunku (język graficzny v0.5)
-   ========================================================================= */
+   SCHEMAT SVG — plik projektanta (v0.6)
+   =========================================================================
+   Od v0.6 schemat to plik z Illustratora, który NOSI WŁASNE STYLE w bloku
+   <style> (klasy .stXX + reguły kontraktu). Tu zostaje tylko to, czego
+   plik nie wie: warstwa przepływu sterowana danymi i tryb ciemny.
 
-/* Schemat bierze kolory ze zmiennych motywu, więc działa w obu trybach. */
+   `!important` w nadpisaniach nocnych nie jest ozdobą: <style> z wnętrza SVG
+   stoi w dokumencie ZA tym arkuszem, więc zwykła reguła by przegrała.
+   Deklaracja ważna wygrywa niezależnie od kolejności. */
+
 .schema {
   font-family: var(--font);
 }
 
-/* --- Nakładki na rastrowe karty -------------------------------------------
-   Karty urządzeń i zbiornik to wycinki z makiety (PNG). Raster nie umie mieć
-   obrysu ani nieść kontraktu, więc na każdym leży przezroczysty prostokąt:
-   on łapie klik (data-element), niesie kontrakt 3D (data-object) i rysuje
-   obwódkę najechania. `transparent`, nie `none` — inaczej nie łapałby myszy. */
-
-.schema .nakladka {
-  fill: transparent;
-  stroke: transparent;
-  stroke-width: 2;
-}
-
-/* Elementy instalacji reagują na kursor — sygnał, że da się w nie kliknąć. */
-.schema [data-element] {
-  cursor: pointer;
-}
-
-.schema [data-element]:hover .nakladka,
-.schema .nakladka[data-element]:hover {
-  stroke: var(--ink);
-}
-
-.schema [data-element].is-selected .nakladka,
-.schema .nakladka[data-element].is-selected {
-  stroke: var(--accent);
-  stroke-width: 3;
-}
-
-.schema .label {
-  font-size: 13px;
-  fill: var(--ink-soft);
-}
-
-.schema .label--sm {
-  font-size: 11px;
-  fill: var(--ink-soft);
-  text-anchor: middle;
-}
-
-.schema .meta {
-  font-size: 11px;
-  fill: var(--ink-faint);
-}
-
-/* --- Rury: grafiki rastrowe (v0.4) ----------------------------------------
-   Pasy i złączki to PNG z web/public/schemat/, liczone programowo — patrz
-   komentarz w schema.svg. Tu zostaje tylko to, czego raster nie umie:
-   tryb ciemny i warstwa przepływu. */
-
-/* Jeden zestaw plików obsługuje oba motywy: w nocy rastry przyciemnia filtr.
-   Osobny zestaw „nocnych" PNG byłby czystszy kolorystycznie, ale każda zmiana
-   palety wymagałaby wtedy dwóch regeneracji — i któraś kiedyś by uciekła. */
-:root[data-theme='dark'] .schema .raster {
-  filter: brightness(0.42) saturate(0.85);
-}
-
-/* Warstwa przepływu: niewidoczna, dopóki nic nie płynie. Gdy płynie, wewnątrz
-   tuby suną kropki w kolorze obiegu: pomarańcz = zasilanie, błękit = powrót.
+/* Warstwa przepływu: niewidoczna, dopóki nic nie płynie. Gdy płynie, wzdłuż
+   rury suną kreski w kolorze obiegu: pomarańcz = zasilanie, błękit = powrót.
    Prędkość ustawia bindSchema przez --flow-duration — z pomiaru, nie na oko. */
 .schema .tube__flow {
   fill: none;
-  /* Rura z makiety ma na ekranie ~13 px średnicy — kreska przepływu musi
-     zmieścić się w jej wnętrzu, nie zamalować jej. */
-  stroke-width: 3.5;
+  /* Rury projektanta mają ~9 px — kreska mieści się w ich wnętrzu. */
+  stroke-width: 3;
   stroke-linecap: round;
   opacity: 0;
 }
@@ -1610,7 +1561,7 @@ code {
   animation: flow var(--flow-duration, 2s) linear infinite;
 }
 
-/* ZEROWY PRZEPŁYW TO BRAK RUCHU — warstwa znika, tuba stoi jak metal. */
+/* ZEROWY PRZEPŁYW TO BRAK RUCHU — warstwa znika. */
 .schema .tube__flow.is-still {
   opacity: 0;
   animation: none;
@@ -1623,143 +1574,44 @@ code {
   }
 }
 
-/* --- Manometry, zaworki bezpieczeństwa ------------------------------------ */
+/* --- Tryb ciemny dla wektorów projektanta ----------------------------------
+   Plik ma wpisane kolory jasnego projektu (białe karty, grafitowe teksty).
+   Nocą podmieniamy tylko powierzchnie i tusz; metaliczne gradienty rur
+   zostają — mają dość kontrastu na ciemnym tle. */
 
-.schema .gauge__stem {
-  stroke: var(--tube-1);
-  stroke-width: 4;
-  fill: none;
+:root[data-theme='dark'] .schema .st24 {
+  fill: #1e1e19 !important;
+  stroke: #33332b !important;
 }
 
-/* Wydmuch zaworka — przerywana strzałka w górę, jak na makiecie. */
-.schema .valve__arrow {
-  stroke: var(--ink-faint);
-  stroke-width: 1.6;
-  stroke-dasharray: 4 4;
-  fill: none;
+:root[data-theme='dark'] .schema .st25 {
+  fill: #1e1e19 !important;
+  stroke: #6f6f68 !important;
 }
 
-.schema .valve__arrowhead {
-  fill: var(--ink-faint);
+:root[data-theme='dark'] .schema .st27,
+:root[data-theme='dark'] .schema .st28,
+:root[data-theme='dark'] .schema .st29 {
+  fill: #f4f4ee !important;
 }
 
-/* --- Karta odczytów ciepłomierza ------------------------------------------ */
-
-.schema .meter-card__body {
-  fill: var(--surface);
-  stroke: var(--hairline);
-  stroke-width: 1;
+:root[data-theme='dark'] .schema .st1,
+:root[data-theme='dark'] .schema .st4 {
+  stroke: #a8a89e !important;
 }
 
-/* --- Dioda pracy urządzenia ------------------------------------------------ */
-
-.schema .device__led {
-  fill: var(--ink-faint);
+:root[data-theme='dark'] .schema .st7,
+:root[data-theme='dark'] .schema .st9 {
+  stroke: #6f6f68 !important;
 }
 
-.schema .device.is-active .device__led {
-  fill: var(--ok-ink);
+:root[data-theme='dark'] .schema [data-element]:hover .karta {
+  stroke: #f4f4ee !important;
 }
 
-.schema .device.is-inactive .device__led {
-  fill: var(--ink-faint);
-}
-
-.schema .device.is-unknown .device__led {
-  fill: var(--warn-ink);
-}
-
-/* --- Zbiornik PCM ---------------------------------------------------------- */
-
-.schema .storage__dot {
-  fill: var(--ok-ink);
-}
-
-/* --- Sondy: kropki na płaszczu --------------------------------------------- */
-
-/* Niewidoczny prostokąt łapiący kursor — sama kropka byłaby za małym celem. */
-.schema .sensor__hit {
-  fill: none;
-  pointer-events: all;
-}
-
-.schema .sensor {
-  cursor: pointer;
-}
-
-/* Kolor wypełnienia nadaje bindSchema według temperatury. */
-.schema .sensor__cell {
-  stroke: var(--surface);
-  stroke-width: 2.5;
-}
-
-.schema .sensor:hover .sensor__cell {
-  stroke: var(--ink);
-}
-
-.schema .sensor__id {
-  font-size: 10px;
-  font-weight: 600;
-  fill: var(--ink-faint);
-  letter-spacing: 0.04em;
-}
-
-.schema .sensor__value {
-  font-size: 15px;
-  font-weight: 700;
-  fill: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.schema .sensor__value--sm {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.schema .sensor__value.is-no-data,
-.schema .sensor__value.is-not-connected {
-  fill: var(--ink-faint);
-  font-weight: 500;
-}
-
-.schema .sensor__value.is-stale {
-  opacity: 0.55;
-}
-
-/* Pierścień przemiany fazowej — zapala się, gdy sonda wchodzi w plateau.
-   To NAJWAŻNIEJSZY stan na tym ekranie, dlatego ma osobne oznaczenie. */
-.schema .sensor__phase {
-  fill: none;
-  stroke: var(--ladunek);
-  stroke-width: 2.5;
-  opacity: 0;
-}
-
-.schema .sensor.is-phase .sensor__phase {
-  opacity: 1;
-}
-
-.schema .sensor.is-dim {
-  opacity: 0.45;
-}
-
-/* --- Hala ------------------------------------------------------------------ */
-
-.schema .ambient__value {
-  font-size: 26px;
-  font-weight: 700;
-  fill: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.schema .ambient__value.is-no-data,
-.schema .ambient__value.is-not-connected {
-  fill: var(--ink-faint);
-  font-weight: 500;
-}
-
-.schema .is-hidden {
-  display: none;
+:root[data-theme='dark'] .schema text.is-no-data,
+:root[data-theme='dark'] .schema text.is-not-connected {
+  fill: #6f6f68 !important;
 }
 
 /* =========================================================================
@@ -2755,4 +2607,131 @@ code {
   gap: 0.7rem;
   line-height: 1.55;
   font-size: 0.92rem;
+}
+
+
+/* =========================================================================
+   POŚWIATA (v0.6) — ciepły, lekko pulsujący blask w tle
+   =========================================================================
+   Odtworzona z makiety poswiata.png: krem u góry, pomarańczowy blask przy
+   dolnych narożnikach. Leży na warstwie pod całą aplikacją (.app ma z-index
+   wyżej), a pulsuje OSOBNA warstwa — animowanie opacity nie przemalowuje
+   strony, tylko komponuje warstwę, więc nie kosztuje wydajności. */
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--cieplo) 20%, transparent), transparent 70%),
+    radial-gradient(50% 60% at 94% 92%, color-mix(in srgb, var(--ladunek-jasny) 30%, transparent), transparent 70%),
+    radial-gradient(70% 55% at 50% -5%, color-mix(in srgb, #f2ddc4 55%, transparent), transparent 75%);
+  animation: poswiata 9s ease-in-out infinite alternate;
+}
+
+@keyframes poswiata {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    animation: none;
+  }
+}
+
+/* Nocą blask przygasa — ma grzać, nie świecić po oczach. */
+:root[data-theme='dark'] body::after {
+  background:
+    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--cieplo) 12%, transparent), transparent 70%),
+    radial-gradient(50% 60% at 94% 92%, color-mix(in srgb, var(--ladunek) 10%, transparent), transparent 70%);
+}
+
+/* Aplikacja nad poświatą. */
+.app {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================================================================
+   SZKŁO (v0.6) — mrożone tafle zamiast pełnych powierzchni
+   =========================================================================
+   Elementy interfejsu przepuszczają poświatę: tło to częściowo przezroczysty
+   papier + rozmycie tego, co pod spodem. Jasna górna krawędź (border z bielą)
+   robi wrażenie szlifu tafli. Blok stoi na końcu arkusza celowo — wygrywa
+   kolejnością z wcześniejszymi definicjami tła tych elementów. */
+
+.nav,
+.statusbar,
+.belka,
+.belka__panel,
+.pogoda,
+.tool,
+.theme-toggle,
+.demo-przeplyw__przycisk,
+.probe-panel {
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  border: 0.5px solid color-mix(in srgb, #ffffff 60%, transparent);
+}
+
+/* Rozwinięcie belki dziedziczy taflę, ale bez górnej krawędzi — ma się
+   sklejać z belką w jeden obiekt. */
+.belka__panel {
+  border-top: 0.5px solid var(--hairline);
+}
+
+/* Nocą szkło jest ciemną taflą: mniej papieru, delikatniejsza krawędź. */
+:root[data-theme='dark'] .nav,
+:root[data-theme='dark'] .statusbar,
+:root[data-theme='dark'] .belka,
+:root[data-theme='dark'] .belka__panel,
+:root[data-theme='dark'] .pogoda,
+:root[data-theme='dark'] .tool,
+:root[data-theme='dark'] .theme-toggle,
+:root[data-theme='dark'] .demo-przeplyw__przycisk,
+:root[data-theme='dark'] .probe-panel {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border-color: color-mix(in srgb, #ffffff 10%, transparent);
+}
+
+/* =========================================================================
+   LOGOTYPY I COPYRIGHT (v0.6)
+   ========================================================================= */
+
+/* Tauron Ciepło w prawym górnym rogu. Logo żyje na białej pastylce, bo jego
+   szare litery i magenta potrzebują białego tła — także w trybie nocnym. */
+.topbar__logo--tauron {
+  height: 40px;
+  width: auto;
+  display: block;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 4px 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 21 zmysłów — prawy dolny róg, tuż nad stopką. */
+.logo-21 {
+  position: fixed;
+  right: clamp(1rem, 3vw, 2rem);
+  bottom: 46px;
+  height: 26px;
+  width: auto;
+  z-index: 4;
+  opacity: 0.92;
+}
+
+.statusbar__copy {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
 }
