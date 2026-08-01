@@ -14,26 +14,60 @@
 // przegladarki tym samym co pliki), POD WARUNKIEM ze edycja nie wytnie
 // atrybutow data-* — to one wiaza rysunek z danymi.
 //
-// Uruchomienie: node narzedzia/eksportuj-schemat.mjs [plik-wyjsciowy]
+// Uruchomienie:
+//   node narzedzia/eksportuj-schemat.mjs [plik-wyjsciowy]
+//     — jeden plik, grafiki wtopione (dobre dla przegladarki i Inkscape)
+//   node narzedzia/eksportuj-schemat.mjs --lacza [katalog-wyjsciowy]
+//     — katalog: schemat.svg + grafiki/*.png, sciezki wzgledne.
+//       TEN wariant dla Illustratora: nie trawi grafik wtopionych w data:,
+//       chce plikow polaczonych obok. Kazdy obraz dostaje tez xlink:href,
+//       bo starsze importery czytaja tylko skladnie sprzed SVG 2.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const TU = dirname(fileURLToPath(import.meta.url));
 const ZRODLO = join(TU, '..', 'web', 'src', 'schema', 'schema.svg');
 const PUBLIC = join(TU, '..', 'web', 'public');
-const WYJSCIE = process.argv[2] ?? join(TU, 'eksport-schemat.svg');
+const LACZA = process.argv[2] === '--lacza';
+const WYJSCIE = LACZA
+  ? (process.argv[3] ?? join(TU, 'eksport-schemat'))
+  : (process.argv[2] ?? join(TU, 'eksport-schemat.svg'));
 
 let svg = readFileSync(ZRODLO, 'utf8');
 
-// 1) Wtopienie grafik.
+// 1) Grafiki: wtopione albo jako lacza wzgledne.
 let wtopione = 0;
-svg = svg.replace(/href="(\/schemat\/[^"]+)"/g, (_, sciezka) => {
-  const dane = readFileSync(join(PUBLIC, sciezka));
-  wtopione += 1;
-  return `href="data:image/png;base64,${dane.toString('base64')}"`;
-});
+if (LACZA) {
+  mkdirSync(join(WYJSCIE, 'grafiki'), { recursive: true });
+  for (const plik of readdirSync(join(PUBLIC, 'schemat'))) {
+    copyFileSync(join(PUBLIC, 'schemat', plik), join(WYJSCIE, 'grafiki', plik));
+  }
+  svg = svg.replace(/href="\/schemat\/([^"]+)"/g, (_, nazwa) => {
+    wtopione += 1;
+    return `xlink:href="grafiki/${nazwa}" href="grafiki/${nazwa}"`;
+  });
+  svg = svg.replace('<svg', '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+
+  // Nazwane grupy — Illustrator pokazuje id grupy jako nazwe podwarstwy,
+  // wiec panel warstw przestaje byc jedna anonimowa bryla.
+  svg = svg
+    .replace('<g class="tubes">', '<g id="rury" class="tubes">')
+    .replace('<g class="flows"', '<g id="warstwa-przeplywu" class="flows"')
+    .replace('<g class="joints">', '<g id="zlaczki" class="joints">')
+    .replace('<g class="storage">', '<g id="magazyn-pcm" class="storage">')
+    .replace('<g class="ambient"', '<g id="hala" class="ambient"')
+    .replace('<g class="meter-card">', '<g id="odczyty-cieplomierza" class="meter-card">')
+    .replace(/<g class="(device|valve|gauge)"([^>]*?)data-element="([^"]+)"/g,
+      '<g id="$3" class="$1"$2data-element="$3"');
+} else {
+  svg = svg.replace(/href="(\/schemat\/[^"]+)"/g, (_, sciezka) => {
+    const dane = readFileSync(join(PUBLIC, sciezka));
+    wtopione += 1;
+    return `href="data:image/png;base64,${dane.toString('base64')}"`;
+  });
+}
 
 // 2) Style z rozwiazanymi kolorami motywu jasnego. Warstwa przeplywu widoczna
 //    polprzezroczyscie (w aplikacji styruje nia arkusz i dane).
@@ -71,6 +105,11 @@ svg = svg.replace(/(<svg[^>]*>)/, `$1\n${STYLE}`);
 //    trzeba zdjac (aplikacja ma wlasne tlo i tryb ciemny).
 svg = svg.replace('<svg', '<svg style="background:#f2f2f0"');
 
-writeFileSync(WYJSCIE, svg, 'utf8');
-console.log(`zapisane: ${WYJSCIE}`);
-console.log(`wtopione grafiki: ${wtopione}, rozmiar: ${Math.round(svg.length / 1024)} kB`);
+const plikSvg = LACZA ? join(WYJSCIE, 'schemat.svg') : WYJSCIE;
+writeFileSync(plikSvg, svg, 'utf8');
+console.log(`zapisane: ${plikSvg}`);
+console.log(
+  LACZA
+    ? `lacza do grafik: ${wtopione} (katalog grafiki/)`
+    : `wtopione grafiki: ${wtopione}, rozmiar: ${Math.round(svg.length / 1024)} kB`,
+);
