@@ -24,6 +24,11 @@
  *         poprawiona według ponownej analizy makiety: ślepa odnoga zaworka
  *         po lewej, jedna linia do podgrzewacza, rozdzielacz z trzema
  *         zejściami po prawej. Dane i interakcje bez zmian.
+ *   v0.5  Grafiki WYCINANE z makiety projektanta (narzedzia/makieta-v03.png):
+ *         cienkie rury, kule złączek, walec zbiornika i karty urządzeń to
+ *         wycinki z renderów. Topologia: dwie ciągłe linie nad zbiornikiem,
+ *         CZTERY piony z dekla (skrajne do górnej, para do dolnej), piony
+ *         skrajne przecinają dolną linię bez złączki. Dane bez zmian.
  */
 
-export const WERSJA = 'v0.4';
+export const WERSJA = 'v0.5';

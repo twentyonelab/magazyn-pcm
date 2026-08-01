@@ -1520,7 +1520,7 @@ code {
 }
 
 /* =========================================================================
-   SCHEMAT SVG — style dla wstrzykniętego rysunku (język graficzny v0.3)
+   SCHEMAT SVG — style dla wstrzykniętego rysunku (język graficzny v0.5)
    ========================================================================= */
 
 /* Schemat bierze kolory ze zmiennych motywu, więc działa w obu trybach. */
@@ -1528,12 +1528,16 @@ code {
   font-family: var(--font);
 }
 
-/* --- Karty urządzeń ------------------------------------------------------- */
+/* --- Nakładki na rastrowe karty -------------------------------------------
+   Karty urządzeń i zbiornik to wycinki z makiety (PNG). Raster nie umie mieć
+   obrysu ani nieść kontraktu, więc na każdym leży przezroczysty prostokąt:
+   on łapie klik (data-element), niesie kontrakt 3D (data-object) i rysuje
+   obwódkę najechania. `transparent`, nie `none` — inaczej nie łapałby myszy. */
 
-.schema .card__body {
-  fill: var(--surface);
-  stroke: var(--hairline);
-  stroke-width: 1;
+.schema .nakladka {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2;
 }
 
 /* Elementy instalacji reagują na kursor — sygnał, że da się w nie kliknąć. */
@@ -1541,50 +1545,20 @@ code {
   cursor: pointer;
 }
 
-.schema [data-element]:hover .card__body,
-.schema [data-element]:hover .gauge__face {
+.schema [data-element]:hover .nakladka,
+.schema .nakladka[data-element]:hover {
   stroke: var(--ink);
-  stroke-width: 2;
 }
 
-/* Zbiornik nosi data-element NA SOBIE (rect), nie na grupie — selektor
-   potomka nigdy by się nie dopasował, więc reguła celuje w sam element. */
-.schema .storage__body[data-element]:hover {
-  stroke: var(--ink);
-  stroke-width: 2;
-}
-
-.schema [data-element].is-selected .card__body,
-.schema .storage__body[data-element].is-selected {
+.schema [data-element].is-selected .nakladka,
+.schema .nakladka[data-element].is-selected {
   stroke: var(--accent);
   stroke-width: 3;
-}
-
-.schema .card__title {
-  font-size: 13px;
-  font-weight: 600;
-  fill: var(--ink);
-  text-anchor: middle;
-}
-
-/* Ikony liniowe w kartach — jeden duży gest, nie ilustracja. */
-.schema .card__icon {
-  fill: none;
-  stroke: var(--ink-soft);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .schema .label {
   font-size: 13px;
   fill: var(--ink-soft);
-}
-
-.schema .label--strong {
-  font-size: 15px;
-  font-weight: 700;
-  fill: var(--ink);
 }
 
 .schema .label--sm {
@@ -1596,10 +1570,6 @@ code {
 .schema .meta {
   font-size: 11px;
   fill: var(--ink-faint);
-}
-
-.schema .meta--center {
-  text-anchor: middle;
 }
 
 /* --- Rury: grafiki rastrowe (v0.4) ----------------------------------------
@@ -1619,7 +1589,9 @@ code {
    Prędkość ustawia bindSchema przez --flow-duration — z pomiaru, nie na oko. */
 .schema .tube__flow {
   fill: none;
-  stroke-width: 4.5;
+  /* Rura z makiety ma na ekranie ~13 px średnicy — kreska przepływu musi
+     zmieścić się w jej wnętrzu, nie zamalować jej. */
+  stroke-width: 3.5;
   stroke-linecap: round;
   opacity: 0;
 }
@@ -1653,19 +1625,6 @@ code {
 
 /* --- Manometry, zaworki bezpieczeństwa ------------------------------------ */
 
-.schema .gauge__face {
-  fill: var(--surface);
-  stroke: var(--hairline);
-  stroke-width: 1;
-}
-
-.schema .gauge__text {
-  font-size: 11px;
-  font-weight: 600;
-  fill: var(--ink-soft);
-  text-anchor: middle;
-}
-
 .schema .gauge__stem {
   stroke: var(--tube-1);
   stroke-width: 4;
@@ -1684,22 +1643,7 @@ code {
   fill: var(--ink-faint);
 }
 
-.schema .valve__pump-glyph {
-  fill: var(--ink-soft);
-}
-
-.schema .valve.is-active .valve__pump-glyph {
-  fill: var(--ok-ink);
-}
-
 /* --- Karta odczytów ciepłomierza ------------------------------------------ */
-
-.schema .meter-box__text {
-  font-size: 14px;
-  font-weight: 700;
-  fill: var(--ink);
-  text-anchor: middle;
-}
 
 .schema .meter-card__body {
   fill: var(--surface);
@@ -1726,22 +1670,6 @@ code {
 }
 
 /* --- Zbiornik PCM ---------------------------------------------------------- */
-
-/* Nakładka na raster zbiornika: przezroczysta, ale ZAMALOWANA (transparent,
-   nie none) — inaczej nie łapałaby kliknięcia. Obrys pojawia się dopiero
-   przy najechaniu i zaznaczeniu. */
-.schema .storage__body {
-  fill: transparent;
-  stroke: transparent;
-  stroke-width: 2;
-}
-
-.schema .storage__side {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  fill: color-mix(in srgb, var(--ink) 38%, transparent);
-  text-anchor: middle;
-}
 
 .schema .storage__dot {
   fill: var(--ok-ink);
