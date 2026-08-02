@@ -185,6 +185,21 @@ function contains(outer: SvgBox, inner: SvgBox): boolean {
 }
 
 /**
+ * Czy ŚRODEK `inner` wypada w `outer`.
+ *
+ * Do przypisania sondy do zbiornika zawieranie w całości nie nadaje się:
+ * na rysunku projektanta kropki sond leżą dokładnie na ściance zbiornika,
+ * więc połowa każdej kropki wystaje poza jego obrys i test szczelny
+ * odrzucałby wszystkie sondy — w scenie 3D wisiałyby w powietrzu zamiast
+ * na walcu. Punkt pomiarowy to środek kropki i on decyduje.
+ */
+function containsCenter(outer: SvgBox, inner: SvgBox): boolean {
+  const cx = inner.x + inner.w / 2;
+  const cy = inner.y + inner.h / 2;
+  return cx >= outer.x && cx <= outer.x + outer.w && cy >= outer.y && cy <= outer.y + outer.h;
+}
+
+/**
  * Wczytuje rysunek do drzewa DOM.
  *
  * Parser XML jest ścisły i przy najmniejszym potknięciu (np. podwójny dywiz
@@ -239,7 +254,7 @@ export function extractScene(svgText: string): Scene {
   // --- Sondy --------------------------------------------------------------
   const sensors: SceneSensor[] = [...doc.querySelectorAll('[data-fill-point]')].map((element) => {
     const box = boxOf(element);
-    const vessel = objects.find((candidate) => candidate.vessel && contains(candidate, box));
+    const vessel = objects.find((candidate) => candidate.vessel && containsCenter(candidate, box));
 
     return {
       ...box,
@@ -255,7 +270,11 @@ export function extractScene(svgText: string): Scene {
     const d = element.getAttribute('d');
     if (!d) continue;
 
-    const isReturn = (element.getAttribute('class') ?? '').includes('pipe--return');
+    // Nazwa klasy zmieniła się przy przejściu na schemat projektanta
+    // (`pipe--return` → `tube__flow--return`). Sprawdzamy oba zapisy, bo
+    // szukanie samej starej nazwy cicho malowało powroty kolorem zasilania.
+    const klasa = element.getAttribute('class') ?? '';
+    const isReturn = klasa.includes('--return');
     const flowSource = element.getAttribute('data-flow-source');
 
     for (const points of parsePolylines(d)) {

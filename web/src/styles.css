@@ -1577,32 +1577,64 @@ code {
 /* --- Tryb ciemny dla wektorów projektanta ----------------------------------
    Plik ma wpisane kolory jasnego projektu (białe karty, grafitowe teksty).
    Nocą podmieniamy tylko powierzchnie i tusz; metaliczne gradienty rur
-   zostają — mają dość kontrastu na ciemnym tle. */
+   i zbiornika zostają — mają dość kontrastu na ciemnym tle.
 
-:root[data-theme='dark'] .schema .st24 {
+   `!important` jest konieczne: <style> z wnętrza SVG stoi w dokumencie ZA
+   tym arkuszem, więc zwykła reguła o tej samej sile by przegrała.
+
+   UWAGA PRZY NOWEJ WERSJI Z ILLUSTRATORA: numery .stXX nadaje eksporter i
+   przy każdym eksporcie mogą znaczyć co innego — w v0.6 karty były pod .st24,
+   w v0.7 .st24 to już gradient metalu, a w v0.8 tusz przeskoczył z .st15 na
+   .st13. Po podmianie schematu trzeba przejrzeć blok <style> w pliku i
+   poprawić selektory poniżej, inaczej noc przemaluje nie to, co trzeba.
+   Mapa dla v0.8: .st5/.st7 karty, .st12/.st13 tusz, .st11 podpis walca,
+   .st1 kreska grafitowa, .st2 ikony urządzeń, .st3/.st6 rury, .st4 odnośniki,
+   .st14 rozjaśniacz krawędzi. */
+
+/* Karty urządzeń: białe płaty → ciemna powierzchnia.
+   .st7 to ten sam płat co .st5, tylko grubiej obrysowany (zaworek po lewej). */
+:root[data-theme='dark'] .schema .st5,
+:root[data-theme='dark'] .schema .st7 {
   fill: #1e1e19 !important;
   stroke: #33332b !important;
 }
 
-:root[data-theme='dark'] .schema .st25 {
-  fill: #1e1e19 !important;
-  stroke: #6f6f68 !important;
-}
+/* Tusz opisowy na kartach (.st12 pogrubiony, .st13 zwykły).
 
-:root[data-theme='dark'] .schema .st27,
-:root[data-theme='dark'] .schema .st28,
-:root[data-theme='dark'] .schema .st29 {
+   ŚWIADOMIE bez .st11: ta klasa niesie jedyny podpis „PCM UNIT1", wpisany
+   pionowo w płaszcz zbiornika. Walec zachowuje nocą swój jasny, metaliczny
+   gradient, więc rozjaśnienie tego napisu skasowałoby go z ekranu. */
+:root[data-theme='dark'] .schema .st12,
+:root[data-theme='dark'] .schema .st13 {
   fill: #f4f4ee !important;
 }
 
-:root[data-theme='dark'] .schema .st1,
-:root[data-theme='dark'] .schema .st4 {
+/* Symbole rysowane grafitową kreską (strzałki nad zaworkami). */
+:root[data-theme='dark'] .schema .st1 {
   stroke: #a8a89e !important;
 }
 
-:root[data-theme='dark'] .schema .st7,
-:root[data-theme='dark'] .schema .st9 {
-  stroke: #6f6f68 !important;
+/* Ikony urządzeń są średnioszare (#929796) — na ciemnej karcie gubią się,
+   więc podnosimy je o kilka stopni. */
+:root[data-theme='dark'] .schema .st2 {
+  stroke: #b4b9b8 !important;
+}
+
+/* Rury: w dzień przyciemnione względem oryginału, w nocy odwrotnie —
+   pełna instalacja jasnych kresek świeciłaby mocniej niż urządzenia. */
+:root[data-theme='dark'] .schema {
+  --rura: #5b6160;
+}
+
+/* Cienkie odnośniki .st4 są jasnoszare — nocą przygaszamy je,
+   żeby nie świeciły mocniej niż same urządzenia. */
+:root[data-theme='dark'] .schema .st4 {
+  stroke: #55554e !important;
+}
+
+/* Biały rozjaśniacz krawędzi kart gasi się na ciemnym tle. */
+:root[data-theme='dark'] .schema .st14 {
+  stroke-opacity: .12 !important;
 }
 
 :root[data-theme='dark'] .schema [data-element]:hover .karta {

@@ -34,6 +34,18 @@
  *         Szkło (mrożone tafle) na elementach interfejsu, ciepła pulsująca
  *         poświata w tle, logo Tauron Ciepło w prawym górnym rogu,
  *         21 zmysłów nad stopką, copyright na stopce.
+ *   v0.7  Nowe wydanie schematu od projektanta
+ *         (schemat_instalacji_wektor3.svg): sekcja uzdatniania wody ukryta,
+ *         dolny rząd trzech urządzeń po lewej, zbiornik podpisany
+ *         „PCM UNIT1", rury jako rastry osadzone w pliku. Kontrakt danych
+ *         wpinany skryptem narzedzia/wepnij-kontrakt.mjs, żeby kolejna
+ *         wersja z Illustratora nie kasowała powiązań.
+ *   v0.8  Czwarte wydanie schematu: rury wróciły z rastrów na wektory, więc
+ *         warstwa przepływu leży na dokładnych współrzędnych rysunku, a nie
+ *         na przybliżeniu. Linie instalacji przyciemnione (#e0e0e0 gubiło się
+ *         na kremowym tle). Dolny rząd trzech kart to ciąg uzdatniania wody —
+ *         dwa brakujące urządzenia dostały ikony i podpisy przeniesione
+ *         z ukrytej sekcji tego samego pliku.
  */
 
-export const WERSJA = 'v0.6';
+export const WERSJA = 'v0.8';
