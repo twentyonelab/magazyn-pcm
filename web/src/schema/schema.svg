@@ -144,13 +144,16 @@
 
       .sensor { cursor: pointer; }
       .sensor__hit { fill: none; pointer-events: all; }
-      .sensor__phase { fill: none; stroke: #de7854; stroke-width: 2.5px; opacity: 0; }
+      /* Barwy sond i odczytow ida za NOSNIKIEM: zmienna --akcent ustawia
+         arkusz aplikacji, a wartosc po przecinku jest awaryjna — gdyby ktos
+         otworzyl ten plik samodzielnie, poza aplikacja. */
+      .sensor__phase { fill: none; stroke: var(--akcent-jasny, #de7854); stroke-width: 2.5px; opacity: 0; }
       .sensor.is-phase .sensor__phase { opacity: 1; }
       .sensor.is-dim { opacity: .45; }
       /* Kropka sondy: obwodka jak .st8, ale BEZ fill w CSS — wypelnienie
          ustawia aplikacja atrybutem wedlug temperatury, a regula CSS by je
          przykryla. */
-      .sensor__cell { stroke: #ff5b1a; stroke-width: 2.5px; }
+      .sensor__cell { stroke: var(--akcent, #ff5b1a); stroke-width: 2.5px; }
       .sensor:hover .sensor__cell { stroke: #202322; }
       text.is-no-data, text.is-not-connected { fill: #a3a3a0; }
       text.is-stale { opacity: .55; }
@@ -168,7 +171,7 @@
       .odczyt-miernika__wartosc {
         font-family: ArialMT, Arial;
         font-size: 11px;
-        fill: #d85a30;
+        fill: var(--akcent, #d85a30);
       }
       .odczyt-miernika__wartosc.is-no-data,
       .odczyt-miernika__wartosc.is-not-connected { fill: #a3a3a0; }

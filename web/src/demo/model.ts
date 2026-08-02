@@ -65,7 +65,7 @@ function wygladz(x: number, a: number, b: number): number {
  *
  * Godziny są ułamkowe, więc przejścia wypadają płynnie także między próbkami.
  */
-function postepDoby(ms: number): number {
+export function postepDoby(ms: number): number {
   const d = new Date(ms);
   const h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
 
@@ -99,20 +99,48 @@ function postepDoby(ms: number): number {
  */
 const UDZIAL_PRZEMIANY = 0.72;
 
-function zPlateau(postep: number): number {
-  const przedPasmem = (PASMO_MIN - T_DOL) / (T_GORA - T_DOL - (PASMO_MAX - PASMO_MIN));
+/** Zakres cieplny nośnika — parafina 57HC albo materiał chłodniczy 8HC. */
+export interface ZakresNosnika {
+  tDol: number;
+  tGora: number;
+  pasmoMin: number;
+  pasmoMax: number;
+}
+
+/** Zakres stanowiska badawczego: parafina 57HC. */
+const ZAKRES_57HC: ZakresNosnika = {
+  tDol: T_DOL,
+  tGora: T_GORA,
+  pasmoMin: PASMO_MIN,
+  pasmoMax: PASMO_MAX,
+};
+
+/**
+ * Postęp cyklu → temperatura, z przystankiem w paśmie przemiany.
+ *
+ * Wydzielone z parametrem zakresu, bo punkty pokazowe na mapie pracują dwoma
+ * nośnikami: parafiną 57HC (przemiana 55–58 °C) i materiałem 8HC (7–9 °C).
+ * Kształt krzywej jest ten sam, zmieniają się tylko granice.
+ */
+export function temperaturaZPostepu(postep: number, zakres: ZakresNosnika = ZAKRES_57HC): number {
+  const { tDol, tGora, pasmoMin, pasmoMax } = zakres;
+  const przedPasmem = (pasmoMin - tDol) / (tGora - tDol - (pasmoMax - pasmoMin));
   const dolnaCzesc = przedPasmem * (1 - UDZIAL_PRZEMIANY);
   const gornaCzesc = dolnaCzesc + UDZIAL_PRZEMIANY;
 
   if (postep <= dolnaCzesc) {
-    return T_DOL + (postep / dolnaCzesc) * (PASMO_MIN - T_DOL);
+    return tDol + (postep / dolnaCzesc) * (pasmoMin - tDol);
   }
   if (postep <= gornaCzesc) {
     const t = (postep - dolnaCzesc) / UDZIAL_PRZEMIANY;
-    return PASMO_MIN + t * (PASMO_MAX - PASMO_MIN);
+    return pasmoMin + t * (pasmoMax - pasmoMin);
   }
   const t = (postep - gornaCzesc) / (1 - gornaCzesc);
-  return PASMO_MAX + t * (T_GORA - PASMO_MAX);
+  return pasmoMax + t * (tGora - pasmoMax);
+}
+
+function zPlateau(postep: number): number {
+  return temperaturaZPostepu(postep, ZAKRES_57HC);
 }
 
 /** Czy o tej porze przez instalację coś płynie. */

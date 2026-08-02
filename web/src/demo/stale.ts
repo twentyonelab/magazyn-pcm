@@ -14,7 +14,10 @@
  * znaczenie każdej liczby na ekranie i decyzja o nim należy do budowania
  * wydania, a nie do przypadkowego kliknięcia w laboratorium.
  */
-export const TRYB_POKAZOWY: boolean = import.meta.env.VITE_DEMO === '1';
+/* `?.` chroni przed uruchomieniem poza Vite — w skryptach sprawdzających model
+   (uruchamianych wprost Node’em) `import.meta.env` nie istnieje i bez tego
+   sam import tego pliku wysypywałby się na starcie. */
+export const TRYB_POKAZOWY: boolean = import.meta.env?.VITE_DEMO === '1';
 
 /**
  * Pasmo przemiany fazowej materiału, którym pracuje pokaz (57HC).

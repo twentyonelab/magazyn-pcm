@@ -7,6 +7,7 @@
  * na którym ekranie się jest.
  */
 
+import { forwardRef } from 'react';
 import type { LiveData, LinkState } from '../useLiveData.js';
 import { NO_DATA, SOURCE_STATUS_LABEL, formatClock, formatUptime } from '../format.js';
 
@@ -49,7 +50,14 @@ function Pole({
   );
 }
 
-export function PasekStanu({ data }: { data: LiveData }) {
+/**
+ * Referencja wychodzi na zewnątrz, bo rama mierzy wysokość tej belki, żeby
+ * odsunąć od niej treść przewijaną pod spodem (patrz uklad.ts).
+ */
+export const PasekStanu = forwardRef<HTMLElement, { data: LiveData }>(function PasekStanu(
+  { data },
+  ref,
+) {
   const { health, link } = data;
   const live = link === 'live';
 
@@ -72,7 +80,7 @@ export function PasekStanu({ data }: { data: LiveData }) {
   const sourceLive = live && health?.source === 'ok';
 
   return (
-    <footer className="statusbar" aria-label="Stan systemu">
+    <footer className="statusbar" aria-label="Stan systemu" ref={ref}>
       {/* Zegar żywotności: kropka pulsuje, dopóki dane napływają. */}
       <div className={`statusbar__pulse pulse is-${link}`}>
         <span className="pulse__dot" aria-hidden="true" />
@@ -116,4 +124,4 @@ export function PasekStanu({ data }: { data: LiveData }) {
       <span className="statusbar__copy">copyright 2026 · 21 zmysłów LAB</span>
     </footer>
   );
-}
+});

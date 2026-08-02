@@ -8,6 +8,8 @@
  */
 
 import { OPCJE_API, adresApi } from './adres-api.js';
+import { aktywnyPunkt } from './demo/aktywnyPunkt.js';
+import { historiaPunktu } from './demo/punkt.js';
 import { TRYB_POKAZOWY } from './demo/stale.js';
 import {
   MATERIALY_POKAZOWE,
@@ -138,6 +140,10 @@ function historyQuery(params: HistoryParams): string {
  * wersji aplikacji.
  */
 export async function fetchHistory(params: HistoryParams): Promise<HistoryResponse> {
+  // Punkt pokazowy z mapy MA PIERWSZEŃSTWO: gdyby zapytanie poszło do serwera,
+  // pod jego nazwą narysowałby się przebieg stanowiska badawczego.
+  const punkt = aktywnyPunkt();
+  if (punkt) return historiaPunktu(punkt, params);
   if (TRYB_POKAZOWY) return historiaPokazowa(params);
   const response = await fetch(adresApi(`/api/history?${historyQuery(params)}`), {
     ...OPCJE_API,

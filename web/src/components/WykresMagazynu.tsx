@@ -89,6 +89,7 @@ const GODZINA_MS = 3600 * 1000;
  * wartością startową i stąd `domyslny`.
  */
 const ZAKRESY: Array<{ id: string; etykieta: string; godzin: number; domyslny?: boolean }> = [
+  { id: '1h', etykieta: 'godzina', godzin: 1 },
   { id: '6h', etykieta: '6 godzin', godzin: 6 },
   { id: '24h', etykieta: 'doba', godzin: 24, domyslny: true },
   { id: '7d', etykieta: 'tydzień', godzin: 24 * 7 },
@@ -138,6 +139,11 @@ function ticksY(min: number, max: number, ile = 6): number[] {
   const surowy = span / ile;
   const rzad = 10 ** Math.floor(Math.log10(surowy));
   const krok = [1, 2, 2.5, 5, 10].map((m) => m * rzad).find((s) => span / s <= ile) ?? rzad * 10;
+  // Zabezpieczenie przed pętlą bez końca: przy zerowym albo nieliczbowym kroku
+  // \`v += krok\` nigdy nie przekroczy granicy i przeglądarka zamarza. Dziś nie
+  // powinno się zdarzyć (zakres dostaje minimalny oddech wyżej), ale koszt tej
+  // linijki jest żaden, a koszt zawieszonej karty duży.
+  if (!Number.isFinite(krok) || krok <= 0) return [min];
   const start = Math.ceil(min / krok) * krok;
   const out: number[] = [];
   for (let v = start; v <= max + 1e-9; v += krok) out.push(Number(v.toFixed(6)));

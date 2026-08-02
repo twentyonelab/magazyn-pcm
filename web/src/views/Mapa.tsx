@@ -141,8 +141,6 @@ function trescDymka(
           : '') +
         '</div>';
 
-  if (punkt.stan !== 'live') return zdjecie + naglowek + ladunek;
-
   return (
     zdjecie +
     naglowek +
@@ -153,8 +151,13 @@ function trescDymka(
 
 interface Props {
   data: LiveData;
-  /** Wejście do widoku Magazyn po kliknięciu stanowiska. */
-  onOtworzMagazyn: () => void;
+  /**
+   * Wejście do widoku Magazyn po drugim kliknięciu w znacznik.
+   *
+   * Punkt idzie w argumencie, bo otwierać można KAŻDY: stanowisko badawcze
+   * pokaże prawdziwe pomiary, punkt pokazowy — dane z modelu.
+   */
+  onOtworzMagazyn: (punkt: Lokalizacja) => void;
 }
 
 export function Mapa({ data, onOtworzMagazyn }: Props) {
@@ -385,24 +388,24 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
           return;
         }
 
-        // Drugi klik. Magazyn ma tylko stanowisko badawcze; punkt pokazowy
-        // zostaje przybliżony i na tym koniec.
-        if (live) otworzRef.current();
+        // Drugi klik otwiera magazyn — także pokazowy. Stanowisko badawcze
+        // pokaże prawdziwe pomiary, punkt pokazowy dane z modelu; jedno i
+        // drugie w barwie swojego nośnika.
+        otworzRef.current(punkt);
       };
 
       el.addEventListener('click', kliknij);
 
-      if (live) {
-        el.setAttribute('role', 'button');
-        el.tabIndex = 0;
-        el.setAttribute('aria-label', `${punkt.nazwa} — przybliż, drugim klikiem otwórz magazyn`);
-        el.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            kliknij();
-          }
-        });
-      }
+      // Każdy znacznik jest teraz przyciskiem — także pokazowy.
+      el.setAttribute('role', 'button');
+      el.tabIndex = 0;
+      el.setAttribute('aria-label', `${punkt.nazwa} — przybliż, drugim klikiem otwórz magazyn`);
+      el.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          kliknij();
+        }
+      });
 
       // Dymek pokazuje się po najechaniu — także na punktach pokazowych, bo to
       // on mówi wprost, że nie stoi za nimi żadna instalacja.

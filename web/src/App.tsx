@@ -5,7 +5,7 @@
  * i logo u góry, kluczowe parametry na dole. Środek należy do danych.
  */
 
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useLiveData } from './useLiveData.js';
 import { Diagnostyka } from './views/Diagnostyka.js';
 import { Magazyn } from './views/Magazyn.js';
@@ -15,8 +15,12 @@ import { Bilans } from './views/Bilans.js';
 import { Ustawienia } from './views/Ustawienia.js';
 import { useSettings } from './settings.js';
 import { useAppliedTheme } from './theme.js';
+import { useWysokosciBelek } from './uklad.js';
 import { WERSJA } from './wersja.js';
 import { TRYB_POKAZOWY } from './demo/stale.js';
+import { ustawAktywnyPunkt } from './demo/aktywnyPunkt.js';
+import { useDanePunktu } from './demo/useDanePunktu.js';
+import { STANOWISKO, type Lokalizacja } from './map/lokalizacje.js';
 import { BladWidoku } from './components/BladWidoku.js';
 import { PlakietkaPokazowa } from './components/PlakietkaPokazowa.js';
 import { Logowanie } from './components/Logowanie.js';
@@ -118,12 +122,50 @@ export function App() {
   const [view, setView] = useState<ViewId>('mapa');
   /** Sondy przekazane z widoku Magazyn do Przebiegów (klik w sondę). */
   const [przebiegiIds, setPrzebiegiIds] = useState<string[]>([]);
-  const data = useLiveData();
+  /**
+   * Oglądany punkt z mapy. `null` = stanowisko badawcze i prawdziwe pomiary.
+   *
+   * Wejście w punkt pokazowy podmienia całe źródło danych i barwę interfejsu,
+   * ale NIE rusza strumienia z serwera — powrót ma być natychmiastowy.
+   */
+  const [punkt, setPunkt] = useState<Lokalizacja | null>(null);
+
+  const zywe = useLiveData();
+  const data = useDanePunktu(zywe, punkt);
   const settings = useSettings();
   const theme = useAppliedTheme();
 
+  /**
+   * Barwa całego interfejsu idzie za NOŚNIKIEM oglądanego magazynu:
+   * parafina 57HC — pomarańcz, materiał 8HC — lodowy błękit.
+   *
+   * Źródłem jest materiał sesji (stanowisko) albo rodzaj punktu (mapa), nigdy
+   * sam widok — inaczej ten sam magazyn miałby inny kolor w Magazynie
+   * i w Przebiegach.
+   */
+  const kierunek = punkt
+    ? punkt.typ
+    : (data.session?.material ?? data.materials?.defaultMaterial) === 'RT8HC'
+      ? 'chlod'
+      : 'cieplo';
+
+  useEffect(() => {
+    document.documentElement.dataset.kierunek = kierunek;
+  }, [kierunek]);
+
+  // Warstwa API czyta wybrany punkt poza Reactem — patrz demo/aktywnyPunkt.ts.
+  useEffect(() => {
+    ustawAktywnyPunkt(punkt);
+  }, [punkt]);
+
   // Paczka 3D ląduje w pamięci przeglądarki jeszcze przed kliknięciem.
   usePobierzWczesniej3D(settings.widok3d);
+
+  // Widok przewija się pod belkami, więc musi znać ich wysokość.
+  const ramaRef = useRef<HTMLDivElement>(null);
+  const gornaRef = useRef<HTMLElement>(null);
+  const dolnaRef = useRef<HTMLElement>(null);
+  useWysokosciBelek(ramaRef, gornaRef, dolnaRef);
 
   const openInPrzebiegi = (pointId: string): void => {
     setPrzebiegiIds([pointId]);
@@ -141,8 +183,8 @@ export function App() {
   const activeView = views.some((item) => item.id === view) ? view : 'magazyn';
 
   return (
-    <div className="app">
-      <header className="topbar">
+    <div className="app" ref={ramaRef}>
+      <header className="topbar" ref={gornaRef}>
         <div className="brand">
           <span className="brand__nazwa">
             <span className="brand__mark">Magazyn PCM</span>
@@ -215,7 +257,13 @@ export function App() {
         <BladWidoku resetKey={activeView}>
           {activeView === 'mapa' ? (
             <Suspense fallback={<div className="note">Wczytuję mapę…</div>}>
-              <Mapa data={data} onOtworzMagazyn={() => setView('magazyn')} />
+              <Mapa
+                data={data}
+                onOtworzMagazyn={(wybrany) => {
+                  setPunkt(wybrany.stan === 'live' ? null : wybrany);
+                  setView('magazyn');
+                }}
+              />
             </Suspense>
           ) : null}
           {activeView === 'magazyn' ? (
@@ -237,6 +285,23 @@ export function App() {
         </BladWidoku>
       </main>
 
+      {/* Pasek oglądanego punktu pokazowego. Wisi nisko przy lewej krawędzi,
+          poza drogą schematu, i jest JEDYNYM wyjściem z powrotem na stanowisko
+          — nawigacja u góry przełącza widoki, nie źródło danych. */}
+      {punkt ? (
+        <div className="punkt-pasek">
+          <span className={`punkt-pasek__kropka is-${punkt.typ}`} aria-hidden="true" />
+          <span className="punkt-pasek__nazwa">{punkt.nazwa}</span>
+          <span className="punkt-pasek__opis">
+            punkt pokazowy · {punkt.typ === 'chlod' ? 'magazyn chłodu' : 'magazyn ciepła'} · dane
+            wyliczone
+          </span>
+          <button type="button" className="punkt-pasek__wroc" onClick={() => setPunkt(null)}>
+            wróć na stanowisko
+          </button>
+        </div>
+      ) : null}
+
       {/* 21 zmysłów — prawy dolny róg, nad stopką (v0.6). */}
       <img
         className="logo-21"
@@ -246,7 +311,7 @@ export function App() {
         alt="21 zmysłów"
       />
 
-      <PasekStanu data={data} />
+      <PasekStanu data={data} ref={dolnaRef} />
     </div>
   );
 }

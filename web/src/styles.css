@@ -43,6 +43,29 @@
   --chlod-jasny: #85b7eb;
   --chlod-tlo: #e6f1fb;
 
+  /* ---------------------------------------------------------------------
+     AKCENT — barwa NOŚNIKA, którym pracuje oglądany magazyn.
+     ---------------------------------------------------------------------
+     `--cieplo` i `--chlod` znaczą to, co mówią: ciepło jest pomarańczowe,
+     chłód lodowy, zawsze. Akcent jest czymś innym — to barwa TEGO magazynu,
+     na który właśnie patrzymy. Dla parafiny 57HC jest pomarańczowa, dla 8HC
+     lodowa, i przestawia ją jeden atrybut na korzeniu dokumentu.
+
+     Dzięki rozdzieleniu tych dwóch rzeczy niebieski magazyn chłodu nie psuje
+     kodu barwnego zasilania i powrotu: tam nadal ciepła nitka jest ciepła,
+     a chłodna chłodna — tylko która jest którą, zależy od nośnika (niżej).
+
+     Interfejs używa WYŁĄCZNIE `--akcent`. Bezpośrednie `var(--cieplo)`
+     zostaje tylko tam, gdzie naprawdę chodzi o ciepło jako zjawisko. */
+  --akcent: var(--cieplo);
+  --akcent-jasny: var(--akcent-jasny);
+  --akcent-tlo: var(--cieplo-tlo);
+
+  /* Zasilanie niesie nośnik, powrót wraca zużyty. W magazynie ciepła
+     zasilanie jest gorące, w magazynie chłodu — zimne. */
+  --zasilanie: var(--cieplo);
+  --powrot: var(--chlod);
+
   /* Metal schematu: od v0.4 rury i płaszcz to rastry PNG, więc z palety
      metalu została jedna zmienna — kolor odgałęzień do manometrów. */
   --tube-1: #adada7;
@@ -159,14 +182,44 @@ code {
 /* Trzy pasy: nagłówek, treść, pasek stanu. Środkowy pas dostaje `minmax(0,
    1fr)`, bo samo `1fr` nie pozwoliłoby mu zejść poniżej rozmiaru zawartości —
    i wysoka treść wypchnęłaby pasek stanu za dolną krawędź ekranu. */
+/* Rama okna. Widok zajmuje WSZYSTKIE TRZY WIERSZE siatki, a belki leżą na
+   nim — dzięki temu treść przewija się pod nimi i ich miękkie wygaszanie ma
+   nad czym pracować.
+
+   Wcześniej każdy z trzech elementów miał własny wiersz i nigdzie się nie
+   stykały: gradient wygaszał się w puste tło, a granica i tak była widoczna,
+   bo to tam zaczynała się treść. Wygładzanie krawędzi nie pomoże, dopóki nie
+   ma czego wygładzać.
+
+   Wysokości belek trafiają do --pas-gora i --pas-dol z pomiaru (uklad.ts) —
+   wpisane na stałe rozjechałyby się przy zawinięciu nagłówka. */
 .app {
   height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* JEDNA kolumna, wprost. Bez tego automatyczne rozmieszczanie wypycha widok
+     — dzielacy wiersz 1 z naglowkiem — do drugiej kolumny i uklad rozpada sie
+     na dwie pionowe polowy. */
+  grid-template-columns: minmax(0, 1fr);
+  --pas-gora: 90px;
+  --pas-dol: 36px;
+}
+
+.topbar {
+  grid-row: 1;
+  grid-column: 1;
+  z-index: 6;
 }
 
 .main {
+  grid-row: 1 / -1;
+  grid-column: 1;
   min-height: 0;
+}
+
+.statusbar {
+  grid-row: 3;
+  grid-column: 1;
 }
 
 /* Górna belka — ta sama zasada co przy dolnej, tylko gradient w drugą stronę.
@@ -536,7 +589,12 @@ code {
 /* --- Naglowek strony ------------------------------------------------------ */
 
 .main {
-  padding: clamp(0.5rem, 2vw, 1.5rem) clamp(1rem, 4vw, 3rem) clamp(0.5rem, 2vw, 1.5rem);
+  /* Górne i dolne odsunięcie to wysokość belki plus zwykły oddech: treść ma
+     zaczynać się POD paskiem, ale przewijać się dalej pod niego. */
+  padding:
+    calc(var(--pas-gora) + clamp(0.5rem, 2vw, 1.5rem))
+    clamp(1rem, 4vw, 3rem)
+    calc(var(--pas-dol) + clamp(0.5rem, 2vw, 1.5rem));
   max-width: 1400px;
   margin: 0 auto;
   /* Bez `min-width: 0` element puchnie pod szerokość dziecka. Przy schemacie
@@ -554,10 +612,32 @@ code {
 /* Rama dla widoków obrazowych: do samych krawędzi ekranu, bez marginesów
    i bez ograniczenia szerokości. Obraz sam pilnuje swoich proporcji, więc nie
    ma tu czego przewijać. */
+/* Widoki obrazowe idą PEŁNĄ WYSOKOŚCIĄ, także pod belki: mapa i schemat są
+   wtedy podkładem, na którym pływa interfejs — i to na nich widać szkło.
+   Wnętrze (schemat, scena) odsuwa się od pasków samo, przez własne pole. */
 .main--obraz {
   max-width: none;
   padding: 0;
   overflow: hidden;
+}
+
+/* Rysunek i scena trzymają się z dala od belek, żeby nie chować się pod nimi.
+   Mapa zostaje pełnowymiarowa — jej treścią jest teren, a nie krawędzie. */
+.main--obraz .canvas__scroll,
+.main--obraz .scena3d {
+  padding-top: var(--pas-gora);
+  padding-bottom: var(--pas-dol);
+}
+
+/* Podpisy i logo Mapboxa muszą zostać widoczne — licencja tego wymaga,
+   a stopka pływa teraz nad dolną krawędzią mapy. */
+.main--obraz .mapboxgl-ctrl-bottom-right,
+.main--obraz .mapboxgl-ctrl-bottom-left {
+  bottom: var(--pas-dol);
+}
+
+.main--obraz .mapboxgl-ctrl-top-right {
+  top: var(--pas-gora);
 }
 
 .page-head {
@@ -1594,11 +1674,11 @@ code {
 }
 
 .schema .tube__flow--supply {
-  stroke: var(--cieplo);
+  stroke: var(--zasilanie);
 }
 
 .schema .tube__flow--return {
-  stroke: var(--chlod);
+  stroke: var(--powrot);
 }
 
 .schema .tube__flow.is-flowing {
@@ -1618,6 +1698,18 @@ code {
     /* Dokładnie jeden okres wzoru kreskowania (3 + 14), inaczej pętla skacze. */
     stroke-dashoffset: -17;
   }
+}
+
+/* Magazyn chłodu: cały interfejs przechodzi w lodowy błękit, a kierunek
+   nitek się odwraca — zasilanie jest tu zimne, powrót cieplejszy. Atrybut
+   ustawia App na korzeniu dokumentu, na podstawie materiału sesji albo
+   rodzaju oglądanego punktu na mapie. */
+:root[data-kierunek='chlod'] {
+  --akcent: var(--chlod);
+  --akcent-jasny: var(--chlod-jasny);
+  --akcent-tlo: var(--chlod-tlo);
+  --zasilanie: var(--chlod);
+  --powrot: var(--cieplo);
 }
 
 /* --- Tryb ciemny dla wektorów projektanta ----------------------------------
@@ -1983,10 +2075,10 @@ code {
   opacity: 0.8;
 }
 
-/* Punkt pokazowy pokazuje dymek, ale nie udaje, że da się w niego wejść.
+/* Wejść da się w każdy punkt, więc kursor mówi to samo wszędzie.
    Mapbox ustawia własny kursor na znaczniku, stąd `!important`. */
 .pinezka.is-demo {
-  cursor: default !important;
+  cursor: pointer !important;
 }
 
 /* Pulsowanie znaczy „dane płyną" — ten sam sygnał co na pasku stanu
@@ -2739,7 +2831,7 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--cieplo) 20%, transparent), transparent 70%),
+    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--akcent) 20%, transparent), transparent 70%),
     radial-gradient(50% 60% at 94% 92%, color-mix(in srgb, var(--ladunek-jasny) 30%, transparent), transparent 70%),
     radial-gradient(70% 55% at 50% -5%, color-mix(in srgb, #f2ddc4 55%, transparent), transparent 75%);
   animation: poswiata 9s ease-in-out infinite alternate;
@@ -2763,7 +2855,7 @@ body::after {
 /* Nocą blask przygasa — ma grzać, nie świecić po oczach. */
 :root[data-theme='dark'] body::after {
   background:
-    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--cieplo) 12%, transparent), transparent 70%),
+    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--akcent) 12%, transparent), transparent 70%),
     radial-gradient(50% 60% at 94% 92%, color-mix(in srgb, var(--ladunek) 10%, transparent), transparent 70%);
 }
 
@@ -2889,10 +2981,10 @@ body::after {
   gap: .32em;
   margin-left: .6em;
   padding: .12em .5em .16em;
-  border: 1px solid color-mix(in srgb, var(--cieplo) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--akcent) 45%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--cieplo) 12%, transparent);
-  color: var(--cieplo);
+  background: color-mix(in srgb, var(--akcent) 12%, transparent);
+  color: var(--akcent);
   font-family: inherit;
   font-size: .92em;
   letter-spacing: .01em;
@@ -2993,7 +3085,7 @@ body::after {
 
 /* Rozwarstwienie: pasmo min–max wycofane, średnia wyraźna. */
 .przeglad__rozrzut {
-  fill: color-mix(in srgb, var(--cieplo) 22%, transparent);
+  fill: color-mix(in srgb, var(--akcent) 22%, transparent);
   stroke: none;
 }
 
@@ -3015,7 +3107,7 @@ body::after {
    jest wycofanym tłem; bez krawędzi nie da się odczytać, gdzie dokładnie
    leży próg. */
 .chart__band-edge {
-  stroke: var(--cieplo);
+  stroke: var(--akcent);
   stroke-width: 1;
   stroke-dasharray: 5 4;
   opacity: .55;
@@ -3073,5 +3165,75 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .pinezka.is-demo .pinezka__podpis {
     transition: none;
+  }
+}
+
+/* --- Pasek oglądanego punktu pokazowego -----------------------------------
+   Wisi nad stopką przy lewej krawędzi. Jest jedynym wyjściem z powrotem na
+   stanowisko: nawigacja u góry przełącza WIDOKI, nie źródło danych, i gdyby
+   powrót siedział tam, mieszałby dwie różne rzeczy. */
+
+.punkt-pasek {
+  position: fixed;
+  left: clamp(1rem, 3vw, 2rem);
+  bottom: calc(var(--pas-dol, 36px) + 10px);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  border: 0.5px solid color-mix(in srgb, #ffffff 55%, transparent);
+  box-shadow: 0 8px 24px rgba(15, 15, 15, 0.1);
+  font-size: 0.78rem;
+}
+
+.punkt-pasek__kropka {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.punkt-pasek__kropka.is-cieplo {
+  background: var(--cieplo);
+}
+
+.punkt-pasek__kropka.is-chlod {
+  background: var(--chlod);
+}
+
+.punkt-pasek__nazwa {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.punkt-pasek__opis {
+  color: var(--ink-soft);
+}
+
+.punkt-pasek__wroc {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.punkt-pasek__wroc:hover {
+  background: var(--akcent);
+}
+
+@media (max-width: 720px) {
+  /* Na wąskim ekranie zostaje nazwa i wyjście — opis jest wtedy dopowiedzeniem,
+     bez którego pasek nadal mówi wszystko, co trzeba. */
+  .punkt-pasek__opis {
+    display: none;
   }
 }
