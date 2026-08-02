@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { HistoryAvailable, PublicPoint, SessionEvent } from '@magazyn-pcm/shared';
 import { fetchHistory, fetchSessions, historyCsvUrl, type HistoryParams } from '../api.js';
 import { SERIES_COLORS, Wykres, type ChartSeries } from '../components/Wykres.js';
+import { WykresMagazynu } from '../components/WykresMagazynu.js';
 import type { LiveData } from '../useLiveData.js';
 import { GROUP_LABEL, NO_DATA } from '../format.js';
 import { useSettings } from '../settings.js';
@@ -199,8 +200,20 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
     });
   }, [state, byId]);
 
+  // Profil materialu biezacej sesji — z niego biora sie granice przemiany.
+  const profil = data.materials
+    ? data.materials.profiles[data.session?.material ?? data.materials.defaultMaterial]
+    : null;
+
   return (
     <div className="stack">
+      {/*
+        Przeglad doby stoi PRZED formularzem: odpowiada na pytanie zadawane
+        najczesciej („co sie dzialo od wczoraj") i nie wymaga zadnego wyboru.
+        Formularz nizej sluzy juz do pracy z konkretnym zakresem.
+      */}
+      <WykresMagazynu profil={profil} />
+
       {/* ------------------------- Formularz ------------------------- */}
       <section className="card">
         <div className="card__head">

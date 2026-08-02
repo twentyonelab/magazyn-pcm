@@ -16,7 +16,9 @@ import { Ustawienia } from './views/Ustawienia.js';
 import { useSettings } from './settings.js';
 import { useAppliedTheme } from './theme.js';
 import { WERSJA } from './wersja.js';
+import { TRYB_POKAZOWY } from './demo/stale.js';
 import { BladWidoku } from './components/BladWidoku.js';
+import { PlakietkaPokazowa } from './components/PlakietkaPokazowa.js';
 import { Logowanie } from './components/Logowanie.js';
 import { PasekStanu } from './components/PasekStanu.js';
 import { PrzelacznikMotywu } from './components/PrzelacznikMotywu.js';
@@ -148,7 +150,10 @@ export function App() {
           </span>
           {/* Wersja pod nazwą — mała, bo to metryczka, nie tytuł. Numer siedzi
               w `wersja.ts`, żeby był jeden dla całej aplikacji. */}
-          <span className="brand__wersja mono">{WERSJA}</span>
+          <span className="brand__wersja mono">
+            {WERSJA}
+            {TRYB_POKAZOWY ? <PlakietkaPokazowa /> : null}
+          </span>
         </div>
 
         {/* Pastylka menu jest wyśrodkowana wobec całego ekranu, a nie wobec

@@ -31,6 +31,8 @@ import type {
 } from '@magazyn-pcm/shared';
 import { OPCJE_API, adresApi } from './adres-api.js';
 import { WymaganeLogowanie, fetchMaterials, fetchPoints, fetchSnapshot } from './api.js';
+import { TRYB_POKAZOWY } from './demo/stale.js';
+import { MATERIALY_POKAZOWE, PUNKTY_POKAZOWE, migawkaPokazowa } from './demo/zrodlo.js';
 
 /** Stan lacznosci PRZEGLADARKA -> SERWER (nie serwer -> Miniserver). */
 export type LinkState = 'connecting' | 'live' | 'reconnecting' | 'error' | 'unauthorized';
@@ -81,6 +83,35 @@ export function useLiveData(): LiveData {
 
   useEffect(() => {
     aliveRef.current = true;
+
+    // --- Tryb pokazowy --------------------------------------------------
+    // Wychodzimy tu przed całą maszynerią strumienia: nie ma serwera, więc
+    // nie ma czego ponawiać ani czego pilnować czujce ciszy. Zwykły zegar
+    // przelicza model co dwie sekundy, tyle samo co realny cykl odpytywania.
+    if (TRYB_POKAZOWY) {
+      const start = Date.now();
+      setPoints(PUNKTY_POKAZOWE);
+      setMaterials(MATERIALY_POKAZOWE);
+
+      const tyknij = (): void => {
+        if (!aliveRef.current) return;
+        const migawka = migawkaPokazowa(start);
+        setValues(migawka.values);
+        setHealth(migawka.health);
+        setSession(null);
+        setLink('live');
+        setLastMessageAt(new Date());
+        setError(null);
+      };
+
+      tyknij();
+      const zegar = window.setInterval(tyknij, 2000);
+      return () => {
+        aliveRef.current = false;
+        window.clearInterval(zegar);
+      };
+    }
+
     let retryTimer: number | undefined;
     let attempt = 0;
 

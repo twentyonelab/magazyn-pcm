@@ -1129,7 +1129,7 @@ code {
 
 .parafina__option.is-active {
   background: var(--ink);
-  color: #f7f7f5;
+  color: var(--surface);
 }
 
 .parafina__option:disabled {
@@ -1416,7 +1416,7 @@ code {
   font-size: 0.72rem;
   font-weight: 600;
   background: var(--ink);
-  color: #f7f7f5;
+  color: var(--surface);
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
 }
@@ -1472,7 +1472,7 @@ code {
   z-index: 3;
   min-width: 240px;
   background: var(--ink);
-  color: #f7f7f5;
+  color: var(--surface);
   border-radius: var(--radius);
   padding: 0.9rem 1rem;
   box-shadow: 0 20px 40px rgba(13, 31, 20, 0.25);
@@ -2250,9 +2250,14 @@ code {
   border-color: var(--ink-faint);
 }
 
+/* Zaznaczony chip to odwrócenie kolorów: tło bierze kolor tuszu, więc tekst
+   MUSI brać kolor tła. Wpisany na sztywno jasny #f7f7f5 działał tylko w dzień
+   — nocą `--ink` robi się kremowy i napis znikał na niemal identycznym tle
+   (biały na białym). `--surface` odwraca się razem z motywem i jest poprawne
+   w obu. */
 .chip.is-active {
   background: var(--ink);
-  color: #f7f7f5;
+  color: var(--surface);
   border-color: var(--ink);
 }
 
@@ -2388,7 +2393,7 @@ code {
   top: 0.5rem;
   transform: translateX(-50%);
   background: var(--ink);
-  color: #f7f7f5;
+  color: var(--surface);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.75rem;
   pointer-events: none;
@@ -2766,4 +2771,179 @@ body::after {
   font-size: 0.7rem;
   color: var(--ink-faint);
   white-space: nowrap;
+}
+
+/* --- Plakietka trybu pokazowego -------------------------------------------
+   Siedzi przy nazwie aplikacji, nie w rogu: to etykieta CAŁEGO ekranu, nie
+   powiadomienie do zamknięcia. Pomarańcz ostrzegawczy, ale bez krzyku —
+   ma być zauważona, nie ma przykrywać danych. */
+
+.plakietka-pokaz {
+  display: inline-flex;
+  align-items: center;
+  gap: .32em;
+  margin-left: .6em;
+  padding: .12em .5em .16em;
+  border: 1px solid color-mix(in srgb, var(--cieplo) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cieplo) 12%, transparent);
+  color: var(--cieplo);
+  font-family: inherit;
+  font-size: .92em;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.plakietka-pokaz__kropka {
+  width: .42em;
+  height: .42em;
+  border-radius: 50%;
+  background: currentColor;
+  animation: plakietka-puls 2.4s ease-in-out infinite;
+}
+
+@keyframes plakietka-puls {
+  50% { opacity: .3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plakietka-pokaz__kropka { animation: none; }
+}
+
+/* --- Przegląd doby: duży wykres magazynu ----------------------------------
+   Karta wychodzi poza czytelną kolumnę, bo doba danych czyta się wzdłuż —
+   zwężenie jej do szerokości tabeli zjadłoby rozdzielczość czasową. */
+
+.card--szeroka {
+  max-width: none;
+}
+
+.chart--pelna .chart__svg {
+  width: 100%;
+  height: auto;
+}
+
+.przeglad__sterowanie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 6px;
+}
+
+/* Przełącznik formy — jedna pastylka z trzema polami, bo to wybór
+   JEDNEJ z trzech odpowiedzi na te same dane, nie trzy niezależne opcje. */
+.segment {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.segment__item {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .92rem;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.segment__item:hover {
+  color: var(--ink);
+}
+
+.segment__item.is-active {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.przeglad__sondy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Zgaszona sonda: znacznik zostaje jako pusty obrys w kolorze serii, żeby
+   dało się ją znaleźć wzrokiem także wtedy, gdy nic nie rysuje. */
+.chip--seria .chart__swatch {
+  border: 2px solid transparent;
+}
+
+.chip--seria:not(.is-active) {
+  opacity: .55;
+}
+
+.przeglad__opis {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: .88rem;
+}
+
+/* Rozwarstwienie: pasmo min–max wycofane, średnia wyraźna. */
+.przeglad__rozrzut {
+  fill: color-mix(in srgb, var(--cieplo) 22%, transparent);
+  stroke: none;
+}
+
+.przeglad__srednia {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+/* Cienka kreska między wierszami mapy — inaczej sąsiednie sondy zlewają się
+   w jedną plamę i nie widać, gdzie kończy się poziom. */
+.przeglad__mapa-kreska {
+  stroke: var(--surface);
+  stroke-width: 1;
+  opacity: .7;
+}
+
+/* Krawędzie pasma przemiany — ostre linie solidusa i likwidusa. Samo pasmo
+   jest wycofanym tłem; bez krawędzi nie da się odczytać, gdzie dokładnie
+   leży próg. */
+.chart__band-edge {
+  stroke: var(--cieplo);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+  opacity: .55;
+}
+
+.przeglad__skala {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: .84rem;
+  color: var(--ink-soft);
+}
+
+.przeglad__skala-pasek {
+  display: flex;
+  width: min(320px, 45vw);
+  height: 12px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.przeglad__skala-pasek i {
+  flex: 1;
+}
+
+.przeglad__skala-opis {
+  margin-left: 4px;
+}
+
+.przeglad__wniosek {
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: .9rem;
 }

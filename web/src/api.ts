@@ -8,6 +8,13 @@
  */
 
 import { OPCJE_API, adresApi } from './adres-api.js';
+import { TRYB_POKAZOWY } from './demo/stale.js';
+import {
+  MATERIALY_POKAZOWE,
+  PUNKTY_POKAZOWE,
+  historiaPokazowa,
+  migawkaPokazowa,
+} from './demo/zrodlo.js';
 import type {
   AddEventBody,
   ConfigResponse,
@@ -41,6 +48,8 @@ export interface AuthState {
 }
 
 export function fetchAuthState(): Promise<AuthState> {
+  // Pokaz nie ma czego chronic — brama logowania w ogole sie nie pojawia.
+  if (TRYB_POKAZOWY) return Promise.resolve({ required: false, loggedIn: true });
   return getJson<AuthState>('/api/auth');
 }
 
@@ -92,15 +101,18 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 export function fetchPoints(): Promise<PublicPoint[]> {
+  if (TRYB_POKAZOWY) return Promise.resolve(PUNKTY_POKAZOWE);
   return getJson<PublicPoint[]>('/api/points');
 }
 
 export function fetchSnapshot(): Promise<Snapshot> {
+  if (TRYB_POKAZOWY) return Promise.resolve(migawkaPokazowa(Date.now()));
   return getJson<Snapshot>('/api/snapshot');
 }
 
 /** Profile materiałów, zakresy skal i objętości zbiorników — konfiguracja. */
 export function fetchMaterials(): Promise<MaterialsResponse> {
+  if (TRYB_POKAZOWY) return Promise.resolve(MATERIALY_POKAZOWE);
   return getJson<MaterialsResponse>('/api/materials');
 }
 
@@ -126,6 +138,7 @@ function historyQuery(params: HistoryParams): string {
  * wersji aplikacji.
  */
 export async function fetchHistory(params: HistoryParams): Promise<HistoryResponse> {
+  if (TRYB_POKAZOWY) return historiaPokazowa(params);
   const response = await fetch(adresApi(`/api/history?${historyQuery(params)}`), {
     ...OPCJE_API,
     headers: { Accept: 'application/json' },
@@ -174,10 +187,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 }
 
 export function fetchCurrentSession(): Promise<SessionRecord | null> {
+  if (TRYB_POKAZOWY) return Promise.resolve(null);
   return getJson<SessionRecord | null>('/api/session');
 }
 
 export function fetchSessions(): Promise<SessionRecord[]> {
+  if (TRYB_POKAZOWY) return Promise.resolve([]);
   return getJson<SessionRecord[]>('/api/sessions');
 }
 

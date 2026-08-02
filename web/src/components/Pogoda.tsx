@@ -14,6 +14,8 @@
 import { useEffect, useState } from 'react';
 import type { WeatherReading } from '@magazyn-pcm/shared';
 import { OPCJE_API, adresApi } from '../adres-api.js';
+import { TRYB_POKAZOWY } from '../demo/stale.js';
+import { pogodaPokazowa } from '../demo/zrodlo.js';
 import { NO_DATA } from '../format.js';
 import { ikonaNieba } from './IkonyPogody.js';
 
@@ -48,6 +50,15 @@ export function Pogoda() {
     };
 
     const pobierz = async (): Promise<void> => {
+      // W trybie pokazowym pogoda idzie z tego samego modelu co reszta —
+      // inaczej kafelek zostawałby pusty i psuł całość.
+      if (TRYB_POKAZOWY) {
+        setDane(pogodaPokazowa());
+        setNieudane(false);
+        zaplanuj(ODSWIEZANIE_MS);
+        return;
+      }
+
       try {
         const res = await fetch(adresApi('/api/weather'), {
           ...OPCJE_API,
