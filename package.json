@@ -22,7 +22,8 @@
     "przerwy": "npm run przerwy --workspace=server",
     "haslo": "npm run haslo --workspace=server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "build:pages": "npm run build --workspace @magazyn-pcm/web -- --mode pages --base /magazyn-pcm/"
   },
   "devDependencies": {
     "concurrently": "^10.0.4"
