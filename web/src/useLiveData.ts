@@ -29,6 +29,7 @@ import type {
   PublicPoint,
   Session,
 } from '@magazyn-pcm/shared';
+import { OPCJE_API, adresApi } from './adres-api.js';
 import { WymaganeLogowanie, fetchMaterials, fetchPoints, fetchSnapshot } from './api.js';
 
 /** Stan lacznosci PRZEGLADARKA -> SERWER (nie serwer -> Miniserver). */
@@ -141,7 +142,8 @@ export function useLiveData(): LiveData {
     };
 
     const consumeStream = async (signal: AbortSignal): Promise<void> => {
-      const response = await fetch('/api/stream', {
+      const response = await fetch(adresApi('/api/stream'), {
+        ...OPCJE_API,
         headers: { Accept: 'text/event-stream' },
         signal,
       });

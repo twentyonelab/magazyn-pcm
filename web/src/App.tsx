@@ -88,6 +88,19 @@ type ViewId =
  */
 const OBRAZOWE = new Set<ViewId>(['mapa', 'magazyn', 'magazyn3d']);
 
+/**
+ * Adres pliku z katalogu `web/public`.
+ *
+ * Zapis „/logo.webp" wystarczał, dopóki aplikacja stała zawsze w korzeniu
+ * adresu. Na GitHub Pages leży w podkatalogu (`/magazyn-pcm/`), a ukośnik
+ * na początku znaczy „od korzenia domeny" — logotypy szukałyby się wtedy
+ * piętro za wysoko i nie wczytały. `BASE_URL` podstawia Vite przy budowaniu
+ * i zawsze kończy się ukośnikiem.
+ */
+function plik(nazwa: string): string {
+  return `${import.meta.env.BASE_URL}${nazwa}`;
+}
+
 const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
   { id: 'mapa', label: 'Mapa' },
   { id: 'magazyn', label: 'Magazyn' },
@@ -177,7 +190,7 @@ export function App() {
         <div className="topbar__right">
           {/* Logo klienta w prawym górnym rogu (v0.6). Żyje na białej
               pastylce, bo jego kolory potrzebują białego tła w obu motywach. */}
-          <img className="topbar__logo--tauron" src="/tauron-cieplo.png" alt="Tauron Ciepło" />
+          <img className="topbar__logo--tauron" src={plik('tauron-cieplo.png')} alt="Tauron Ciepło" />
         </div>
       </header>
 
@@ -222,7 +235,9 @@ export function App() {
       {/* 21 zmysłów — prawy dolny róg, nad stopką (v0.6). */}
       <img
         className="logo-21"
-        src={theme === 'dark' ? '/logo-21zmyslow-ciemnytryb.webp' : '/logo-21zmyslow-jasnytryb.webp'}
+        src={plik(
+          theme === 'dark' ? 'logo-21zmyslow-ciemnytryb.webp' : 'logo-21zmyslow-jasnytryb.webp',
+        )}
         alt="21 zmysłów"
       />
 

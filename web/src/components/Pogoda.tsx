@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import type { WeatherReading } from '@magazyn-pcm/shared';
+import { OPCJE_API, adresApi } from '../adres-api.js';
 import { NO_DATA } from '../format.js';
 import { ikonaNieba } from './IkonyPogody.js';
 
@@ -48,7 +49,10 @@ export function Pogoda() {
 
     const pobierz = async (): Promise<void> => {
       try {
-        const res = await fetch('/api/weather', { signal: kontroler.signal });
+        const res = await fetch(adresApi('/api/weather'), {
+          ...OPCJE_API,
+          signal: kontroler.signal,
+        });
         if (!res.ok) throw new Error(String(res.status));
         const dto = (await res.json()) as WeatherReading | null;
         if (porzucone) return;

@@ -1,8 +1,13 @@
 /**
  * Warstwa dostepu do danych. Frontend zna wylacznie /api/* — nigdy nie
  * dowiaduje sie, ze Loxone istnieje.
+ *
+ * Sciezki sa wzgledne i takie zostaja w calym pliku; jedynie tuz przed
+ * wywolaniem `fetch` przechodza przez `adresApi`, ktory dokleja adres
+ * serwera, gdy strona stoi gdzie indziej niz on (patrz adres-api.ts).
  */
 
+import { OPCJE_API, adresApi } from './adres-api.js';
 import type {
   AddEventBody,
   ConfigResponse,
@@ -40,7 +45,8 @@ export function fetchAuthState(): Promise<AuthState> {
 }
 
 export async function login(password: string): Promise<void> {
-  const response = await fetch('/api/login', {
+  const response = await fetch(adresApi('/api/login'), {
+    ...OPCJE_API,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password }),
@@ -53,14 +59,14 @@ export async function login(password: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch('/api/logout', { method: 'POST' });
+  await fetch(adresApi('/api/logout'), { ...OPCJE_API, method: 'POST' });
 }
 
 async function getJson<T>(path: string): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(path, { headers: { Accept: 'application/json' } });
+    response = await fetch(adresApi(path), { ...OPCJE_API, headers: { Accept: 'application/json' } });
   } catch (error) {
     // Sieciowy blad fetch znaczy w praktyce jedno: serwera nie ma.
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
@@ -120,7 +126,8 @@ function historyQuery(params: HistoryParams): string {
  * wersji aplikacji.
  */
 export async function fetchHistory(params: HistoryParams): Promise<HistoryResponse> {
-  const response = await fetch(`/api/history?${historyQuery(params)}`, {
+  const response = await fetch(adresApi(`/api/history?${historyQuery(params)}`), {
+    ...OPCJE_API,
     headers: { Accept: 'application/json' },
   });
 
@@ -137,7 +144,7 @@ export async function fetchHistory(params: HistoryParams): Promise<HistoryRespon
 
 /** Adres eksportu CSV — do pobrania przez zwykly link. */
 export function historyCsvUrl(params: HistoryParams): string {
-  return `/api/history.csv?${historyQuery(params)}`;
+  return adresApi(`/api/history.csv?${historyQuery(params)}`);
 }
 
 export function fetchConfig(): Promise<ConfigResponse> {
@@ -149,7 +156,8 @@ export function fetchConfig(): Promise<ConfigResponse> {
 // ---------------------------------------------------------------------------
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(adresApi(path), {
+    ...OPCJE_API,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),

@@ -8,6 +8,17 @@ import react from '@vitejs/plugin-react';
  */
 export default defineConfig({
   /**
+   * Podkatalog, w ktorym stoi aplikacja.
+   *
+   * Domyslnie korzen — tak jest przy pracy lokalnej i przy wdrozeniu, gdzie
+   * serwer sam podaje zbudowany frontend. GitHub Pages serwuje projekt
+   * z podkatalogu o nazwie repozytorium, wiec tam budujemy z
+   * `VITE_BASE=/magazyn-pcm/`. Bez tego przegladarka szukalaby paczek
+   * w korzeniu domeny i strona zostalaby biala.
+   */
+  base: process.env.VITE_BASE ?? '/',
+
+  /**
    * Zmienne srodowiskowe czytamy z KORZENIA repozytorium, nie z web/.
    * Caly projekt ma jeden plik .env (i jeden .gitignore go pilnujacy) —
    * drugi, osobny plik dla frontendu byloby latwo przeoczyc przy wdrozeniu.
