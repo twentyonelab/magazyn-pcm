@@ -20,7 +20,16 @@ import type { Kierunek } from '../soc.js';
 
 export interface Lokalizacja {
   id: string;
-  /** Nazwa miasta — podpis na mapie. */
+  /**
+   * Nazwa INSTALACJI — to ona jest podpisem przy znaczniku.
+   *
+   * Osobne pole od miasta, bo podpis „Katowice" przy znaczniku czytał się
+   * jak etykieta miasta postawiona przez Mapboxa, a nie jak nazwa obiektu.
+   * Miasto zostaje w `miasto` i pokazuje się w karcie po najechaniu, gdzie
+   * mówi o położeniu, zamiast udawać nazwę magazynu.
+   */
+  nazwa: string;
+  /** Miasto — informacja o położeniu, pokazywana w karcie. */
   miasto: string;
   /** Pełny opis w karcie po najechaniu. */
   opis: string;
@@ -43,6 +52,7 @@ export interface Lokalizacja {
 /** Stanowisko badawcze — jedyny punkt z prawdziwymi danymi. */
 export const STANOWISKO: Lokalizacja = {
   id: 'gliwice-kaszubska',
+  nazwa: 'Magazyn Politechnika',
   miasto: 'Gliwice',
   opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26',
   lon: 18.6804,
@@ -54,37 +64,43 @@ export const STANOWISKO: Lokalizacja = {
 };
 
 /**
- * Punkty pokazowe: miasto, rodzaj magazynu i poziom naładowania.
- * Trzynaście magazynów ciepła i siedem chłodu — proporcja pokazowa, dobrana
- * tak, żeby oba rodzaje były na mapie widoczne, a ciepło pozostało wiodące.
+ * Punkty pokazowe: nazwa instalacji, miasto, rodzaj magazynu i poziom
+ * naładowania.
+ *
+ * WSZYSTKIE są magazynami CIEPŁA. Wcześniej siedem punktów miało rodzaj
+ * „chłód" i lodowy błękit, żeby na mapie było widać oba kody barwne — ale
+ * stanowisko badawcze pracuje na cieple i dwubarwna mapa sugerowała sieć,
+ * której nie ma. Obsługa chłodu zostaje w kodzie (`Kierunek`, paleta,
+ * kolory-magazynu.ts) i wróci na mapę, gdy stanie zbiornik 8HC.
  */
 const DEMO: ReadonlyArray<{
+  nazwa: string;
   miasto: string;
   lon: number;
   lat: number;
   typ: Kierunek;
   poziom: number;
 }> = [
-  { miasto: 'Katowice', lon: 19.0232, lat: 50.2585, typ: 'cieplo', poziom: 0.82 },
-  { miasto: 'Zabrze', lon: 18.7854, lat: 50.3084, typ: 'cieplo', poziom: 0.34 },
-  { miasto: 'Bytom', lon: 18.922, lat: 50.3469, typ: 'chlod', poziom: 0.71 },
-  { miasto: 'Sosnowiec', lon: 19.1302, lat: 50.2761, typ: 'cieplo', poziom: 0.58 },
-  { miasto: 'Rybnik', lon: 18.5424, lat: 50.0959, typ: 'chlod', poziom: 0.19 },
-  { miasto: 'Tychy', lon: 18.9865, lat: 50.1131, typ: 'cieplo', poziom: 0.95 },
-  { miasto: 'Chorzów', lon: 18.9536, lat: 50.2974, typ: 'cieplo', poziom: 0.12 },
-  { miasto: 'Dąbrowa Górnicza', lon: 19.2081, lat: 50.3309, typ: 'chlod', poziom: 0.88 },
-  { miasto: 'Jastrzębie-Zdrój', lon: 18.5971, lat: 49.9502, typ: 'cieplo', poziom: 0.47 },
-  { miasto: 'Ruda Śląska', lon: 18.8745, lat: 50.2859, typ: 'cieplo', poziom: 0.66 },
-  { miasto: 'Częstochowa', lon: 19.1182, lat: 50.8119, typ: 'chlod', poziom: 0.41 },
-  { miasto: 'Bielsko-Biała', lon: 19.0468, lat: 49.8232, typ: 'cieplo', poziom: 0.73 },
-  { miasto: 'Tarnowskie Góry', lon: 18.8548, lat: 50.4444, typ: 'cieplo', poziom: 0.26 },
-  { miasto: 'Racibórz', lon: 18.2182, lat: 50.0917, typ: 'chlod', poziom: 0.55 },
-  { miasto: 'Cieszyn', lon: 18.6337, lat: 49.7486, typ: 'cieplo', poziom: 0.9 },
-  { miasto: 'Żywiec', lon: 19.2012, lat: 49.6886, typ: 'chlod', poziom: 0.63 },
-  { miasto: 'Mysłowice', lon: 19.1386, lat: 50.2423, typ: 'cieplo', poziom: 0.38 },
-  { miasto: 'Siemianowice Śląskie', lon: 19.032, lat: 50.3024, typ: 'cieplo', poziom: 0.51 },
-  { miasto: 'Piekary Śląskie', lon: 18.9449, lat: 50.3844, typ: 'chlod', poziom: 0.29 },
-  { miasto: 'Wodzisław Śląski', lon: 18.4658, lat: 50.0026, typ: 'cieplo', poziom: 0.77 },
+  { nazwa: 'Magazyn Koszutka', miasto: 'Katowice', lon: 19.0232, lat: 50.2585, typ: 'cieplo', poziom: 0.82 },
+  { nazwa: 'Magazyn Zaborze', miasto: 'Zabrze', lon: 18.7854, lat: 50.3084, typ: 'cieplo', poziom: 0.34 },
+  { nazwa: 'Magazyn Miechowice', miasto: 'Bytom', lon: 18.922, lat: 50.3469, typ: 'cieplo', poziom: 0.71 },
+  { nazwa: 'Magazyn Zagórze', miasto: 'Sosnowiec', lon: 19.1302, lat: 50.2761, typ: 'cieplo', poziom: 0.58 },
+  { nazwa: 'Magazyn Boguszowice', miasto: 'Rybnik', lon: 18.5424, lat: 50.0959, typ: 'cieplo', poziom: 0.19 },
+  { nazwa: 'Magazyn Paprocany', miasto: 'Tychy', lon: 18.9865, lat: 50.1131, typ: 'cieplo', poziom: 0.95 },
+  { nazwa: 'Magazyn Batory', miasto: 'Chorzów', lon: 18.9536, lat: 50.2974, typ: 'cieplo', poziom: 0.12 },
+  { nazwa: 'Magazyn Gołonóg', miasto: 'Dąbrowa Górnicza', lon: 19.2081, lat: 50.3309, typ: 'cieplo', poziom: 0.88 },
+  { nazwa: 'Magazyn Zdrój', miasto: 'Jastrzębie-Zdrój', lon: 18.5971, lat: 49.9502, typ: 'cieplo', poziom: 0.47 },
+  { nazwa: 'Magazyn Halemba', miasto: 'Ruda Śląska', lon: 18.8745, lat: 50.2859, typ: 'cieplo', poziom: 0.66 },
+  { nazwa: 'Magazyn Raków', miasto: 'Częstochowa', lon: 19.1182, lat: 50.8119, typ: 'cieplo', poziom: 0.41 },
+  { nazwa: 'Magazyn Wapienica', miasto: 'Bielsko-Biała', lon: 19.0468, lat: 49.8232, typ: 'cieplo', poziom: 0.73 },
+  { nazwa: 'Magazyn Repty', miasto: 'Tarnowskie Góry', lon: 18.8548, lat: 50.4444, typ: 'cieplo', poziom: 0.26 },
+  { nazwa: 'Magazyn Ostróg', miasto: 'Racibórz', lon: 18.2182, lat: 50.0917, typ: 'cieplo', poziom: 0.55 },
+  { nazwa: 'Magazyn Bobrek', miasto: 'Cieszyn', lon: 18.6337, lat: 49.7486, typ: 'cieplo', poziom: 0.9 },
+  { nazwa: 'Magazyn Sporysz', miasto: 'Żywiec', lon: 19.2012, lat: 49.6886, typ: 'cieplo', poziom: 0.63 },
+  { nazwa: 'Magazyn Brzezinka', miasto: 'Mysłowice', lon: 19.1386, lat: 50.2423, typ: 'cieplo', poziom: 0.38 },
+  { nazwa: 'Magazyn Michałkowice', miasto: 'Siemianowice Śląskie', lon: 19.032, lat: 50.3024, typ: 'cieplo', poziom: 0.51 },
+  { nazwa: 'Magazyn Szarlej', miasto: 'Piekary Śląskie', lon: 18.9449, lat: 50.3844, typ: 'cieplo', poziom: 0.29 },
+  { nazwa: 'Magazyn Wilchwy', miasto: 'Wodzisław Śląski', lon: 18.4658, lat: 50.0026, typ: 'cieplo', poziom: 0.77 },
 ];
 
 /**
@@ -122,6 +138,7 @@ export const LOKALIZACJE: ReadonlyArray<Lokalizacja> = [
   STANOWISKO,
   ...DEMO.map((d) => ({
     id: `demo-${d.miasto.toLowerCase().replace(/[^a-z]+/g, '-')}`,
+    nazwa: d.nazwa,
     miasto: d.miasto,
     opis:
       d.typ === 'chlod'

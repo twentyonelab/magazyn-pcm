@@ -169,12 +169,31 @@ code {
   min-height: 0;
 }
 
+/* Górna belka — ta sama zasada co przy dolnej, tylko gradient w drugą stronę.
+   Sam pasek zostaje przezroczysty; roztapia się warstwa pod spodem. */
 .topbar {
   position: relative;
   display: flex;
   align-items: center;
   gap: 1.5rem;
   padding: 1.1rem clamp(1rem, 4vw, 3rem);
+}
+
+.topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -34px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--surface) 62%, transparent) 40%,
+    transparent
+  );
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 42%, transparent);
+  mask-image: linear-gradient(to bottom, #000 42%, transparent);
 }
 
 /* Menu wyśrodkowane wobec EKRANU, nie wobec resztki miejsca po logo.
@@ -260,6 +279,14 @@ code {
    DOLNY PASEK STANU
    ========================================================================= */
 
+/* Dolna belka. Tło i rozmycie NIE siedzą na samej belce, tylko na warstwie
+   pod nią (`::before`) — dzięki temu da się je wygasić gradientem, nie
+   ruszając czytelności napisów. Maska na elemencie z tekstem zjadłaby razem
+   z tłem także litery.
+
+   Wcześniej belka miała pełne tło i kreskę `border-top`: odcinała się od
+   reszty ekranu ostrą linią i czytała jak przyklejony pasek, a nie jak część
+   tej samej powierzchni. */
 .statusbar {
   position: sticky;
   bottom: 0;
@@ -269,9 +296,28 @@ code {
   gap: 0.35rem 1.4rem;
   flex-wrap: wrap;
   padding: 0.55rem clamp(1rem, 4vw, 3rem);
-  background: var(--surface);
-  border-top: 1px solid var(--hairline);
-  box-shadow: 0 -6px 20px rgba(15, 15, 15, 0.05);
+  background: transparent;
+  border: 0;
+}
+
+.statusbar::before {
+  content: '';
+  position: absolute;
+  /* W górę wychodzi poza belkę: tam właśnie dzieje się roztapianie. */
+  inset: -34px 0 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--surface) 66%, transparent) 40%,
+    transparent
+  );
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  /* Maska wygasza także ROZMYCIE, nie tylko barwę — bez niej krawędź
+     rozmycia rysowałaby się jako wyraźna pozioma kreska. */
+  -webkit-mask-image: linear-gradient(to top, #000 42%, transparent);
+  mask-image: linear-gradient(to top, #000 42%, transparent);
 }
 
 .statusbar__pulse {
@@ -1591,6 +1637,13 @@ code {
    .st1 kreska grafitowa, .st2 ikony urządzeń, .st3/.st6 rury, .st4 odnośniki,
    .st14 rozjaśniacz krawędzi. */
 
+/* Tarcze manometrów (.st6) też są białymi kołami — bez tego świeciły nocą
+   jak dwie lampki nad rurą. Obrys zostaje przy zmiennej --rura razem z rurami,
+   bo manometr jest czescią tej samej nitki. */
+:root[data-theme='dark'] .schema .st6 {
+  fill: #1e1e19 !important;
+}
+
 /* Karty urządzeń: białe płaty → ciemna powierzchnia.
    .st7 to ten sam płat co .st5, tylko grubiej obrysowany (zaworek po lewej). */
 :root[data-theme='dark'] .schema .st5,
@@ -1868,47 +1921,41 @@ code {
   margin: 0;
 }
 
-/* --- Znaczniki na mapie: pionowe zbiorniki ------------------------------- */
+/* --- Znaczniki na mapie: koła z obrysem ---------------------------------- */
 
-/* Znacznik to zbiornik o proporcjach 2:1, wypełniony od dołu do poziomu
-   naładowania. Obrys i podpis w kolorze rodzaju magazynu — pomarańcz dla
-   ciepła, lodowy błękit dla chłodu (jedno źródło: kolory-magazynu.ts). */
+/* Znacznik to KOŁO z obrysem, wypełnione od dołu do poziomu naładowania.
+   Podpis wisi pod kołem, bezpośrednio na mapie.
+
+   Poprzednia wersja miała każdy znacznik w białej karcie. Przy dwudziestu
+   jeden punktach mapa zamieniała się w planszę kafelków i przestawało być
+   widać teren, po który się na nią patrzy. Koło zajmuje tyle, ile musi.
+
+   Czytelność podpisu bez podkładu bierze się z obrysu tekstu (`paint-order`
+   + gruba biała kreska pod literami), a nie z prostokąta pod nim. */
 .pinezka {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
   white-space: nowrap;
   font: inherit;
 }
 
-/* Karta znacznika (v0.3) — ten sam podkład co karty urządzeń na schemacie.
-   Zbiornik i podpis są jej zawartością, nie luźnymi elementami na mapie. */
-.pinezka__karta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  background: var(--surface);
-  border: 0.5px solid var(--hairline);
-  border-radius: 14px;
-  padding: 0.45rem 0.6rem 0.35rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.pinezka__zbiornik {
+.pinezka__kolo {
   position: relative;
-  width: 22px;
-  height: 44px;
-  border: 2px solid;
-  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid;
+  border-radius: 50%;
   overflow: hidden;
-  /* Wnętrze pustego zbiornika: papier aplikacji, nie przezroczystość — inaczej
-     mapa pod spodem przebijałaby przez skalę wypełnienia. */
+  /* Wnętrze pustego koła: papier aplikacji, nie przezroczystość — inaczej
+     mapa pod spodem przebijałaby przez skalę wypełnienia i poziom
+     naładowania przestałby być czytelny. */
   background: var(--surface);
-  box-shadow: 0 3px 8px rgba(13, 31, 20, 0.3);
+  box-shadow: 0 2px 6px rgba(13, 31, 20, 0.28);
 }
 
-/* Wypełnienie rośnie od DNA zbiornika, jak ciecz. */
+/* Wypełnienie rośnie od DNA, jak ciecz w naczyniu. */
 .pinezka__wypelnienie {
   position: absolute;
   left: 0;
@@ -1917,12 +1964,12 @@ code {
   transition: height 600ms ease;
 }
 
-/* Stanowisko badawcze — większy zbiornik i grubszy obrys, bo to jedyny punkt
-   z prawdziwymi danymi. Proporcja 2:1 zachowana. */
-.pinezka.is-live .pinezka__zbiornik {
-  width: 28px;
-  height: 56px;
-  border-width: 3px;
+/* Stanowisko badawcze — większe koło i grubszy obrys, bo to jedyny punkt
+   z prawdziwymi danymi. */
+.pinezka.is-live .pinezka__kolo {
+  width: 36px;
+  height: 36px;
+  border-width: 3.5px;
 }
 
 .pinezka.is-live {
@@ -1930,10 +1977,10 @@ code {
   z-index: 2;
 }
 
-/* Punkty pokazowe: mniejsze i przygaszone. Mają być tłem dla tego jednego,
+/* Punkty pokazowe: przygaszone. Mają być tłem dla tego jednego,
    nie konkurencją dla niego. */
-.pinezka.is-demo .pinezka__karta {
-  opacity: 0.78;
+.pinezka.is-demo .pinezka__kolo {
+  opacity: 0.8;
 }
 
 /* Punkt pokazowy pokazuje dymek, ale nie udaje, że da się w niego wejść.
@@ -1944,49 +1991,69 @@ code {
 
 /* Pulsowanie znaczy „dane płyną" — ten sam sygnał co na pasku stanu
    i przy zegarze. Jeden język: zamarły znacznik = obraz stanął. */
-.pinezka.is-plynie .pinezka__karta {
+.pinezka.is-plynie .pinezka__kolo {
   animation: zbiornikPuls 1.9s ease-out infinite;
 }
 
 @keyframes zbiornikPuls {
   0% {
     box-shadow:
-      0 3px 8px rgba(13, 31, 20, 0.3),
+      0 2px 6px rgba(13, 31, 20, 0.28),
       0 0 0 0 color-mix(in srgb, var(--ok-ink) 55%, transparent);
   }
   70% {
     box-shadow:
-      0 3px 8px rgba(13, 31, 20, 0.3),
-      0 0 0 12px color-mix(in srgb, var(--ok-ink) 0%, transparent);
+      0 2px 6px rgba(13, 31, 20, 0.28),
+      0 0 0 14px color-mix(in srgb, var(--ok-ink) 0%, transparent);
   }
   100% {
     box-shadow:
-      0 3px 8px rgba(13, 31, 20, 0.3),
+      0 2px 6px rgba(13, 31, 20, 0.28),
       0 0 0 0 color-mix(in srgb, var(--ok-ink) 0%, transparent);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pinezka.is-plynie .pinezka__karta {
+  .pinezka.is-plynie .pinezka__kolo {
     animation: none;
   }
 }
 
-/* Podpis miasta — kolor ustawia kod, bo zależy od rodzaju magazynu.
-   Bez własnego tła: podkładem jest karta. */
+/* Podpis pod kołem. `position: absolute` wyjmuje go z układu, dzięki czemu
+   Mapbox zaczepia znacznik na ŚRODKU KOŁA — inaczej środkiem całości byłby
+   punkt gdzieś między kołem a napisem i pinezka wskazywałaby obok miejsca.
+
+   Obrys liter zamiast podkładu: `paint-order: stroke` każe przeglądarce
+   narysować najpierw grubą jasną kreskę, a dopiero na niej literę. Napis
+   czyta się i na jasnym polu, i na ciemnym zdjęciu terenu, a mapa zostaje
+   widoczna dookoła. */
 .pinezka__podpis {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 0.72rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px var(--surface);
+  pointer-events: none;
 }
 
 .pinezka.is-demo .pinezka__podpis {
   font-weight: 500;
+  opacity: 0.9;
 }
 
 .pinezka.is-live .pinezka__podpis {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
+  -webkit-text-stroke-width: 3.5px;
 }
+
+/* Nocą obrys liter musi być CIEMNY, nie jasny: na nocnej mapie jasna otoczka
+   rozświetlałaby każdy podpis w plamę. `--surface` odwraca się razem
+   z motywem, więc wystarczy, że nie wpisujemy koloru na sztywno. */
 
 /* --- Dymki --------------------------------------------------------------- */
 
@@ -2020,6 +2087,16 @@ code {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+/* Miasto — położenie instalacji. Zeszło tu z podpisu przy znaczniku, gdzie
+   dublowało etykietę miasta rysowaną przez Mapboxa. */
+.dymek__miejsce {
+  margin: 0.05rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
 }
 
 .dymek__opis {
@@ -2705,18 +2782,35 @@ body::after {
    kolejnością z wcześniejszymi definicjami tła tych elementów. */
 
 .nav,
-.statusbar,
 .belka,
 .belka__panel,
 .pogoda,
 .tool,
 .theme-toggle,
 .demo-przeplyw__przycisk,
-.probe-panel {
-  background: color-mix(in srgb, var(--surface) 58%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
-  backdrop-filter: blur(18px) saturate(1.35);
-  border: 0.5px solid color-mix(in srgb, #ffffff 60%, transparent);
+.probe-panel,
+.mapboxgl-popup-content {
+  /* Papieru MNIEJ niż rozmycia: przy 58% tafla była właściwie nieprzezroczysta
+     i rozmycie nie miało czego pokazać. 42% przepuszcza rysunek pod spodem
+     na tyle, żeby widać było, że coś tam jest — i że jest nieostre. */
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  backdrop-filter: blur(26px) saturate(1.6);
+  border: 0.5px solid color-mix(in srgb, #ffffff 65%, transparent);
+  /* Szlif tafli: jasna smuga tuż pod górną krawędzią, w środku elementu.
+     To ona sprawia, że płat czyta się jak szkło, a nie jak półprzezroczysty
+     prostokąt. */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent),
+    0 8px 28px rgba(15, 15, 15, 0.07);
+}
+
+/* Rozmycie działa tylko wtedy, gdy pod spodem COŚ JEST. Kafelek pogody, panele
+   sond i narzędzia leżą nad schematem — żeby na pewno miały co rozmywać,
+   scena schematu musi być pod nimi w tym samym kontekście składania. */
+.canvas__stage {
+  position: relative;
+  z-index: 0;
 }
 
 /* Rozwinięcie belki dziedziczy taflę, ale bez górnej krawędzi — ma się
@@ -2727,40 +2821,51 @@ body::after {
 
 /* Nocą szkło jest ciemną taflą: mniej papieru, delikatniejsza krawędź. */
 :root[data-theme='dark'] .nav,
-:root[data-theme='dark'] .statusbar,
 :root[data-theme='dark'] .belka,
 :root[data-theme='dark'] .belka__panel,
 :root[data-theme='dark'] .pogoda,
 :root[data-theme='dark'] .tool,
 :root[data-theme='dark'] .theme-toggle,
 :root[data-theme='dark'] .demo-przeplyw__przycisk,
-:root[data-theme='dark'] .probe-panel {
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+:root[data-theme='dark'] .probe-panel,
+:root[data-theme='dark'] .mapboxgl-popup-content {
+  background: color-mix(in srgb, var(--surface) 52%, transparent);
   border-color: color-mix(in srgb, #ffffff 10%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent),
+    0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
 /* =========================================================================
    LOGOTYPY I COPYRIGHT (v0.6)
    ========================================================================= */
 
-/* Tauron Ciepło w prawym górnym rogu. Logo żyje na białej pastylce, bo jego
-   szare litery i magenta potrzebują białego tła — także w trybie nocnym. */
+/* Tauron Ciepło w prawym górnym rogu — WPROST NA TLE, bez pastylki.
+   Biały prostokąt pod logo był obcym elementem w interfejsie, w którym nic
+   innego nie ma ramki. Tło aplikacji jest jasnokremowe, więc szare litery
+   i magenta czytają się na nim bez podkładu.
+
+   Nocą tło robi się ciemne i wtedy podkład jest potrzebny — ale zamiast
+   pastylki wystarczy rozjaśnić samo logo (filtr niżej). */
 .topbar__logo--tauron {
-  height: 40px;
+  height: 54px;
   width: auto;
   display: block;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 4px 10px;
-  box-shadow: var(--shadow-sm);
 }
 
-/* 21 zmysłów — prawy dolny róg, tuż nad stopką. */
+:root[data-theme='dark'] .topbar__logo--tauron {
+  /* Odwrócenie z korektą barwy: magenta zostaje magentą, a szare litery
+     robią się jasne. Prostsze i lżejsze niż druga wersja pliku. */
+  filter: invert(1) hue-rotate(180deg) brightness(1.15);
+}
+
+/* 21 zmysłów — prawy dolny róg, tuż nad stopką. Powiększone o połowę
+   względem v0.6 (26 → 39 px). */
 .logo-21 {
   position: fixed;
   right: clamp(1rem, 3vw, 2rem);
   bottom: 46px;
-  height: 26px;
+  height: 39px;
   width: auto;
   z-index: 4;
   opacity: 0.92;
@@ -2946,4 +3051,27 @@ body::after {
   margin: 12px 0 0;
   color: var(--ink-soft);
   font-size: .9rem;
+}
+
+/* Podpisy punktów pokazowych pojawiają się dopiero po przybliżeniu (klasę
+   `mapa--z-podpisami` ustawia Mapa.tsx na podstawie zoomu) albo po najechaniu.
+   Nazwy instalacji są dłuższe niż nazwy miast i na widoku całego Śląska
+   dwadzieścia takich podpisów zlewało się w plamę tekstu.
+
+   Stanowisko badawcze jest podpisane zawsze — to jedyny punkt, po który się
+   na tę mapę przychodzi. */
+.pinezka.is-demo .pinezka__podpis {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.mapa--z-podpisami .pinezka.is-demo .pinezka__podpis,
+.pinezka.is-demo:hover .pinezka__podpis {
+  opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinezka.is-demo .pinezka__podpis {
+    transition: none;
+  }
 }

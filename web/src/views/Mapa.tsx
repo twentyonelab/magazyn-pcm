@@ -108,15 +108,17 @@ function trescDymka(
   procent: number | null,
 ): string {
   const zdjecie =
-    `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.miasto}" loading="lazy" ` +
+    `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.nazwa}" loading="lazy" ` +
     `src="${zdjecieLotnicze(punkt.lon, punkt.lat, 280, 110, punkt.stan === 'live' ? 17 : 14)}">`;
 
   const paleta = PALETA[punkt.typ];
 
-  // Nazwa miasta w kolorze rodzaju magazynu — ten sam kod barwny co pinezka
-  // i co reszta interfejsu.
+  // Nazwa instalacji w kolorze rodzaju magazynu — ten sam kod barwny co
+  // znacznik i co reszta interfejsu. Miasto schodzi do wiersza położenia:
+  // w karcie jest miejsce, żeby powiedzieć jedno i drugie.
   const naglowek =
-    `<p class="dymek__nazwa" style="color:${paleta.glowny}">${punkt.miasto}</p>` +
+    `<p class="dymek__nazwa" style="color:${paleta.glowny}">${punkt.nazwa}</p>` +
+    `<p class="dymek__miejsce">${punkt.miasto}</p>` +
     `<p class="dymek__opis">${punkt.opis}</p>`;
 
   // Poziom naładowania: dla stanowiska z prawdziwych sond, dla punktów
@@ -295,28 +297,47 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       if (odUzytkownika && map.getZoom() < ZOOM_BLISKO - 2) zblizony = null;
     });
 
+    /**
+     * Podpisy punktów pokazowych pojawiają się dopiero po przybliżeniu.
+     *
+     * Nazwy instalacji są dłuższe od nazw miast, a w konurbacji katowickiej
+     * dziesięć punktów leży w promieniu kilkunastu kilometrów — na widoku
+     * całego Śląska ich podpisy zachodziły na siebie i na etykiety miast,
+     * dając plamę tekstu zamiast informacji.
+     *
+     * Stanowisko badawcze jest podpisane ZAWSZE: to jedyny punkt, po który
+     * naprawdę się tu przychodzi, i musi być rozpoznawalny bez przybliżania.
+     * Punkt pokazowy nazwę pokaże też po najechaniu (reguła w arkuszu).
+     */
+    const PROG_PODPISOW = 9.4;
+    const odswiezPodpisy = (): void => {
+      hostRef.current?.classList.toggle('mapa--z-podpisami', map.getZoom() >= PROG_PODPISOW);
+    };
+    map.on('zoom', odswiezPodpisy);
+    odswiezPodpisy();
+
     for (const punkt of LOKALIZACJE) {
       const live = punkt.stan === 'live';
 
-      // Znacznik to PIONOWY ZBIORNIK o proporcjach 2:1, wypełniony od dołu
-      // do poziomu naładowania. Kropla wskazywała tylko miejsce; zbiornik
-      // pokazuje przy tym stan — a to jest właściwa treść tej mapy.
-      // Obrys w kolorze rodzaju magazynu: pomarańcz = ciepło, lodowy = chłód.
+      // Znacznik to KOŁO Z OBRYSEM, wypełnione od dołu do poziomu naładowania.
+      //
+      // Wcześniej stała tu biała karta z pionowym zbiornikiem w środku. Karta
+      // zabierała mapie miejsce i przy dwudziestu jeden punktach robiła z niej
+      // planszę kafelków — a mapa ma pokazywać teren. Koło zajmuje tyle, ile
+      // musi, obrys niesie kolor, a poziom cieczy zostaje.
       const paleta = PALETA[punkt.typ];
       const poziom =
         live ? (procentRef.current ?? 0) : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
       const el = document.createElement('div');
       el.className = `pinezka is-${punkt.stan} is-${punkt.typ}`;
-      // Karta jak przy urządzeniach na schemacie (v0.3): biały podkład,
-      // w środku zbiornik z poziomem i podpis miasta w kolorze rodzaju.
+      // Podpis to NAZWA INSTALACJI, nie miasto: etykiety miast rysuje już sam
+      // Mapbox i drugi taki napis obok pinezki czytał się jak jego powtórzenie.
       el.innerHTML =
-        '<span class="pinezka__karta">' +
-        `<span class="pinezka__zbiornik" aria-hidden="true" style="border-color:${paleta.glowny}">` +
+        `<span class="pinezka__kolo" aria-hidden="true" style="border-color:${paleta.glowny}">` +
         `<span class="pinezka__wypelnienie" style="height:${poziom}%;background:linear-gradient(180deg,${paleta.jasny},${paleta.glowny})"></span>` +
         '</span>' +
-        `<span class="pinezka__podpis" style="color:${paleta.glowny}">${punkt.miasto}</span>` +
-        '</span>';
+        `<span class="pinezka__podpis" style="color:${paleta.glowny}">${punkt.nazwa}</span>`;
 
       // Dymek. `offset` odsuwa go nad wierzchołek pinezki, żeby jej nie
       // zasłaniał; `closeButton` zbędny, bo dymek zamyka klik w mapę.
@@ -334,8 +355,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
 
       const marker = new mapboxgl.Marker({
         element: el,
-        // Wierzchołek kropli wskazuje współrzędną, więc zaczepiamy ją u dołu.
-        anchor: 'bottom',
+        // Koło wskazuje miejsce swoim ŚRODKIEM, a podpis wisi pod nim i jest
+        // wyłączony z układu (position: absolute), więc zaczepienie idzie na
+        // środek koła, nie na dół całego znacznika.
+        anchor: 'center',
         // Pinezka stoi pionowo niezależnie od pochylenia kamery — inaczej przy
         // pochyleniu 52 stopni położyłaby się na mapie i przestała być czytelna.
         pitchAlignment: 'viewport',
@@ -372,7 +395,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       if (live) {
         el.setAttribute('role', 'button');
         el.tabIndex = 0;
-        el.setAttribute('aria-label', `${punkt.miasto} — przybliż, drugim klikiem otwórz magazyn`);
+        el.setAttribute('aria-label', `${punkt.nazwa} — przybliż, drugim klikiem otwórz magazyn`);
         el.addEventListener('keydown', (event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();

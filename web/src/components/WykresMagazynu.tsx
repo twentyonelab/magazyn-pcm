@@ -28,6 +28,11 @@
  * PRÓG PRZEMIANY jest zaznaczony we wszystkich trzech formach, bo to jedyna
  * wielkość na tym wykresie, która ma sens fizyczny niezależny od odczytu.
  * Granice biorą się z profilu materiału (`/api/materials`), nigdy z kodu.
+ *
+ * ZAKRES CZASU przełącza się na miejscu, od godziny do miesiąca. Doba została
+ * wartością startową, bo to na nią patrzy się najczęściej, ale zamrożenie jej
+ * na sztywno zmuszało do schodzenia do formularza niżej za każdym razem, gdy
+ * ktoś chciał tylko zerknąć bliżej albo dalej.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -74,7 +79,23 @@ const FORMY: Array<{ id: Forma; etykieta: string; opis: string }> = [
   },
 ];
 
-const DOBA_MS = 24 * 3600 * 1000;
+const GODZINA_MS = 3600 * 1000;
+
+/**
+ * Zakresy do wyboru.
+ *
+ * Skok jest mniej więcej czterokrotny — przy gęstszej drabince sąsiednie
+ * zakresy wyglądałyby tak samo i przełącznik nic by nie dawał. Doba jest
+ * wartością startową i stąd `domyslny`.
+ */
+const ZAKRESY: Array<{ id: string; etykieta: string; godzin: number; domyslny?: boolean }> = [
+  { id: '6h', etykieta: '6 godzin', godzin: 6 },
+  { id: '24h', etykieta: 'doba', godzin: 24, domyslny: true },
+  { id: '7d', etykieta: 'tydzień', godzin: 24 * 7 },
+  { id: '30d', etykieta: 'miesiąc', godzin: 24 * 30 },
+];
+
+const ZAKRES_DOMYSLNY = ZAKRESY.find((z) => z.domyslny) ?? ZAKRESY[1]!;
 
 // Płótno jest szerokie i niskie: doba danych czyta się wzdłuż, nie w pionie.
 const W = 1400;
@@ -96,8 +117,19 @@ interface Props {
   profil: MaterialProfile | null;
 }
 
-function czas(ms: number): string {
-  return new Date(ms).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+/**
+ * Podpis chwili na osi.
+ *
+ * Przy zakresach dłuższych niż dwie doby sama godzina przestaje cokolwiek
+ * znaczyć — osiem podpisów „14:20" jeden za drugim nie mówi, o który dzień
+ * chodzi. Powyżej tej granicy pokazujemy datę.
+ */
+function czas(ms: number, zakresMs: number): string {
+  const d = new Date(ms);
+  if (zakresMs > 48 * 3600 * 1000) {
+    return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+  }
+  return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
 function ticksY(min: number, max: number, ile = 6): number[] {
@@ -141,17 +173,19 @@ function barwa(t: number, profil: MaterialProfile): string {
 
 export function WykresMagazynu({ profil }: Props) {
   const [stan, setStan] = useState<Stan>({ kind: 'loading' });
+  const [zakres, setZakres] = useState(ZAKRES_DOMYSLNY);
   const [forma, setForma] = useState<Forma>('linie');
   const [ukryte, setUkryte] = useState<Set<string>>(new Set());
   const [hoverX, setHoverX] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // Doba wstecz od wejścia w widok. Zakres zamrażamy w stanie, żeby wykres
-  // nie przesuwał się pod kursorem przy każdym renderze.
+  // Wybrany zakres wstecz od chwili pobrania. Granice zamrażamy w stanie,
+  // żeby wykres nie przesuwał się pod kursorem przy każdym renderze.
   useEffect(() => {
     let porzucone = false;
+    setStan({ kind: 'loading' });
     const doMs = Date.now();
-    const odMs = doMs - DOBA_MS;
+    const odMs = doMs - zakres.godzin * GODZINA_MS;
 
     fetchHistory({
       ids: [...SONDY_OD_GORY],
@@ -182,7 +216,7 @@ export function WykresMagazynu({ profil }: Props) {
     return () => {
       porzucone = true;
     };
-  }, []);
+  }, [zakres]);
 
   const widoczne = useMemo(
     () => SONDY_OD_GORY.filter((id) => !ukryte.has(id)),
@@ -405,14 +439,28 @@ export function WykresMagazynu({ profil }: Props) {
   return (
     <section className="card card--szeroka">
       <div className="card__head">
-        <h2 className="card__title">magazyn · ostatnia doba</h2>
+        <h2 className="card__title">magazyn · {zakres.etykieta}</h2>
         <p className="card__meta">
           {gotowe ? `sześć sond · rozdzielczość ${gotowe.rozdzielczosc}` : 'wszystkie sondy magazynu'}
         </p>
       </div>
 
-      {/* --- Sterowanie: forma prezentacji + włączanie sond --------------- */}
+      {/* --- Sterowanie: zakres, forma prezentacji, włączanie sond -------- */}
       <div className="przeglad__sterowanie">
+        <div className="segment" role="group" aria-label="Zakres czasu">
+          {ZAKRESY.map((z) => (
+            <button
+              key={z.id}
+              type="button"
+              className={`segment__item${zakres.id === z.id ? ' is-active' : ''}`}
+              onClick={() => setZakres(z)}
+              title={`Pokaż ostatnie: ${z.etykieta}`}
+            >
+              {z.etykieta}
+            </button>
+          ))}
+        </div>
+
         <div className="segment" role="group" aria-label="Forma wykresu">
           {FORMY.map((f) => (
             <button
@@ -523,7 +571,7 @@ export function WykresMagazynu({ profil }: Props) {
 
             {tickiX.map((t) => (
               <text key={t} x={xOf(t)} y={H - 12} className="chart__tick chart__tick--x">
-                {czas(t)}
+                {czas(t, zakresMs)}
               </text>
             ))}
 
@@ -598,7 +646,7 @@ export function WykresMagazynu({ profil }: Props) {
               style={{ left: `${(xOf(podpowiedz.ms) / W) * 100}%` }}
               role="status"
             >
-              <p className="chart__tooltip-time">{czas(podpowiedz.ms)}</p>
+              <p className="chart__tooltip-time">{czas(podpowiedz.ms, zakresMs)}</p>
               {podpowiedz.wiersze.map((w) => (
                 <p key={w.id} className="chart__tooltip-row">
                   <span className="chart__swatch" style={{ background: w.kolor }} />

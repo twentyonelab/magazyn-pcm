@@ -119,6 +119,16 @@ podmien(
       [data-element].is-selected .karta,
       .karta[data-element].is-selected { stroke: #d85a30; stroke-width: 3px; }
 
+      /* Odczyty cieplomierza wprost na rysunku. 11 px, bo miedzy karta
+         (konczy sie na y=124) a rura (y=156) sa tylko 32 px na dwie linijki. */
+      .odczyt-miernika__wartosc {
+        font-family: ArialMT, Arial;
+        font-size: 11px;
+        fill: #d85a30;
+      }
+      .odczyt-miernika__wartosc.is-no-data,
+      .odczyt-miernika__wartosc.is-not-connected { fill: #a3a3a0; }
+
       .device__led { fill: #a3a3a0; }
       .device.is-active .device__led { fill: #20a969; }
       .device.is-unknown .device__led { fill: #f0c674; }
@@ -215,11 +225,32 @@ podmien(
   '    <g id="heat-meter">',
   '    <g id="heat-meter" data-element="meter">',
 );
+// Cieplomierz pokazuje ODCZYTY WPROST NA SCHEMACIE — dwie linijki pod karta.
+//
+// Wczesniej trzeba bylo w niego kliknac, zeby zobaczyc cokolwiek poza napisem
+// „Wh". Temperatura i przeplyw sa jednak tym, co mowi, CZY INSTALACJA PRACUJE,
+// wiec musza byc widoczne bez klikania; reszta (moc, liczniki energii, ΔT)
+// zostaje w panelu.
+//
+// MIEJSCE JEST CIASNE i to ono narzuca uklad. Karta konczy sie na y=124.16,
+// a rura biegnie na y=156.36 — zostaja 32 px. Dwie linijki po 11 px z odstepem
+// 13 px mieszcza sie tam z zapasem okolo 2 px; przy 13 px, jak reszta opisow,
+// druga linijka wchodzilaby juz na rure. Stad mniejszy stopien pisma.
+//
+// Wartosci sa w kolorze ciepla, zeby odrozniac odczyt od podpisow rysunku:
+// czarne cyfry pod czarnym napisem „Ciepłomierz" czytalyby sie jak kolejna
+// etykieta, a nie jak zywa liczba.
 podmien(
   'karta cieplomierza',
   '<rect class="st5" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14"/>',
   '<rect class="st5 karta" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14"' +
-    ' data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>',
+    ' data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>\n' +
+    '          <g class="odczyt-miernika">\n' +
+    '            <text class="odczyt-miernika__wartosc" text-anchor="middle"' +
+    ' transform="translate(1192.52 139)" data-point="METER_T1" data-unit="°C">—</text>\n' +
+    '            <text class="odczyt-miernika__wartosc" text-anchor="middle"' +
+    ' transform="translate(1192.52 152)" data-point="METER_FLOW" data-unit="m³/h">—</text>\n' +
+    '          </g>',
 );
 
 podmien(

@@ -163,6 +163,16 @@
       [data-element].is-selected .karta,
       .karta[data-element].is-selected { stroke: #d85a30; stroke-width: 3px; }
 
+      /* Odczyty cieplomierza wprost na rysunku. 11 px, bo miedzy karta
+         (konczy sie na y=124) a rura (y=156) sa tylko 32 px na dwie linijki. */
+      .odczyt-miernika__wartosc {
+        font-family: ArialMT, Arial;
+        font-size: 11px;
+        fill: #d85a30;
+      }
+      .odczyt-miernika__wartosc.is-no-data,
+      .odczyt-miernika__wartosc.is-not-connected { fill: #a3a3a0; }
+
       .device__led { fill: #a3a3a0; }
       .device.is-active .device__led { fill: #20a969; }
       .device.is-unknown .device__led { fill: #f0c674; }
@@ -438,6 +448,10 @@
       </g>
       <line class="st4" x1="1192.52" y1="34.16" x2="1192.52" y2="59.16"/>
       <rect class="st5 karta" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14" data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>
+          <g class="odczyt-miernika">
+            <text class="odczyt-miernika__wartosc" text-anchor="middle" transform="translate(1192.52 139)" data-point="METER_T1" data-unit="°C">—</text>
+            <text class="odczyt-miernika__wartosc" text-anchor="middle" transform="translate(1192.52 152)" data-point="METER_FLOW" data-unit="m³/h">—</text>
+          </g>
       <rect class="st2" x="1175.52" y="79.16" width="34" height="23" rx="5" ry="5"/>
       <g class="st10">
         <g class="st10">
