@@ -58,8 +58,21 @@ export const STANOWISKO: Lokalizacja = {
   lon: 18.6804,
   lat: 50.2897,
   stan: 'live',
-  // Zbiornik z parafiną 57HC to magazyn ciepła. Gdy w stanowisku pojawi się
-  // zbiornik 8HC, typ trzeba tu przestawić na 'chlod'.
+  /*
+   * WARTOŚĆ ZAPASOWA, nie źródło prawdy.
+   *
+   * Stanowisko pracuje wymiennymi zbiornikami i rodzaj magazynu zmienia się
+   * razem ze zbiornikiem: parafina 57HC to ciepło, materiał 8HC to chłód.
+   * Stał tu kiedyś komentarz „gdy pojawi się 8HC, przestaw na chlod" —
+   * i 2026-08-03 faktycznie się pojawił, a znacznik na mapie dalej świecił
+   * pomarańczowo, bo nikt tej linijki nie ruszył. Ręczne pole, którego
+   * poprawność zależy od pamięci człowieka, jest błędem czekającym na okazję.
+   *
+   * Widok Mapa bierze więc rodzaj Z ROZPOZNANEGO MATERIAŁU, a nie stąd
+   * (patrz `kierunekStanowiska` w Mapa.tsx). Ta wartość działa tylko wtedy,
+   * gdy materiału jeszcze nie znamy — na przykład w pierwszej sekundzie po
+   * otwarciu aplikacji.
+   */
   typ: 'cieplo',
 };
 

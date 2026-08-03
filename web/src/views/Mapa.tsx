@@ -30,6 +30,7 @@ import {
 import type { LiveData } from '../useLiveData.js';
 import { useAppliedTheme } from '../theme.js';
 import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
+import type { Kierunek } from '../soc.js';
 import { PALETA } from '../kolory-magazynu.js';
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
@@ -106,12 +107,18 @@ function trescDymka(
   punkt: Lokalizacja,
   sredniaC: number | null,
   procent: number | null,
+  /**
+   * Rodzaj magazynu do pokolorowania karty. Dla stanowiska badawczego idzie
+   * z ROZPOZNANEGO MATERIAŁU, nie z pola `punkt.typ` — zbiorniki są wymienne
+   * i to materiał decyduje, czy to magazyn ciepła, czy chłodu.
+   */
+  kierunek: Kierunek,
 ): string {
   const zdjecie =
     `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.nazwa}" loading="lazy" ` +
     `src="${zdjecieLotnicze(punkt.lon, punkt.lat, 280, 110, punkt.stan === 'live' ? 17 : 14)}">`;
 
-  const paleta = PALETA[punkt.typ];
+  const paleta = PALETA[kierunek];
 
   // Nazwa instalacji w kolorze rodzaju magazynu — ten sam kod barwny co
   // znacznik i co reszta interfejsu. Miasto schodzi do wiersza położenia:
@@ -174,6 +181,12 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
    * sond przebudowywałby całą mapę — dlatego wartość wchodzi referencją.
    */
   const procentRef = useRef<number | null>(null);
+  /**
+   * Rodzaj magazynu na stanowisku, widziany przez kod budujący znaczniki.
+   * Referencją z tego samego powodu co naładowanie: gdyby efekt tworzący mapę
+   * zależał od tej wartości, przebudowywałby ją po rozpoznaniu materiału.
+   */
+  const kierunekRef = useRef<Kierunek>(STANOWISKO.typ);
 
   // Dane płyną? To decyduje, czy kropka stanowiska pulsuje.
   const zywe = data.link === 'live';
@@ -191,8 +204,14 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     ? (data.materials.profiles[materialAktywny ?? data.materials.defaultMaterial] ?? null)
     : null;
   const sredniaC = sredniaZSond(data.points, data.values);
-  const procent = naladowanieProcent(sredniaC, profile);
+  // Kierunek bierze się z MATERIAŁU, nie z rodzaju punktu na mapie: to materiał
+  // decyduje, czy „naładowany" znaczy gorący (57HC), czy zimny (8HC). Bez tego
+  // zbiornik chłodu o 24 °C — czyli pusty — pokazywał na mapie 100%.
+  const kierunekStanowiska: Kierunek =
+    (materialAktywny ?? data.materials?.defaultMaterial) === 'RT8HC' ? 'chlod' : 'cieplo';
+  const procent = naladowanieProcent(sredniaC, profile, kierunekStanowiska);
   procentRef.current = procent;
+  kierunekRef.current = kierunekStanowiska;
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
   otworzRef.current = onOtworzMagazyn;
@@ -328,7 +347,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       // zabierała mapie miejsce i przy dwudziestu jeden punktach robiła z niej
       // planszę kafelków — a mapa ma pokazywać teren. Koło zajmuje tyle, ile
       // musi, obrys niesie kolor, a poziom cieczy zostaje.
-      const paleta = PALETA[punkt.typ];
+      // Stanowisko badawcze bierze rodzaj z materiału, punkty pokazowe z pola:
+      // za nimi nie stoi żaden zbiornik, więc nie ma czego rozpoznawać.
+      const kierunekPunktu = live ? kierunekRef.current : punkt.typ;
+      const paleta = PALETA[kierunekPunktu];
       const poziom =
         live ? (procentRef.current ?? 0) : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
@@ -349,7 +371,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         closeButton: false,
         className: `dymek is-${punkt.stan}`,
         maxWidth: '280px',
-      }).setHTML(trescDymka(punkt, null, null));
+      }).setHTML(trescDymka(punkt, null, null, kierunekPunktu));
 
       if (live) {
         dymekLiveRef.current = dymek;
@@ -433,7 +455,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   // wypełnienia zbiornika. Podmieniamy tylko te dwie rzeczy, żeby nie
   // przebudowywać całej mapy przy każdym odczycie sond.
   useEffect(() => {
-    dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent));
+    dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska));
     if (wypelnienieLiveRef.current) {
       wypelnienieLiveRef.current.style.height = `${procent ?? 0}%`;
     }

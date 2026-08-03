@@ -94,14 +94,16 @@ function przesuniecieDoby(lok: Lokalizacja): number {
   let najlepsze = 0;
   let bladNajlepszego = Infinity;
 
-  // Zapisujemy przesunięcie ZANIM zaczniemy skanować: `temperaturaZPostepu`
-  // niżej jest czysta, ale gdyby ktoś kiedyś wpiął tu funkcję sięgającą po
-  // przesunięcie, powstałaby nieskończona rekurencja. Zero jest neutralne.
+  // Zapisujemy przesunięcie ZANIM zaczniemy skanować: funkcje niżej są czyste,
+  // ale gdyby ktoś kiedyś wpiął tu taką, która sięga po przesunięcie, powstałaby
+  // nieskończona rekurencja. Zero jest neutralne.
   przesuniecia.set(lok.id, 0);
 
   for (let i = 0; i < 288; i += 1) {
     const przesun = i * krok;
-    const t = temperaturaZPostepu(postepDoby(teraz + przesun), n);
+    // ŚREDNIA Z SOND, nie temperatura bazowa — belka liczy właśnie ze średniej,
+    // więc tylko tak przesunięcie trafia w zadany poziom.
+    const t = sredniaSondDlaCzasu(n, teraz + przesun);
     const odczyt = socZTemperatury(t, parametry, lok.typ);
     if (odczyt.soc === null) continue;
     const blad = Math.abs(odczyt.soc - poziom);
@@ -119,12 +121,21 @@ function nosnikPunktu(lok: Lokalizacja): ParametryNosnika {
   return NOSNIK[lok.typ];
 }
 
-/** Temperatura jednej sondy w punkcie pokazowym. */
-export function temperaturaSondyPunktu(lok: Lokalizacja, id: string, ms: number): number {
-  const n = nosnikPunktu(lok);
-  const przesun = przesuniecieDoby(lok);
-  const czas = ms + przesun;
+const SONDY = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'] as const;
 
+/**
+ * Temperatura jednej sondy dla czasu JUŻ PRZESUNIĘTEGO.
+ *
+ * Wydzielone z `temperaturaSondyPunktu`, żeby dobieranie przesunięcia mogło
+ * liczyć ŚREDNIĄ Z SZEŚCIU SOND, a nie samą temperaturę bazową. Przy wąskiej
+ * skali 8HC (0–20 °C) różnica między jednym a drugim to około 0,1 K, co przy
+ * plateau przemiany przekłada się na kilka punktów procentowych naładowania —
+ * i właśnie tyle rozjazdu pokazał sprawdzian dla punktów chłodu.
+ *
+ * Funkcja jest czysta: nie sięga po zapamiętane przesunięcie, więc skan może
+ * ją wołać bez ryzyka rekurencji.
+ */
+function temperaturaSondyDlaCzasu(n: ParametryNosnika, id: string, czas: number): number {
   const poziom = Number(id[1]) as 1 | 2 | 3;
   const przekatna = id[0] === 'B' ? 1 : 0;
 
@@ -137,11 +148,21 @@ export function temperaturaSondyPunktu(lok: Lokalizacja, id: string, ms: number)
   const rozpietosc = (n.tGora - n.tDol) / 22;
   const rozwarstwienie = (poziom - 2) * 1.9 * ruch * rozpietosc;
 
-  const szum = Math.sin(ms * 0.0000123 + poziom * 31 + przekatna * 7) * 0.05;
+  const szum = Math.sin(czas * 0.0000123 + poziom * 31 + przekatna * 7) * 0.05;
   return bazowa + rozwarstwienie - przekatna * 0.28 * rozpietosc + szum;
 }
 
-const SONDY = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'] as const;
+/** Średnia z sześciu sond — dokładnie ta wielkość, z której liczy się belka. */
+function sredniaSondDlaCzasu(n: ParametryNosnika, czas: number): number {
+  let suma = 0;
+  for (const id of SONDY) suma += temperaturaSondyDlaCzasu(n, id, czas);
+  return suma / SONDY.length;
+}
+
+/** Temperatura jednej sondy w punkcie pokazowym. */
+export function temperaturaSondyPunktu(lok: Lokalizacja, id: string, ms: number): number {
+  return temperaturaSondyDlaCzasu(nosnikPunktu(lok), id, ms + przesuniecieDoby(lok));
+}
 
 export function wartosciPunktu(lok: Lokalizacja, ms: number): PointValues {
   const n = nosnikPunktu(lok);
