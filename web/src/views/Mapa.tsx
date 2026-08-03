@@ -33,6 +33,7 @@ import { useAppliedTheme } from '../theme.js';
 import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
 import type { Kierunek } from '../soc.js';
 import { PALETA } from '../kolory-magazynu.js';
+import { temperatureFill } from '../scale.js';
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -232,6 +233,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
    * sond przebudowywałby całą mapę — dlatego wartość wchodzi referencją.
    */
   const procentRef = useRef<number | null>(null);
+  /** Srednia z sond — barwa wypelnienia pinezki stanowiska. Referencja z tego
+   *  samego powodu co procent: efekt tworzacy mape nie moze od niej zalezec. */
+  const sredniaRef = useRef<number | null>(null);
   /**
    * Sposób kolorowania mapy. Zmiana nie przebudowuje mapy — wystarczy podać
    * Mapboxowi nową wartość `theme` przez `setConfigProperty`, a on przemaluje
@@ -285,6 +289,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     (materialAktywny ?? data.materials?.defaultMaterial) === 'RT8HC' ? 'chlod' : 'cieplo';
   const procent = naladowanieProcent(sredniaC, profile, kierunekStanowiska);
   procentRef.current = procent;
+  sredniaRef.current = sredniaC;
   kierunekRef.current = kierunekStanowiska;
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
@@ -429,13 +434,31 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       const poziom =
         live ? (procentRef.current ?? 0) : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
+      /*
+       * WYPEŁNIENIE PINEZKI KODUJE TEMPERATURĘ (paleta A2), obrys i podpis
+       * dalej kodują RODZAJ magazynu. Mapa musi odpowiadać na dwa różne
+       * pytania naraz: „co to jest" (ciepło czy chłód) i „jak gorące jest
+       * teraz" — jedna barwa nie zmieści obu.
+       *
+       * WYSOKOŚĆ wypełnienia zostaje naładowaniem. To osobny kanał, dokładnie
+       * jak każe zasada 1 palety: barwa mówi o stopniach, słupek o energii.
+       *
+       * PUNKT POKAZOWY NIE DOSTAJE BARWY TEMPERATURY, bo nie ma temperatury —
+       * ma tylko wymyślony stopień naładowania. Pomalowanie go paletą cieplną
+       * znaczyłoby, że ktoś tam mierzy stopnie. Zostaje przy barwie rodzaju.
+       * Płasko, bez gradientu (zasada 5).
+       */
+      const wypelnienie = live
+        ? temperatureFill(sredniaRef.current)
+        : paleta.jasny;
+
       const el = document.createElement('div');
       el.className = `pinezka is-${punkt.stan} is-${punkt.typ}`;
       // Podpis to NAZWA INSTALACJI, nie miasto: etykiety miast rysuje już sam
       // Mapbox i drugi taki napis obok pinezki czytał się jak jego powtórzenie.
       el.innerHTML =
         `<span class="pinezka__kolo" aria-hidden="true" style="border-color:${paleta.glowny}">` +
-        `<span class="pinezka__wypelnienie" style="height:${poziom}%;background:linear-gradient(180deg,${paleta.jasny},${paleta.glowny})"></span>` +
+        `<span class="pinezka__wypelnienie" style="height:${poziom}%;background:${wypelnienie}"></span>` +
         '</span>' +
         `<span class="pinezka__podpis" style="color:${paleta.glowny}">${punkt.nazwa}</span>`;
 
@@ -569,6 +592,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska));
     if (wypelnienieLiveRef.current) {
       wypelnienieLiveRef.current.style.height = `${procent ?? 0}%`;
+      // Barwa idzie za temperatura, wysokosc za naladowaniem — dwa kanaly,
+      // dwie liczby, jedno miejsce aktualizacji.
+      wypelnienieLiveRef.current.style.background = temperatureFill(sredniaC);
     }
   }, [sredniaC, procent]);
 

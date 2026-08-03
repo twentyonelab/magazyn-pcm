@@ -33,7 +33,13 @@ export const MATERIALS: Record<PcmMaterial, MaterialProfile> = {
     label: '57HC',
     scaleMin: 40,
     scaleMax: 75,
-    phaseBandMin: 55,
+    // PASMO OBEJMUJE OBA KIERUNKI PRZEMIANY, nie tylko topnienie.
+    // Specyfikacja palety (docs/PALETA-TEMPERATUR.md): krzepniecie 57→53,
+    // topnienie 55→58. Suma to 53–58, wiec dolna granica jest solidusem 53,
+    // a nie 55. Bylo tu 55 i to sie nie zgadzalo z belka naladowania, ktora
+    // od poczatku liczy solidus 53 — punkt pracy przy 54 °C wychodzil
+    // „poza przemiana" na schemacie i „w przemianie" na belce.
+    phaseBandMin: 53,
     phaseBandMax: 58,
     peak: 57,
     latentHeat: 240,

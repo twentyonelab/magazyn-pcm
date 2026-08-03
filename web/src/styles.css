@@ -2797,8 +2797,16 @@ code {
   text-anchor: middle;
 }
 
-.chart__band {
-  fill: rgba(13, 13, 13, 0.05);
+/* Sztrych pasma przemiany. Kreska cienka i wycofana — ma powiedzieć „tu jest
+   plateau", a nie konkurować z linią pomiaru. Barwa z tuszu palety A2
+   (#1C1C1B) na niskim kryciu, żeby działała w obu motywach. */
+.chart__band-hatch {
+  stroke: rgba(28, 28, 27, 0.22);
+  stroke-width: 1;
+}
+
+:root[data-theme='dark'] .chart__band-hatch {
+  stroke: rgba(242, 239, 234, 0.2);
 }
 
 .chart__band-label {

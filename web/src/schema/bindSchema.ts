@@ -13,7 +13,7 @@
 
 import type { MaterialProfile, PointValue, PointValues, PublicPoint } from '@magazyn-pcm/shared';
 import { NO_DATA, isStale } from '../format.js';
-import { NO_DATA_FILL, isInPhaseBand, temperatureFill } from '../scale.js';
+import { NO_DATA_FILL, isInPhaseBand, temperatureFill, wybierzSkale } from '../scale.js';
 
 export interface BindOptions {
   points: Map<string, PublicPoint>;
@@ -125,6 +125,39 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
   }
 
   // --- Wypełnienia według wartości ----------------------------------------
+  //
+  // SKALA WYBIERANA RAZ, NA CAŁY RYSUNEK — ale ROZSTRZYGANA SONDAMI MATERIAŁU.
+  //
+  // Rodzaj skali (globalna albo lokalna, zawężona do strefy przemiany) zależy
+  // od rozpiętości danych; pytanie było, których danych. Pierwsza wersja brała
+  // wszystkie kropki razem z ciepłomierzami — a rury mają dziś 25 °C przy
+  // zbiorniku na 9 °C, czyli rozpiętość 17 K, czyli skala globalna. Sześć sond
+  // zbiornika wychodziło wtedy w praktycznie jednym odcieniu błękitu, choć
+  // różnica między nimi jest jedyną rzeczą, jaką ten rysunek ma o zbiorniku
+  // do powiedzenia.
+  //
+  // Skale lokalne są zawężone dokładnie do stref przemiany (5–12 i 50–62 °C),
+  // więc ich sensem jest kontrast W MATERIALE. Dlatego o skali decydują sondy
+  // grupy `pcm`, a stosuje się ona do wszystkich kropek — jedna skala na
+  // rysunku, bo dwie znaczyłyby, że ta sama liczba stopni ma dwie barwy.
+  // Ciepłomierze wychodzą wtedy poza skalę lokalną i barwa się na jej krańcu
+  // ZATRZYMUJE; liczba stoi obok kropki, więc informacja nie ginie.
+  const doBarwienia: Array<number | null> = [];
+  const wszystkieBarwione: Array<number | null> = [];
+  for (const element of root.querySelectorAll<SVGElement>('[data-fill-point]')) {
+    const id = element.dataset.fillPoint;
+    if (!id) continue;
+    const point = points.get(id);
+    const value = values[id];
+    const status = statusOf(point, value, staleAfterMs, now, channelAlive);
+    if (status !== 'ok' && status !== 'stale') continue;
+    wszystkieBarwione.push(value!.v);
+    if (point?.group === 'pcm') doBarwienia.push(value!.v);
+  }
+  // Bez sond materiału (np. rozpoznanie zbiornika jeszcze nie doszło)
+  // rozstrzyga to, co jest — lepsze niż z góry przyjęta skala globalna.
+  const skala = wybierzSkale(doBarwienia.length > 0 ? doBarwienia : wszystkieBarwione);
+
   for (const element of root.querySelectorAll<SVGElement>('[data-fill-point]')) {
     const id = element.dataset.fillPoint;
     if (!id) continue;
@@ -136,7 +169,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     const usable = status === 'ok' || status === 'stale';
     const numeric = usable ? value!.v : null;
 
-    element.setAttribute('fill', usable ? temperatureFill(numeric) : NO_DATA_FILL);
+    element.setAttribute('fill', usable ? temperatureFill(numeric, skala) : NO_DATA_FILL);
     setState(element, `is-${status}`);
 
     // Pasmo przemiany fazowej ma OSOBNE oznaczenie na grupie sondy —

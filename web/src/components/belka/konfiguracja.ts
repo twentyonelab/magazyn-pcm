@@ -69,7 +69,10 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     kolorKrzywej: PALETA.cieplo.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
     kolorNaladowany: PALETA.cieplo.jasny,
-    hatchPrzemiany: `repeating-linear-gradient(45deg, #FAC775 0 4px, ${PALETA.cieplo.tlo} 4px 8px)`,
+    // SZTRYCH PRZEZROCZYSTY MIEDZY KRESKAMI. Wczesniej miedzy kreskami stalo
+    // pelne tlo i pasmo przemiany zakrywalo podzialke temperatury pod soba —
+    // a paleta A2 wymaga, zeby pasmo bylo OZNACZENIEM, nie wypelnieniem.
+    hatchPrzemiany: 'repeating-linear-gradient(45deg, rgba(28,28,27,.34) 0 1.5px, transparent 1.5px 6px)',
     tloStrefyWykres: PALETA.cieplo.tlo,
     chip: {
       rozladowany: CHIP_ROZLADOWANY,
@@ -88,7 +91,7 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     kolorKrzywej: PALETA.chlod.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
     kolorNaladowany: PALETA.chlod.jasny,
-    hatchPrzemiany: `repeating-linear-gradient(45deg, #B5D4F4 0 4px, ${PALETA.chlod.tlo} 4px 8px)`,
+    hatchPrzemiany: 'repeating-linear-gradient(45deg, rgba(28,28,27,.34) 0 1.5px, transparent 1.5px 6px)',
     tloStrefyWykres: PALETA.chlod.tlo,
     // Przy chłodzie kolor koduje NAŁADOWANIE, nie temperaturę: zimno znaczy
     // naładowany, więc niebieski należy do stanu naładowanego i przemiany.

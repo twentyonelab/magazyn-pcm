@@ -234,16 +234,44 @@ export function Wykres({ series, band, events, fromMs, toMs }: WykresProps) {
         role="img"
         aria-label="Wykres przebiegu wartości w czasie"
       >
-        {/* Pasmo przemiany fazowej — spokojne tlo. */}
+        {/* PASMO PRZEMIANY — SZTRYCH I DWIE KRESKI GRANIC, nie plama tla.
+            Wymog specyfikacji palety A2: strefe przemiany oznacza sie cienkim
+            pasem albo delikatnym sztrychem, a NIE zmiana wypelnienia. Szara
+            plama na pol wykresu (tak bylo) czytala sie jak drugi zestaw danych
+            i przy waskim zakresie zajmowala wiecej miejsca niz sama linia. */}
         {band && band.max > yMin && band.min < yMax ? (
           <g>
+            <defs>
+              <pattern
+                id="chart-sztrych"
+                width={6}
+                height={6}
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(45)"
+              >
+                <line x1={0} y1={0} x2={0} y2={6} className="chart__band-hatch" />
+              </pattern>
+            </defs>
             <rect
               x={M.left}
               width={PLOT_W}
               y={yOf(Math.min(band.max, yMax))}
               height={Math.max(yOf(Math.max(band.min, yMin)) - yOf(Math.min(band.max, yMax)), 1)}
-              className="chart__band"
+              fill="url(#chart-sztrych)"
             />
+            {/* Granice pasma — to one sa informacja: sztrych mowi tylko „tutaj". */}
+            {[band.min, band.max]
+              .filter((t) => t > yMin && t < yMax)
+              .map((t) => (
+                <line
+                  key={t}
+                  x1={M.left}
+                  x2={M.left + PLOT_W}
+                  y1={yOf(t)}
+                  y2={yOf(t)}
+                  className="chart__band-edge"
+                />
+              ))}
             <text x={M.left + 6} y={yOf(band.max) - 5} className="chart__band-label">
               {band.label}
             </text>

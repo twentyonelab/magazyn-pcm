@@ -28,7 +28,7 @@ import schemaMarkup from '../schema/schema.svg?raw';
 import { extractScene, type Scene, type SvgBox } from '../schema/extractScene.js';
 import type { LiveData } from '../useLiveData.js';
 import { FALLBACK_STALE_AFTER_MS, NO_DATA, formatValue, pointState } from '../format.js';
-import { isInPhaseBand, temperatureFill } from '../scale.js';
+import { isInPhaseBand, temperatureFill, wybierzSkale } from '../scale.js';
 import { getSettings, useSettings } from '../settings.js';
 import { useAppliedTheme } from '../theme.js';
 
@@ -686,6 +686,20 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     if (!ready || !profile) return;
     const now = Date.now();
 
+    // Skala barwna wybierana RAZ dla całej scenki i — tak jak w 2D —
+    // rozstrzygana sondami materiału, nie ciepłomierzami na rurach
+    // (uzasadnienie w bindSchema.ts). Oba widoki muszą wybrać tę samą skalę,
+    // inaczej ta sama sonda miałaby w 2D i 3D inną barwę.
+    const doSkali = sensorsRef.current
+      .filter((h) => pointMap.get(h.pointId)?.group === 'pcm')
+      .map((h) => {
+        const point = pointMap.get(h.pointId);
+        const value = data.values[h.pointId];
+        const state = pointState(point, value, staleAfterMs, now, channelAlive);
+        return state === 'ok' || state === 'stale' ? (value?.v ?? null) : null;
+      });
+    const skala = wybierzSkale(doSkali);
+
     for (const handle of sensorsRef.current) {
       const point = pointMap.get(handle.pointId);
       const value = data.values[handle.pointId];
@@ -694,7 +708,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
       const numeric = usable ? (value?.v ?? null) : null;
 
       const material = handle.mesh.material as THREE.MeshStandardMaterial;
-      material.color.set(temperatureFill(numeric));
+      material.color.set(temperatureFill(numeric, skala));
       material.opacity = state === 'not-connected' ? 0.35 : 1;
       material.transparent = state === 'not-connected';
 

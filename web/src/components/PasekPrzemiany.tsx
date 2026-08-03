@@ -3,9 +3,14 @@
  *
  * ZWINIĘTA pokazuje to, bez czego reszta ekranu nic nie znaczy: jaki materiał
  * jest w zbiorniku, w której strefie stoi teraz i jak daleko mu do przemiany.
- * Pasek jest STREFOWY, a nie gradientowy — ciągły gradient mówił „jest cieplej
- * albo zimniej", a strefy mówią „rozładowany / w przemianie / naładowany",
- * czyli to, o co przy magazynie ciepła naprawdę chodzi.
+ *
+ * PASEK JEST PODZIAŁKĄ TEMPERATURY — gradientem palety A2, tym samym, którym
+ * barwione są kropki sond. Wcześniej dzielił się na trzy strefy w barwach
+ * „rozładowany / w przemianie / naładowany", czyli barwa mówiła o energii.
+ * Zasada 1 palety (docs/PALETA-TEMPERATUR.md) mówi wprost: barwa znaczy
+ * temperaturę i nic innego, bo podczas przemiany temperatura stoi godzinami
+ * i barwa też ma stać. Stany zostały — jako podpisy, marker średniej
+ * i liczba procentowa, czyli osobnym kanałem.
  *
  * ROZWINIĘTA dokłada krzywą entalpii i dane materiału. Rozwinięcie jest
  * NAKŁADKĄ nad schematem, nie elementem układu — inaczej każde zajrzenie
@@ -26,6 +31,7 @@ import {
   wypelnienieStrefy,
 } from './belka/konfiguracja.js';
 import { liczba, utworzSkale } from './belka/skala.js';
+import { przystankiGradientu, wybierzSkale } from '../paleta-temperatur.js';
 import { KrzywaEntalpii } from './belka/KrzywaEntalpii.js';
 import { energiaKWh, type OdczytSoc, type ParametryEntalpii } from '../soc.js';
 
@@ -130,6 +136,21 @@ export function PasekPrzemiany({
     cp: cfg.cp,
   };
 
+  /*
+   * PODZIAŁKA MUSI BYĆ NA TEJ SAMEJ SKALI CO KROPKI SOND.
+   *
+   * Rodzaj skali rozstrzyga rozrzut sond materiału — dokładnie ten sam wkład,
+   * z którego liczy go `bindSchema` (tam min/max wszystkich sond `pcm`, tu
+   * gotowe `zakresC`), więc obie strony wychodzą na tę samą odpowiedź.
+   * Gdyby legenda trzymała skalę globalną, a kropki lokalną, legenda
+   * pokazywałaby barwy, których na rysunku nie ma — a to gorsze niż jej brak.
+   *
+   * Osią zostaje ZAKRES MATERIAŁU (0–20 albo 40–75 °C), bo podziałka opisuje
+   * materiał. Przy skali lokalnej barwa na jej krańcach po prostu się
+   * zatrzymuje, tak samo jak na kropkach.
+   */
+  const rodzajSkali = wybierzSkale(zakresC ? [zakresC.min, zakresC.max] : [averageC]);
+
   const maDane = averageC !== null;
   const stan = maDane ? stanZTemperatury(averageC, cfg) : null;
   const poza = maDane ? skala.pozaSkala(averageC) : null;
@@ -232,29 +253,42 @@ export function PasekPrzemiany({
           }}
           onMouseLeave={() => setKursorX(null)}
         >
-          <span className="belka__pasek">
-            {szerokosc > 0
-              ? strefyOdLewej(cfg).map((stanStrefy, i) => {
-                  const granice: Array<[number, number]> = [
-                    [profile.scaleMin, cfg.solidus],
-                    [cfg.solidus, cfg.liquidus],
-                    [cfg.liquidus, profile.scaleMax],
-                  ];
-                  const [od, doT] = granice[i]!;
-                  const x = skala.xOf(od);
-                  return (
-                    <span
-                      key={stanStrefy}
-                      className="belka__strefa"
-                      style={{
-                        left: x,
-                        width: Math.max(skala.xOf(doT) - x, 0),
-                        background: wypelnienieStrefy(stanStrefy, cfg),
-                      }}
-                    />
-                  );
-                })
-              : null}
+          {/* PODZIAŁKA JEST MAPĄ CIEPLNĄ, NIE MAPĄ NAŁADOWANIA.
+              Wcześniej pasek dzielił się na trzy strefy — rozładowaną (szarą),
+              przemiany (sztrychowaną) i naładowaną (w barwie nośnika). Barwa
+              mówiła więc o energii, a zasada 1 palety A2 mówi wprost: barwa
+              znaczy temperaturę i nic innego. Teraz pod paskiem leży gradient
+              palety rozciągnięty na zakres materiału, a naładowanie niosą
+              marker średniej, liczba procentowa i podpisy stref.
+
+              Zakres materiału ma 20 K (8HC) albo 35 K (57HC), czyli w obu
+              przypadkach ≥ 15 K — dlatego skala globalna, nie lokalna. */}
+          <span
+            className="belka__pasek"
+            style={{
+              background:
+                szerokosc > 0
+                  ? `linear-gradient(90deg, ${przystankiGradientu(rodzajSkali, {
+                      min: profile.scaleMin,
+                      max: profile.scaleMax,
+                    })
+                      .map((s) => `${s.barwa} ${s.procent.toFixed(1)}%`)
+                      .join(', ')})`
+                  : undefined,
+            }}
+          >
+            {/* Pasmo przemiany zostaje SZTRYCHEM na wierzchu gradientu —
+                oznaczeniem, nie zmianą wypełnienia (wymóg specyfikacji). */}
+            {szerokosc > 0 ? (
+              <span
+                className="belka__strefa belka__strefa--przemiana"
+                style={{
+                  left: skala.xOf(cfg.solidus),
+                  width: Math.max(skala.xOf(cfg.liquidus) - skala.xOf(cfg.solidus), 0),
+                  background: wypelnienieStrefy('przemiana', cfg),
+                }}
+              />
+            ) : null}
 
             {/* Rozjazd sond — wąski pas od najzimniejszej do najcieplejszej. */}
             {zakresC && szerokosc > 0 ? (
