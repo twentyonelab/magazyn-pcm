@@ -2941,7 +2941,7 @@ body::after {
   /* Przepis dokładnie taki, jak ustalony: 18% wypełnienia, rozmycie 25 px
      z podbitym nasyceniem, krawędź jednopikselowa. Bez rozjaśniania —
      w tej wersji liczy się wygląd, nie zapas czytelności. */
-  --szklo-blur: 25px;
+  --szklo-blur: 12px;
   --szklo-nasycenie: 1.4;
   --szklo-papier: 18%;
 
