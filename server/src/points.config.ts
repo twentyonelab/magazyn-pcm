@@ -142,7 +142,11 @@ export const POINTS: readonly PointDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'METER_FLOW',
-    uuid: '210f76e2-02a8-42e3-ffff86611eeca57b', // ZRODLO_Przeplyw
+    // UUID-y ciepłomierza zrodla przestawione 2026-08-03: przy przebudowie
+    // konfiguracji Loxone caly blok „Cieplomierz_zrodlo" powstal od nowa
+    // (stare 210f77xx nalezą dzis do ciepłomierza ODBIORU — dlatego zasilanie
+    // i powrot dalej cos pokazywaly, tylko nie ten obieg, co trzeba).
+    uuid: '211470a8-00fd-47c4-ffff86611eeca57b', // ZRODLO_Przeplyw
     label: 'Ciepłomierz · przepływ',
     unit: 'm³/h',
     kind: 'flow',
@@ -151,14 +155,18 @@ export const POINTS: readonly PointDef[] = [
     available: true,
   },
   {
+    // MOCY NIE MA W MINISERVERZE. Po przebudowie konfiguracji w pokoju
+    // „Cieplomierz_zrodlo" jest siedem kontrolek i zadna z nich nie podaje
+    // mocy chwilowej. Nie zgadujemy UUID-a — punkt zostaje zadeklarowany,
+    // ale niedostepny, zeby bylo widac, czego brakuje po stronie Loxone.
     id: 'METER_POWER',
-    uuid: '210f769d-0255-3151-ffff86611eeca57b', // ZRODLO_Moc
+    uuid: null,
     label: 'Ciepłomierz · moc',
     unit: 'kW',
     kind: 'power',
     group: 'meter',
     precision: 2,
-    available: true,
+    available: false,
   },
   {
     // Dwa osobne liczniki energii, bo licznik rozdziela grzanie i chlodzenie.
@@ -169,7 +177,7 @@ export const POINTS: readonly PointDef[] = [
     // format "%.3f" bez jednostki, wiec nie wiemy, czy to kWh, czy MWh.
     // Dopoki nie wiemy, nie podpisujemy — pusty `unit` pokazuje sama liczbe.
     id: 'METER_ENERGY_HEAT',
-    uuid: '210f77a3-034c-7345-ffff86611eeca57b', // ZRODLO_Energia_Grzania
+    uuid: '2114710d-03c4-7d2e-ffff86611eeca57b', // ZRODLO_Energia_Grzania
     label: 'Ciepłomierz · energia grzania',
     unit: '',
     kind: 'energy',
@@ -179,7 +187,7 @@ export const POINTS: readonly PointDef[] = [
   },
   {
     id: 'METER_ENERGY_COOL',
-    uuid: '210f77af-0286-7d8f-ffff86611eeca57b', // ZRODLO_Energia_Chlodzenia
+    uuid: '21147120-0321-8b63-ffff86611eeca57b', // ZRODLO_Energia_Chlodzenia
     label: 'Ciepłomierz · energia chłodzenia',
     unit: '',
     kind: 'energy',
@@ -189,7 +197,7 @@ export const POINTS: readonly PointDef[] = [
   },
   {
     id: 'METER_T1',
-    uuid: '210f7702-032b-4d09-ffff86611eeca57b', // ZRODLO_T_zasilanie
+    uuid: '211470ca-005a-55c9-ffff86611eeca57b', // ZRODLO_T_zasilanie
     label: 'Ciepłomierz · zasilanie',
     unit: '°C',
     kind: 'temperature',
@@ -199,7 +207,7 @@ export const POINTS: readonly PointDef[] = [
   },
   {
     id: 'METER_T2',
-    uuid: '210f7726-0029-59bd-ffff86611eeca57b', // ZRODLO_T_powrot
+    uuid: '211470e4-0369-669b-ffff86611eeca57b', // ZRODLO_T_powrot
     label: 'Ciepłomierz · powrót',
     unit: '°C',
     kind: 'temperature',
@@ -210,7 +218,7 @@ export const POINTS: readonly PointDef[] = [
   {
     // Ponizej 3 K licznik nie sumuje energii i zglasza kod bledu 4.
     id: 'METER_DT',
-    uuid: '210f774a-017e-63ef-ffff86611eeca57b', // ZRODLO_dT
+    uuid: '211470f4-0279-6f10-ffff86611eeca57b', // ZRODLO_dT
     label: 'Ciepłomierz · ΔT',
     unit: 'K',
     kind: 'delta',
@@ -222,7 +230,7 @@ export const POINTS: readonly PointDef[] = [
     // Kod bledu licznika. Trzymamy go jako punkt, a nie jako ukryta flage,
     // bo to on tlumaczy, dlaczego energia nie rosnie (kod 4 = ΔT ponizej 3 K).
     id: 'METER_ERROR',
-    uuid: '210f77bf-031e-8553-ffff86611eeca57b', // ZRODLO_Blad
+    uuid: '2114713e-0383-96d5-ffff86611eeca57b', // ZRODLO_Blad
     label: 'Ciepłomierz · kod błędu',
     unit: '',
     kind: 'state',
