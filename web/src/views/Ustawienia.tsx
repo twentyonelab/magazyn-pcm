@@ -162,8 +162,10 @@ export function Ustawienia({ data }: { data: LiveData }) {
         {pendingUuid.length > 0 ? (
           <div className="note">
             <strong>{pendingUuid.length} punktów czeka na UUID</strong> (
-            {pendingUuid.map((m) => m.id).join(', ')}). Uruchom <code>npm run uuid</code> w sieci
-            laboratorium i wklej identyfikatory do rejestru.
+            {pendingUuid.map((m) => m.id).join(', ')}). Miniserver wydaje wartości po
+            identyfikatorze kontrolki, a nie po jej nazwie — punkt bez identyfikatora nie ma o co
+            zapytać i zostaje pusty. Uruchom <code>npm run uuid</code> w sieci laboratorium i wklej
+            identyfikatory do rejestru.
           </div>
         ) : null}
 
@@ -187,12 +189,35 @@ export function Ustawienia({ data }: { data: LiveData }) {
                     <td className="muted">{mapping.unit || NO_DATA}</td>
                     <td className="mono config-path">{mapping.uuid ?? NO_DATA}</td>
                     <td>
+                      {/* Trzy stany opisują DROGĘ punktu od pomysłu do odczytu.
+                          Bez wyjaśnienia różnica między nimi jest nieczytelna,
+                          a to ona mówi, czyja jest następna ruch: instalatora
+                          w laboratorium czy narzędzia `npm run uuid`. */}
                       {!mapping.available ? (
-                        <span className="badge is-not-connected">zadeklarowany</span>
+                        <span
+                          className="badge is-not-connected"
+                          title="Punkt istnieje w projekcie aplikacji, ale nie ma go jeszcze w instalacji — czujnik lub kanał licznika nie jest podłączony. Aplikacja go nie odpytuje i nigdy nie pokaże dla niego liczby."
+                        >
+                          zadeklarowany
+                        </span>
                       ) : mapping.uuid ? (
-                        <span className="badge is-ok">przypisany</span>
+                        <span
+                          className="badge is-ok"
+                          title="Punkt ma przypisany identyfikator kontrolki w Miniserverze, więc serwer wie, o co pytać. To jedyny stan, w którym punkt może podać wartość."
+                        >
+                          przypisany
+                        </span>
                       ) : (
-                        <span className="badge is-stale">czeka na UUID</span>
+                        <span
+                          className="badge is-stale"
+                          title={
+                            'Punkt jest podłączony w instalacji, ale nie ma przypisanego identyfikatora (UUID) kontrolki w Miniserverze — a Loxone daje wartości po identyfikatorze, nie po nazwie. Serwer nie ma więc o co zapytać i punkt zostaje pusty.\n\n' +
+                            'Uzupełnia to `npm run uuid` uruchomiony w sieci stanowiska: dopasowuje punkty do kontrolek po nazwie i wpisuje identyfikatory do rejestru.\n\n' +
+                            'Uwaga: przebudowa konfiguracji w Loxone Config nadaje kontrolkom NOWE identyfikatory, więc ten stan może wrócić dla punktu, który wcześniej działał.'
+                          }
+                        >
+                          czeka na UUID
+                        </span>
                       )}
                     </td>
                   </tr>

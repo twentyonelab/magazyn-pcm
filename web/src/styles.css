@@ -365,10 +365,17 @@ code {
   }
 }
 
+/* SAMA IKONA, BEZ PASTYLKI.
+   Przełącznik stoi obok nawigacji, która jest taflą szkła — druga tafla wielkości
+   34 px czytała się jak zgubiony kafelek, a nie jak element tego samego rzędu.
+   Zostaje pole dotyku (34 px), znika tło, krawędź i cień. Sprzężenie z klikaniem
+   niesie barwa ikony, nie podkład. Uwaga: element jest też wypisany w blokach
+   szkła na końcu arkusza — tam trzeba go pomijać, bo tamte reguły wygrywają
+   kolejnością. */
 .theme-toggle {
   border: 0;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: none;
+  box-shadow: none;
   color: var(--ink-soft);
   width: 34px;
   height: 34px;
@@ -459,6 +466,22 @@ code {
 .statusbar__label {
   color: var(--ink-faint);
   white-space: nowrap;
+}
+
+/* Pole z wyjaśnieniem po najechaniu.
+   Kropkowana kreska pod podpisem to jedyny sygnał, że jest co czytać — bez niej
+   podpowiedź istnieje tylko dla tego, kto przypadkiem zatrzyma na niej kursor.
+   Kreska idzie przez `text-decoration`, nie przez `border-bottom`: krawędź
+   podniosłaby wiersz paska o dwa piksele i rozjechała pomiar jego wysokości
+   (patrz uklad.ts). */
+.statusbar__field--hint {
+  cursor: help;
+}
+
+.statusbar__field--hint .statusbar__label {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--ink-faint);
+  text-underline-offset: 3px;
 }
 
 .statusbar__value {
@@ -1455,6 +1478,45 @@ code {
    schemat dostaje całą resztę i sam się do niej dopasowuje. */
 .magazyn-widok {
   grid-template-rows: auto minmax(0, 1fr);
+  /* Układ odniesienia dla przełącznika rzutu, który wychodzi z siatki. */
+  position: relative;
+}
+
+/* PRZEŁĄCZNIK RZUTU 2D/3D — lewy dolny róg, poza siatką.
+   Nad rysunkiem zabierał osobny wiersz i ciągnął wzrok na środek ekranu, choć
+   jest przestawnikiem widoku, a nie odczytem. Schodzi więc do narożnika, do
+   tego samego pasa, w którym stoi pokaz przepływu.
+
+   `bottom` MUSI zawierać `--pas-dol`. Element pozycjonowany absolutnie liczy się
+   od pola wypełnienia, więc dolne wypełnienie widoku go NIE odsuwa (ta sama
+   pułapka co przy scenie 3D, patrz wyżej) — bez tego przełącznik siada na belce
+   stanu. Zmierzone: pas ma 68 px, czyli więcej niż widoczna belka (35 px);
+   liczy się pas, bo to on jest zarezerwowany. */
+.magazyn-widok .wymiar {
+  position: absolute;
+  left: clamp(1rem, 4vw, 3rem);
+  bottom: calc(var(--pas-dol) + 0.5rem);
+  z-index: 3;
+  align-self: auto;
+  padding: 2px;
+}
+
+/* W scenie 3D ten sam narożnik jest wolny: objaśnienie rzutu (`.flow-note`)
+   kończy się wyżej, bo scena ma jeszcze własny dolny margines. Przełącznik nie
+   potrzebuje więc osobnego położenia — sprawdzone pomiarem, pas 35–136 px nad
+   dołem okna jest w obu rzutach pusty. Próba podniesienia go nad objaśnienie
+   kładła go DOKŁADNIE na nim. */
+
+.magazyn-widok .wymiar__item {
+  min-width: 2.5rem;
+  padding: 3px 11px;
+  font-size: 0.78rem;
+}
+
+/* Pokaz przepływu ustępuje przełącznikowi miejsca w narożniku i staje nad nim.
+   Oba są w tym samym pasie, bo oba są przestawnikami, nie odczytami. */
+.magazyn-widok .demo-przeplyw {
+  bottom: 3rem;
 }
 
 /* Belka wraca do szerokości treści i zostaje wyśrodkowana.
@@ -3165,7 +3227,6 @@ body::after {
 .belka__panel,
 .pogoda,
 .tool,
-.theme-toggle,
 .demo-przeplyw__przycisk,
 .probe-panel,
 .mapboxgl-popup-content {
@@ -3223,7 +3284,6 @@ body::after {
 .belka__panel,
 .pogoda,
 .tool,
-.theme-toggle,
 .demo-przeplyw__przycisk,
 .probe-panel,
 .mapboxgl-popup-content {
@@ -3235,7 +3295,6 @@ body::after {
 :root[data-theme='dark'] .belka__panel,
 :root[data-theme='dark'] .pogoda,
 :root[data-theme='dark'] .tool,
-:root[data-theme='dark'] .theme-toggle,
 :root[data-theme='dark'] .demo-przeplyw__przycisk,
 :root[data-theme='dark'] .probe-panel,
 :root[data-theme='dark'] .mapboxgl-popup-content {
@@ -3294,8 +3353,14 @@ body::after {
 
 :root[data-theme='dark'] .topbar__logo--tauron {
   /* Odwrócenie z korektą barwy: magenta zostaje magentą, a szare litery
-     robią się jasne. Prostsze i lżejsze niż druga wersja pliku. */
-  filter: invert(1) hue-rotate(180deg) brightness(1.15);
+     robią się jasne. Prostsze i lżejsze niż druga wersja pliku.
+
+     `saturate` niżej jednej jednostki PRZYGASZA SAM ZNAK, nie napis. Magenta
+     w pełnym nasyceniu na ciemnym tle wibruje — jest najjaśniejszą i najbardziej
+     krzyczącą plamą całego ekranu, mocniejszą niż odczyty, o które tu chodzi.
+     Litery są szare, czyli bez nasycenia, więc ten filtr ich nie dotyka:
+     zostają jasne. Barwa marki pozostaje rozpoznawalna, tylko cichsza. */
+  filter: invert(1) hue-rotate(180deg) brightness(1.12) saturate(0.68);
 }
 
 /* 21 zmysłów — prawy dolny róg, tuż nad stopką. Powiększone o połowę

@@ -175,10 +175,22 @@ export function Magazyn3D({ data }: { data: LiveData }) {
   const controlsRef = useRef<OrbitControls | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const labelRootRef = useRef<HTMLElement | null>(null);
+  // Uchwyty potrzebne wyłącznie do przemalowania sceny przy zmianie motywu.
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const floorMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
 
   const scene3d = useMemo(() => extractScene(schemaMarkup), []);
-  // Zmiana motywu przebudowuje scenę: kolory tła, podłogi i mgły są
-  // wpieczone w obiekty Three.js, więc nie da się ich podmienić w locie.
+  // Motyw NIE przebudowuje sceny.
+  //
+  // Wcześniej stał w zależnościach efektu budującego, bo kolory tła, mgły
+  // i podłogi są wpieczone w obiekty Three.js. Skutek widać było dopiero
+  // w działaniu: przełączenie motywu stawiało scenę od nowa, a wraz z nią
+  // kamerę w położeniu wyjściowym — kto dojechał do konkretnej sondy, tracił
+  // kadr i musiał szukać jej ponownie. Zmiana motywu to zmiana OŚWIETLENIA,
+  // nie zmiana tego, na co się patrzy.
+  //
+  // Tych kolorów jest trzy i wszystkie da się podmienić w locie (efekt niżej).
+  // Reszta scenografii nie zależy od motywu.
   const theme = useAppliedTheme();
   const pointMap = useMemo(() => new Map(data.points.map((p) => [p.id, p])), [data.points]);
 
@@ -216,6 +228,7 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     const scene = new THREE.Scene();
     scene.background = sceneBg;
     scene.fog = new THREE.Fog(sceneBg.getHex(), 60, 150);
+    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(46, width() / height(), 0.1, 400);
     camera.position.copy(CAMERA_HOME);
@@ -268,10 +281,14 @@ export function Magazyn3D({ data }: { data: LiveData }) {
     scene.add(fill);
 
     // --- Podłoga i siatka -------------------------------------------------
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(160, 120),
-      new THREE.MeshStandardMaterial({ color: sceneFloor, roughness: 1, metalness: 0 }),
-    );
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: sceneFloor,
+      roughness: 1,
+      metalness: 0,
+    });
+    floorMaterialRef.current = floorMaterial;
+
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(160, 120), floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.02;
     floor.receiveShadow = true;
@@ -628,10 +645,29 @@ export function Magazyn3D({ data }: { data: LiveData }) {
       labelRenderer.domElement.remove();
       sensorsRef.current = [];
       devicesRef.current = [];
+      sceneRef.current = null;
+      floorMaterialRef.current = null;
     };
-    // Scena budowana raz na motyw. Dane wchodzą osobnym efektem, bez przebudowy.
+    // Scena budowana RAZ. Dane i motyw wchodzą osobnymi efektami, bez przebudowy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene3d, theme]);
+  }, [scene3d]);
+
+  /* --- Motyw: przemalowanie bez przebudowy -------------------------------- */
+  //
+  // Trzy kolory zależne od motywu: tło, mgła (ta sama barwa, żeby dal znikał
+  // w tle, a nie odcinał się od niego kreską) i podłoga. Kamera, obrót
+  // i widoczność podpisów pozostają nietknięte.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const sceneBg = themeColor('--scene-bg', BG);
+    scene.background = sceneBg;
+    if (scene.fog) scene.fog.color.copy(sceneBg);
+    floorMaterialRef.current?.color.copy(themeColor('--scene-floor', FLOOR));
+    // `ready` w zależnościach: przy pierwszym przebiegu scena jeszcze nie stoi,
+    // a bez tego przemalowanie po jej zbudowaniu by nie nastąpiło.
+  }, [theme, ready]);
 
   /* --- Przekazanie przełącznika obrotu do pętli -------------------------- */
   useEffect(() => {

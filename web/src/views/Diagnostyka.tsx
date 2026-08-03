@@ -162,8 +162,10 @@ export function Diagnostyka({ data }: { data: LiveData }) {
       {health && health.pendingUuidIds.length > 0 ? (
         <div className="note">
           <strong>{health.pendingUuidIds.length} punktów czeka na UUID</strong> (
-          {health.pendingUuidIds.join(', ')}). Uruchom <code>npm run uuid</code> w sieci
-          laboratorium i uzupełnij <code>server/src/points.config.ts</code>.
+          {health.pendingUuidIds.join(', ')}). Miniserver wydaje wartości po identyfikatorze
+          kontrolki, a nie po jej nazwie — punkt bez identyfikatora nie ma o co zapytać i zostaje
+          pusty. Uruchom <code>npm run uuid</code> w sieci laboratorium i uzupełnij{' '}
+          <code>server/src/points.config.ts</code>.
         </div>
       ) : null}
 

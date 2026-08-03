@@ -9,7 +9,13 @@
 
 import { forwardRef } from 'react';
 import type { LiveData, LinkState } from '../useLiveData.js';
-import { NO_DATA, SOURCE_STATUS_LABEL, formatClock, formatUptime } from '../format.js';
+import {
+  NO_DATA,
+  SOURCE_STATUS_HINT,
+  SOURCE_STATUS_LABEL,
+  formatClock,
+  formatUptime,
+} from '../format.js';
 
 /**
  * Podpisy obu łączy na pasku.
@@ -26,6 +32,44 @@ const LINK_LABEL: Record<LinkState, string> = {
   error: 'brak połączenia',
   unauthorized: 'wymagane logowanie',
 };
+
+/**
+ * Wyjaśnienia po najechaniu — dopisek do skrótu, nie jego powtórzenie.
+ *
+ * Pasek odpowiada na pytanie „czy to, co widzę, jest aktualne", ale sam podpis
+ * odpowiada na nie tylko temu, kto zna oba ogniwa drogi danych. Ta droga ma dwa
+ * odcinki i mogą zawodzić niezależnie: „live" na pierwszym i „częściowo" na
+ * drugim znaczy, że aplikacja działa, a stanowisko nie mówi wszystkiego.
+ */
+const LINK_HINT: Record<LinkState, string> = {
+  connecting: 'Przeglądarka zestawia strumień zdarzeń z serwerem aplikacji.',
+  live: 'Strumień zdarzeń z serwera aplikacji jest otwarty. Dopóki żyje, o świeżości odczytów rozstrzyga serwer.',
+  reconnecting:
+    'Strumień padł i przeglądarka ponawia. Liczby na ekranie są ostatnimi znanymi — nie muszą być aktualne.',
+  error:
+    'Brak strumienia z serwera aplikacji. Tego, co robi teraz Miniserver, NIE WIEMY — dlatego jego stan pokazujemy jako nieznany, a nie jako ostatnią znaną wartość.',
+  unauthorized: 'Serwer żąda zalogowania, żeby wydać dane.',
+};
+
+/** Objaśnienie drugiego odcinka: serwer aplikacji → Miniserver. */
+function podpowiedzZrodla(live: boolean, data: LiveData): string {
+  if (!live) {
+    return (
+      'Serwer aplikacji → Miniserver.\n\n' +
+      'Nie ma łączności z serwerem, więc nie ma skąd wiedzieć, co dzieje się na ' +
+      'tym odcinku. Pokazanie ostatniego znanego stanu wyglądałoby jak działające ' +
+      'stanowisko, więc pokazujemy „nieznany".'
+    );
+  }
+  if (!data.health) return 'Serwer aplikacji → Miniserver. Serwer jeszcze nie podał swojego stanu.';
+
+  const czesci = [`Serwer aplikacji → Miniserver: ${SOURCE_STATUS_LABEL[data.health.source]}.`];
+  czesci.push(SOURCE_STATUS_HINT[data.health.source]);
+  // Komunikat serwera niesie liczby (ile punktów zamilkło) — tego nie da się
+  // napisać z góry, więc idzie na koniec, gdy jest.
+  if (data.health.message) czesci.push(data.health.message);
+  return czesci.join('\n\n');
+}
 
 function Pole({
   label,
@@ -46,18 +90,27 @@ function Pole({
    * w całości w widoku Diagnostyka.
    */
   wtorne = false,
+  /**
+   * Pełne zdanie po najechaniu. Skrót na pasku musi się zmieścić w jednym
+   * rzędzie, więc mówi CO, a nie CO TO ZNACZY — to drugie idzie tutaj.
+   * Pole z podpowiedzią dostaje kursor „help" i kropkowaną kreskę pod podpisem,
+   * bo sama podpowiedź jest niewidoczna, dopóki się na nią nie trafi.
+   */
+  hint,
 }: {
   label: string;
   value: string;
   tone?: 'ok' | 'warn' | 'bad';
   pulse?: boolean;
   wtorne?: boolean;
+  hint?: string;
 }) {
   return (
     <div
       className={`statusbar__field${tone ? ` is-${tone}` : ''}${
         wtorne ? ' statusbar__field--wtorne' : ''
-      }`}
+      }${hint ? ' statusbar__field--hint' : ''}`}
+      title={hint}
     >
       <span className="statusbar__label">{label}</span>
       <span className="statusbar__value mono">
@@ -112,6 +165,7 @@ export const PasekStanu = forwardRef<HTMLElement, { data: LiveData }>(function P
         value={LINK_LABEL[link]}
         tone={linkTone}
         pulse={live}
+        hint={`Przeglądarka → serwer aplikacji: ${LINK_LABEL[link]}.\n\n${LINK_HINT[link]}`}
       />
 
       <Pole
@@ -121,6 +175,7 @@ export const PasekStanu = forwardRef<HTMLElement, { data: LiveData }>(function P
         }
         tone={sourceTone}
         pulse={sourceLive}
+        hint={podpowiedzZrodla(live, data)}
       />
 
       <Pole

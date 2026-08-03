@@ -300,9 +300,10 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
 
       {/*
         PRZEŁĄCZNIK RZUTU — 2D / 3D.
-        Stoi nad rysunkiem, bo dotyczy całego rysunku, a nie jego fragmentu.
-        Gdy scena 3D jest wyłączona w opcjach, przełącznika nie ma wcale:
-        martwy przycisk gorszy niż brak przycisku.
+        Stoi w lewym dolnym narożniku (pozycja w arkuszu, nie tutaj): dotyczy
+        całego rysunku, ale jest przestawnikiem widoku, nie odczytem, więc nie
+        zabiera miejsca nad schematem. Gdy scena 3D jest wyłączona w opcjach,
+        przełącznika nie ma wcale: martwy przycisk gorszy niż brak przycisku.
       */}
       {onWymiar ? (
         <div className="wymiar" role="group" aria-label="Rzut schematu">

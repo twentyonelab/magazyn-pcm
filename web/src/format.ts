@@ -143,6 +143,31 @@ export const SOURCE_STATUS_LABEL: Record<SourceStatus, string> = {
 };
 
 /**
+ * Wyjasnienie stanu do podpowiedzi po najechaniu.
+ *
+ * Podpis na pasku musi byc krotki, zeby zmiescic sie w jednym rzedzie, a krotki
+ * podpis stanu awaryjnego nic nie mowi: „czesciowo" nie odpowiada na pytanie
+ * CZESCIOWO CO. Pelne zdanie idzie wiec do podpowiedzi, a nie na pasek.
+ *
+ * Zdania mowia, CO ROBIC albo CZEGO SIE SPODZIEWAC — nie powtarzaja podpisu
+ * innymi slowami. Serwer dorzuca do tego swoj `health.message` z liczbami
+ * (ile punktow zamilklo), ktorego nie da sie napisac z gory.
+ */
+export const SOURCE_STATUS_HINT: Record<SourceStatus, string> = {
+  starting:
+    'Aplikacja wstała i czeka na pierwszy udany odczyt z Miniservera. Stan trwający dłużej niż kilkanaście sekund znaczy, że coś jest nie tak.',
+  ok: 'Wszystkie przypisane punkty odpowiedziały w ostatnim cyklu odczytu.',
+  degraded:
+    'Miniserver odpowiada, ale część punktów nie — albo odczyt trwa za długo. Temperatury, które widzisz, mogą pochodzić z poprzedniego cyklu. Które punkty milczą, pokazuje widok Diagnostyka.',
+  offline:
+    'Serwer nie ma łączności z Miniserverem i ponawia próby z rosnącą przerwą. Sprawdź zasilanie sterownika i sieć stanowiska.',
+  auth_error:
+    'Miniserver odrzucił logowanie, więc odpytywanie zostało ZATRZYMANE — dalsze próby mogłyby zablokować konto. Trzeba poprawić dane dostępowe i uruchomić serwer ponownie.',
+  error:
+    'Błąd trwały po stronie odczytu. Powód stoi w komunikacie niżej i w widoku Diagnostyka.',
+};
+
+/**
  * Nazwa materialu dla czlowieka.
  *
  * Identyfikator w danych to RT8HC / RT57HC (klucz w zapisanych sesjach,
