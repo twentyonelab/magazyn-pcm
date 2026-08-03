@@ -447,3 +447,12 @@ data/            dane pomiarowe i zrzuty z Miniservera (poza repozytorium)
   to kłamstwo.
 - **Plik `.env` nie trafia do repozytorium.** Hasło do Miniservera nie ma
   prawa znaleźć się ani w kodzie, ani na dysku współdzielonym.
+- **Nie rozluźniaj `engines.node` w `package.json`.** Wersja jest tam
+  przypięta (`24.x`), bo `better-sqlite3` to moduł natywny wymagający
+  Node ≥ 22, a jego gotowy plik binarny pod starszym Node **nie zgłasza
+  błędu — rozwala proces**: kod wyjścia 139, naruszenie ochrony pamięci,
+  ani jednej linijki wyjaśnienia w logu. Kosztowało to nieudane wdrożenie
+  w chmurze — hosting przeczytał wcześniejsze `">=20"`, wziął Node 20
+  i aplikacja umierała po sekundzie. Deklaracja środowiska ma opisywać
+  wersję, na której kod NAPRAWDĘ sprawdzono, a nie najstarszą, na której
+  kiedyś działał.

@@ -5,7 +5,7 @@
   "description": "Wizualizacja stanowiska badawczego magazynu ciepla na materiale zmiennofazowym (PCM)",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": "24.x"
   },
   "workspaces": [
     "shared",
