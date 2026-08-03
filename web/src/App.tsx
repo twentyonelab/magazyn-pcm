@@ -246,13 +246,14 @@ export function App() {
     <div className="app" ref={ramaRef}>
       <header className="topbar" ref={gornaRef}>
         <div className="brand">
-          <span className="brand__nazwa">
-            <span className="brand__mark">Vaultherm</span>
-            {/* Znaczek towarowy w prawym GÓRNYM indeksie nazwy — tak się go
-                stawia typograficznie. Bez `aria-hidden`, bo to informacja
-                prawna, nie ozdoba, i czytnik ekranu ma ją przeczytać. */}
-            <span className="brand__tm">™</span>
-          </span>
+          {/*
+            Logotyp zamiast napisu. Znaczek towarowy jest CZĘŚCIĄ pliku, więc
+            nie dokładamy go osobno — inaczej stałby na ekranie dwa razy.
+
+            Tekst zastępczy niesie ™, bo dla czytnika ekranu i dla wyszukiwarki
+            to jedyna droga do tej informacji; z obrazu jej nie wyciągną.
+          */}
+          <img className="brand__logo" src={plik('entalvia.png')} alt="Entalvia™" />
           {/* Wersja pod nazwą — mała, bo to metryczka, nie tytuł. Numer siedzi
               w `wersja.ts`, żeby był jeden dla całej aplikacji. */}
           <span className="brand__wersja mono">

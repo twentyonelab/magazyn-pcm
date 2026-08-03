@@ -491,16 +491,25 @@ code {
 }
 
 /* Wersja jest metryczką, nie tytułem — najmniejszy stopień w interfejsie
-   i kolor wycofany, żeby nie konkurowała z nazwą. */
+   i kolor wycofany, żeby nie konkurowała z nazwą.
+
+   WYRÓWNANA DO PRAWEJ KRAWĘDZI OSTATNIEJ LITERY logotypu, a nie do krawędzi
+   obrazu. Za literą „a" siedzi jeszcze znaczek ™ i wyrównanie do brzegu pliku
+   dawałoby wrażenie przesunięcia w prawo.
+
+   Odsunięcie ZMIERZONE w pikselach pliku, nie dobrane na oko: skanowanie
+   kolumn logotypu pokazało tusz litery do x = 1016, a znaczka do x = 1060,
+   przy szerokości 1081. Zostaje około 6% szerokości obrazu.
+
+   Procent, nie piksele — wyrównanie trzyma się wtedy przy każdej wysokości
+   logotypu, a ta może się jeszcze zmienić. */
 .brand__wersja {
-  font-size: 0.62rem;
-  font-weight: 500;
+  font-size: 0.56rem;
+  font-weight: 400;
   letter-spacing: 0;
   color: var(--ink-faint);
-}
-
-.brand__dot {
-  color: var(--accent);
+  text-align: right;
+  padding-right: 6%;
 }
 
 .nav {
@@ -3458,13 +3467,23 @@ body::after {
    Znaczek towarowy stoi w prawym górnym indeksie nazwy — tak każe typografia
    i tak czyta się jako część wordmarku, a nie jako osobny element ekranu. */
 
-.brand__tm {
-  font-size: 0.42em;
-  font-weight: 600;
-  vertical-align: super;
-  letter-spacing: 0;
-  margin-left: 0.08em;
-  opacity: 0.75;
+/* Logotyp Entalvia w lewym górnym rogu.
+
+   Wysokość, nie szerokość: pasek ma stałą wysokość, a logotyp jest bardzo
+   szeroki (5,6:1), więc ograniczanie szerokości dawałoby różny rozmiar przy
+   każdej zmianie okna. `width: auto` trzyma proporcje.
+
+   NOCĄ ODWRACAMY. Plik jest jednobarwny i prawie czarny, więc na ciemnym tle
+   zniknąłby. Przy jednej barwie zwykłe `invert` wystarcza i nie psuje niczego
+   — inaczej niż przy logo Tauronu, gdzie magenta wymagała obrotu barwy. */
+.brand__logo {
+  display: block;
+  height: 26px;
+  width: auto;
+}
+
+:root[data-theme='dark'] .brand__logo {
+  filter: invert(1);
 }
 
 /* --- Mapa: przełącznik sposobu kolorowania -------------------------------
