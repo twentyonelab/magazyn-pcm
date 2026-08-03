@@ -9,6 +9,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useLiveData } from './useLiveData.js';
 import { Diagnostyka } from './views/Diagnostyka.js';
 import { Magazyn } from './views/Magazyn.js';
+import { Lista } from './views/Lista.js';
 import { Przebiegi } from './views/Przebiegi.js';
 import { Sesje } from './views/Sesje.js';
 import { Bilans } from './views/Bilans.js';
@@ -20,7 +21,8 @@ import { WERSJA } from './wersja.js';
 import { TRYB_POKAZOWY } from './demo/stale.js';
 import { ustawAktywnyPunkt } from './demo/aktywnyPunkt.js';
 import { useDanePunktu } from './demo/useDanePunktu.js';
-import { STANOWISKO, type Lokalizacja } from './map/lokalizacje.js';
+import { type Lokalizacja } from './map/lokalizacje.js';
+import type { Kierunek } from './soc.js';
 import { BladWidoku } from './components/BladWidoku.js';
 import { PlakietkaPokazowa } from './components/PlakietkaPokazowa.js';
 import { Logowanie } from './components/Logowanie.js';
@@ -77,10 +79,27 @@ function usePobierzWczesniej3D(wlaczony: boolean): void {
   }, [wlaczony]);
 }
 
-type ViewId =
-  | 'mapa'
-  | 'magazyn'
-  | 'magazyn3d'
+/**
+ * DWA POZIOMY NAWIGACJI.
+ *
+ * Poprzednio wszystkie widoki leżały w jednym rzędzie: mapa obok schematu,
+ * schemat obok bilansu. To było niespójne — mapa jest spisem WSZYSTKICH
+ * magazynów, a schemat i bilans mówią o JEDNYM, konkretnym. Menu pokazywało
+ * więc „Magazyn" i „Bilans" także wtedy, gdy żaden magazyn nie był wybrany,
+ * a pokazywały dane stanowiska badawczego, jakby było jedyne.
+ *
+ *   przeglad   Mapa i Lista. Nic nie jest wybrane, interfejs jest NEUTRALNY —
+ *              bez barwy nośnika, bo nie wiadomo jeszcze, jakiego.
+ *
+ *   magazyn    Wnętrze jednego magazynu: schemat, scena 3D, przebiegi, bilans,
+ *              sesje, diagnostyka, ustawienia. Tu interfejs bierze barwę
+ *              nośnika, a przycisk domu wraca na przegląd.
+ */
+type WidokPrzegladu = 'mapa' | 'lista';
+
+type WidokMagazynu =
+  | 'schemat'
+  | 'schemat3d'
   | 'przebiegi'
   | 'bilans'
   | 'diagnostyka'
@@ -92,7 +111,12 @@ type ViewId =
  * Pozostałe zostają w czytelnej kolumnie — tam treścią są liczby i tabele,
  * a wiersz ciągnący się przez cały monitor czyta się gorzej.
  */
-const OBRAZOWE = new Set<ViewId>(['mapa', 'magazyn', 'magazyn3d']);
+const OBRAZOWE = new Set<string>(['mapa', 'schemat', 'schemat3d']);
+
+const WIDOKI_PRZEGLADU: Array<{ id: WidokPrzegladu; label: string }> = [
+  { id: 'mapa', label: 'Mapa' },
+  { id: 'lista', label: 'Lista' },
+];
 
 /**
  * Adres pliku z katalogu `web/public`.
@@ -107,10 +131,9 @@ function plik(nazwa: string): string {
   return `${import.meta.env.BASE_URL}${nazwa}`;
 }
 
-const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
-  { id: 'mapa', label: 'Mapa' },
-  { id: 'magazyn', label: 'Magazyn' },
-  { id: 'magazyn3d', label: 'Magazyn 3D' },
+const WIDOKI_MAGAZYNU: Array<{ id: WidokMagazynu; label: string; icon?: 'trybik' }> = [
+  { id: 'schemat', label: 'Schemat' },
+  { id: 'schemat3d', label: 'Schemat 3D' },
   { id: 'przebiegi', label: 'Przebiegi' },
   { id: 'bilans', label: 'Bilans' },
   { id: 'sesje', label: 'Sesje' },
@@ -119,44 +142,74 @@ const VIEWS: Array<{ id: ViewId; label: string; icon?: 'trybik' }> = [
 ];
 
 export function App() {
-  const [view, setView] = useState<ViewId>('mapa');
-  /** Sondy przekazane z widoku Magazyn do Przebiegów (klik w sondę). */
-  const [przebiegiIds, setPrzebiegiIds] = useState<string[]>([]);
   /**
-   * Oglądany punkt z mapy. `null` = stanowisko badawcze i prawdziwe pomiary.
+   * OTWARTY MAGAZYN. `null` = jesteśmy na przeglądzie i nic nie jest wybrane.
    *
-   * Wejście w punkt pokazowy podmienia całe źródło danych i barwę interfejsu,
-   * ale NIE rusza strumienia z serwera — powrót ma być natychmiastowy.
+   * To jest teraz główny przełącznik aplikacji: decyduje, który poziom
+   * nawigacji widać, skąd biorą się dane i jaką barwę ma interfejs.
    */
-  const [punkt, setPunkt] = useState<Lokalizacja | null>(null);
+  const [otwarty, setOtwarty] = useState<Lokalizacja | null>(null);
+  const [widokPrzegladu, setWidokPrzegladu] = useState<WidokPrzegladu>('mapa');
+  const [widokMagazynu, setWidokMagazynu] = useState<WidokMagazynu>('schemat');
+  /** Sondy przekazane ze schematu do Przebiegów (klik w sondę). */
+  const [przebiegiIds, setPrzebiegiIds] = useState<string[]>([]);
+
+  /**
+   * Punkt POKAZOWY do podmiany źródła danych.
+   *
+   * Stanowisko badawcze ma prawdziwe pomiary i dla niego zostaje `null` —
+   * strumień z serwera pracuje wtedy normalnie. Model wchodzi tylko za punkty
+   * z mapy, za którymi nie stoi żadna instalacja.
+   */
+  const punktPokazowy = otwarty?.stan === 'demo' ? otwarty : null;
 
   const zywe = useLiveData();
-  const data = useDanePunktu(zywe, punkt);
+  const data = useDanePunktu(zywe, punktPokazowy);
   const settings = useSettings();
   const theme = useAppliedTheme();
 
-  /**
-   * Barwa całego interfejsu idzie za NOŚNIKIEM oglądanego magazynu:
-   * parafina 57HC — pomarańcz, materiał 8HC — lodowy błękit.
+/**
+   * Barwa całego interfejsu idzie za NOŚNIKIEM otwartego magazynu:
+   * parafina 57HC — pomarańcz, materiał 8HC — stalowy błękit.
    *
-   * Źródłem jest materiał sesji (stanowisko) albo rodzaj punktu (mapa), nigdy
-   * sam widok — inaczej ten sam magazyn miałby inny kolor w Magazynie
-   * i w Przebiegach.
+   * Na PRZEGLĄDZIE jest `null`, czyli neutralnie. Mapa i lista pokazują
+   * dwadzieścia jeden obiektów obu rodzajów naraz i pomalowanie całego okna
+   * na jeden z nich byłoby po prostu nieprawdą.
+   *
+   * Dla punktu pokazowego źródłem jest jego rodzaj, dla stanowiska — materiał
+   * sesji albo rozpoznanego zbiornika. Nigdy sam widok: inaczej ten sam
+   * magazyn miałby inną barwę w schemacie i w przebiegach.
    */
-  const kierunek = punkt
-    ? punkt.typ
-    : (data.session?.material ?? data.materials?.defaultMaterial) === 'RT8HC'
-      ? 'chlod'
-      : 'cieplo';
+  const kierunek: Kierunek | null = !otwarty
+    ? null
+    : otwarty.stan === 'demo'
+      ? otwarty.typ
+      : (data.session?.material ?? data.materials?.defaultMaterial) === 'RT8HC'
+        ? 'chlod'
+        : 'cieplo';
 
   useEffect(() => {
-    document.documentElement.dataset.kierunek = kierunek;
+    if (kierunek) document.documentElement.dataset.kierunek = kierunek;
+    else delete document.documentElement.dataset.kierunek;
   }, [kierunek]);
 
   // Warstwa API czyta wybrany punkt poza Reactem — patrz demo/aktywnyPunkt.ts.
   useEffect(() => {
-    ustawAktywnyPunkt(punkt);
-  }, [punkt]);
+    ustawAktywnyPunkt(punktPokazowy);
+  }, [punktPokazowy]);
+
+  /** Otwarcie magazynu z mapy albo z listy. */
+  const otworz = (wybrany: Lokalizacja): void => {
+    setOtwarty(wybrany);
+    setWidokMagazynu('schemat');
+    setPrzebiegiIds([]);
+  };
+
+  /** Powrót na przegląd — przycisk domu. */
+  const doPrzegladu = (): void => {
+    setOtwarty(null);
+    setPrzebiegiIds([]);
+  };
 
   // Paczka 3D ląduje w pamięci przeglądarki jeszcze przed kliknięciem.
   usePobierzWczesniej3D(settings.widok3d);
@@ -169,7 +222,7 @@ export function App() {
 
   const openInPrzebiegi = (pointId: string): void => {
     setPrzebiegiIds([pointId]);
-    setView('przebiegi');
+    setWidokMagazynu('przebiegi');
   };
 
   // Brama logowania. Gdy serwer jej nie wymaga (praca w sieci laboratorium),
@@ -179,8 +232,15 @@ export function App() {
   }
 
   // Widok 3D da się wyłączyć w opcjach — także wtedy, gdy jest otwarty.
-  const views = VIEWS.filter((item) => item.id !== 'magazyn3d' || settings.widok3d);
-  const activeView = views.some((item) => item.id === view) ? view : 'magazyn';
+  const widokiMagazynu = WIDOKI_MAGAZYNU.filter(
+    (item) => item.id !== 'schemat3d' || settings.widok3d,
+  );
+  const widokWMagazynie = widokiMagazynu.some((item) => item.id === widokMagazynu)
+    ? widokMagazynu
+    : 'schemat';
+
+  /** Nazwa aktywnego widoku — decyduje o ramie i o kluczu granicy błędu. */
+  const activeView: string = otwarty ? widokWMagazynie : widokPrzegladu;
 
   return (
     <div className="app" ref={ramaRef}>
@@ -206,33 +266,75 @@ export function App() {
             pozycjonowanym opakowaniu. Przełącznik motywu wisi tuż za jej
             prawą krawędzią, już poza pastylką, i nie przesuwa jej środka. */}
         <div className="topbar__center">
-        <nav className="nav" aria-label="Widoki">
-          {views.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`nav__item${activeView === item.id ? ' is-active' : ''}${
-                item.icon ? ' nav__item--icon' : ''
-              }`}
-              onClick={() => {
-                // Wejście w Przebiegi z nawigacji czyści zaznaczenie z kliknięcia
-                // sondy — inaczej badacz widziałby jedną serię i nie wiedział czemu.
-                if (item.id === 'przebiegi') setPrzebiegiIds([]);
-                setView(item.id);
-              }}
-              aria-label={item.icon ? item.label : undefined}
-              title={item.icon ? item.label : undefined}
-            >
-              {item.icon === 'trybik' ? (
-                <span className="nav__emoji" aria-hidden="true">
-                  ⚙️
+          {/*
+            Nawigacja pokazuje TYLKO ten poziom, na którym jesteśmy.
+
+            Na przeglądzie są dwie pozycje — mapa i lista, dwie odpowiedzi na to
+            samo pytanie „co mamy". Po wejściu w magazyn wchodzi jego wnętrze,
+            a przed pozycjami staje dom i nazwa obiektu: bez tego po kilku
+            kliknięciach nie wiadomo, czyje liczby są na ekranie.
+          */}
+          <nav className="nav" aria-label={otwarty ? `Widoki magazynu ${otwarty.nazwa}` : 'Widoki'}>
+            {otwarty ? (
+              <>
+                <button
+                  type="button"
+                  className="nav__item nav__item--dom"
+                  onClick={doPrzegladu}
+                  title="Wróć do mapy i listy magazynów"
+                  aria-label="Wróć do przeglądu magazynów"
+                >
+                  <span className="nav__emoji" aria-hidden="true">
+                    ⌂
+                  </span>
+                </button>
+                <span className="nav__obiekt" title={`${otwarty.nazwa} · ${otwarty.miasto}`}>
+                  <span
+                    className={`nav__obiekt-kropka is-${kierunek ?? otwarty.typ}`}
+                    aria-hidden="true"
+                  />
+                  {otwarty.nazwa}
                 </span>
-              ) : (
-                item.label
-              )}
-            </button>
-          ))}
-        </nav>
+                <span className="nav__rozdzielacz" aria-hidden="true" />
+                {widokiMagazynu.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`nav__item${widokWMagazynie === item.id ? ' is-active' : ''}${
+                      item.icon ? ' nav__item--icon' : ''
+                    }`}
+                    onClick={() => {
+                      // Wejście w Przebiegi z nawigacji czyści zaznaczenie z kliknięcia
+                      // sondy — inaczej badacz widziałby jedną serię i nie wiedział czemu.
+                      if (item.id === 'przebiegi') setPrzebiegiIds([]);
+                      setWidokMagazynu(item.id);
+                    }}
+                    aria-label={item.icon ? item.label : undefined}
+                    title={item.icon ? item.label : undefined}
+                  >
+                    {item.icon === 'trybik' ? (
+                      <span className="nav__emoji" aria-hidden="true">
+                        ⚙️
+                      </span>
+                    ) : (
+                      item.label
+                    )}
+                  </button>
+                ))}
+              </>
+            ) : (
+              WIDOKI_PRZEGLADU.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`nav__item${widokPrzegladu === item.id ? ' is-active' : ''}`}
+                  onClick={() => setWidokPrzegladu(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))
+            )}
+          </nav>
 
           <PrzelacznikMotywu />
         </div>
@@ -257,51 +359,47 @@ export function App() {
         znosić.
       */}
       <main className={`main${OBRAZOWE.has(activeView) ? ' main--obraz' : ''}`}>
-        <BladWidoku resetKey={activeView}>
-          {activeView === 'mapa' ? (
+        {/* Klucz granicy błędu zawiera OTWARTY MAGAZYN, nie tylko widok:
+            wejście w inny obiekt ma zerować ewentualny błąd poprzedniego. */}
+        <BladWidoku resetKey={`${otwarty?.id ?? 'przeglad'}:${activeView}`}>
+          {!otwarty && widokPrzegladu === 'mapa' ? (
             <Suspense fallback={<div className="note">Wczytuję mapę…</div>}>
-              <Mapa
-                data={data}
-                onOtworzMagazyn={(wybrany) => {
-                  setPunkt(wybrany.stan === 'live' ? null : wybrany);
-                  setView('magazyn');
-                }}
-              />
+              <Mapa data={data} onOtworzMagazyn={otworz} />
             </Suspense>
           ) : null}
-          {activeView === 'magazyn' ? (
+          {!otwarty && widokPrzegladu === 'lista' ? (
+            <Lista data={data} onOtworz={otworz} />
+          ) : null}
+
+          {otwarty && widokWMagazynie === 'schemat' ? (
             <Magazyn data={data} onOpenInPrzebiegi={openInPrzebiegi} />
           ) : null}
-          {activeView === 'magazyn3d' ? (
+          {otwarty && widokWMagazynie === 'schemat3d' ? (
             <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
               <Magazyn3D data={data} />
             </Suspense>
           ) : null}
-          {activeView === 'przebiegi' ? (
+          {otwarty && widokWMagazynie === 'przebiegi' ? (
             // Klucz zeruje stan formularza, gdy przyjdziemy z inną sondą.
             <Przebiegi key={przebiegiIds.join(',')} data={data} initialIds={przebiegiIds} />
           ) : null}
-          {activeView === 'bilans' ? <Bilans data={data} /> : null}
-          {activeView === 'sesje' ? <Sesje data={data} /> : null}
-          {activeView === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
-          {activeView === 'ustawienia' ? <Ustawienia data={data} /> : null}
+          {otwarty && widokWMagazynie === 'bilans' ? <Bilans data={data} /> : null}
+          {otwarty && widokWMagazynie === 'sesje' ? <Sesje data={data} /> : null}
+          {otwarty && widokWMagazynie === 'diagnostyka' ? <Diagnostyka data={data} /> : null}
+          {otwarty && widokWMagazynie === 'ustawienia' ? <Ustawienia data={data} /> : null}
         </BladWidoku>
       </main>
 
-      {/* Pasek oglądanego punktu pokazowego. Wisi nisko przy lewej krawędzi,
-          poza drogą schematu, i jest JEDYNYM wyjściem z powrotem na stanowisko
-          — nawigacja u góry przełącza widoki, nie źródło danych. */}
-      {punkt ? (
+{/* Ostrzeżenie, że oglądany magazyn nie ma instalacji.
+          Nazwa i wyjście przeniosły się do nagłówka (dom + nazwa obiektu), więc
+          zostaje samo to, czego nagłówek nie powie: że te liczby są wyliczone. */}
+      {punktPokazowy ? (
         <div className="punkt-pasek">
-          <span className={`punkt-pasek__kropka is-${punkt.typ}`} aria-hidden="true" />
-          <span className="punkt-pasek__nazwa">{punkt.nazwa}</span>
+          <span className={`punkt-pasek__kropka is-${punktPokazowy.typ}`} aria-hidden="true" />
           <span className="punkt-pasek__opis">
-            punkt pokazowy · {punkt.typ === 'chlod' ? 'magazyn chłodu' : 'magazyn ciepła'} · dane
-            wyliczone
+            punkt pokazowy · {punktPokazowy.typ === 'chlod' ? 'magazyn chłodu' : 'magazyn ciepła'} ·
+            dane wyliczone, nie zmierzone
           </span>
-          <button type="button" className="punkt-pasek__wroc" onClick={() => setPunkt(null)}>
-            wróć na stanowisko
-          </button>
         </div>
       ) : null}
 

@@ -33,11 +33,15 @@ export const PALETA: Record<Kierunek, PaletaMagazynu> = {
     tlo: '#FAEEDA',
     ciemny: '#712B13',
   },
+  // STALOWY, nie lodowy blekit. Nasycony #378ADD wygladal jak kolor
+  // interfejsu aplikacji, nie jak barwa nosnika — i po wejsciu w magazyn chlodu
+  // caly ekran robil sie jaskrawo niebieski. Stalowa szarosc z niebieskim
+  // podtonem czyta sie jako 'chlod', a nie jako 'link'.
   chlod: {
-    glowny: '#378ADD',
-    jasny: '#85B7EB',
-    tlo: '#E6F1FB',
-    ciemny: '#0C447C',
+    glowny: '#4D7A91',
+    jasny: '#8FB0C0',
+    tlo: '#E8EEF1',
+    ciemny: '#1F3D4D',
   },
 };
 

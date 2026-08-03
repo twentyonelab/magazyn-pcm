@@ -39,9 +39,10 @@
   --cieplo: #d85a30;
   --cieplo-jasny: #f0997b;
   --cieplo-tlo: #faeeda;
-  --chlod: #378add;
-  --chlod-jasny: #85b7eb;
-  --chlod-tlo: #e6f1fb;
+  /* Stalowy blekit — te same wartosci co PALETA.chlod w kolory-magazynu.ts. */
+  --chlod: #4d7a91;
+  --chlod-jasny: #8fb0c0;
+  --chlod-tlo: #e8eef1;
 
   /* ---------------------------------------------------------------------
      AKCENT — barwa NOŚNIKA, którym pracuje oglądany magazyn.
@@ -3465,4 +3466,134 @@ body::after {
   font-size: 0.6rem;
   letter-spacing: 0.02em;
   white-space: nowrap;
+}
+
+/* --- Nawigacja: dom, nazwa otwartego magazynu, rozdzielacz ----------------
+   Nagłówek na poziomie magazynu mówi, CZYJE liczby są na ekranie. Bez tego po
+   kilku kliknięciach w widoki traci się orientację, zwłaszcza że dane punktu
+   pokazowego wyglądają dokładnie tak samo jak prawdziwe. */
+
+.nav__item--dom {
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.nav__obiekt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.5rem 0 0.35rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav__obiekt-kropka {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.nav__obiekt-kropka.is-cieplo {
+  background: var(--cieplo);
+}
+
+.nav__obiekt-kropka.is-chlod {
+  background: var(--chlod);
+}
+
+.nav__rozdzielacz {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.35rem 0.3rem;
+  background: var(--hairline);
+}
+
+/* Na wąskim ekranie nazwa ustępuje — dom i widoki są ważniejsze,
+   a nazwę i tak powtarza pasek punktu pokazowego oraz tytuł widoku. */
+@media (max-width: 900px) {
+  .nav__obiekt,
+  .nav__rozdzielacz {
+    display: none;
+  }
+}
+
+/* --- Lista magazynów ------------------------------------------------------
+   Wiersz jest przyciskiem: cały, nie tylko strzałka na końcu. Dwadzieścia jeden
+   pozycji przeglądanych wzrokiem w dół kolumny — celowanie w małą strzałkę
+   byłoby tu karą, nie ułatwieniem. */
+
+.tabela-magazynow__wiersz {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.tabela-magazynow__wiersz:hover,
+.tabela-magazynow__wiersz:focus-visible {
+  background: var(--surface-sunken);
+  outline: none;
+}
+
+.tabela-magazynow__wiersz.is-live strong {
+  /* Stanowisko badawcze to jedyny wiersz z prawdziwymi pomiarami —
+     ma się wyróżniać bez krzyku. */
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--ok-ink);
+}
+
+.tabela-magazynow__kropka {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  vertical-align: baseline;
+}
+
+.tabela-magazynow__tor {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  height: 4px;
+  margin: 0.3rem 0 0 auto;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.tabela-magazynow__wypelnienie {
+  display: block;
+  height: 100%;
+}
+
+.tabela-magazynow__stan {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.tabela-magazynow__stan.is-live {
+  color: var(--ok-ink);
+  font-weight: 600;
+}
+
+/* Ostrzeżenie, że średnia wypada poza zakresem pracy materiału. */
+.tabela-magazynow__uwaga {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: help;
 }

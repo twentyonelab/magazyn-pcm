@@ -5,8 +5,9 @@
  * Na mapie Śląska jest jedno stanowisko z czujnikami i dwadzieścia punktów
  * pokazowych. Kliknięcie w to jedno prawdziwe wchodzi do widoku Magazyn.
  *
- * MAPA JEST TRÓJWYMIAROWA — styl Mapbox Standard, motyw „faded", oświetlenie
- * dobierane do trybu aplikacji: „day" w jasnym, „night" w ciemnym. Wszystkie
+ * MAPA JEST TRÓJWYMIAROWA — styl Mapbox Standard, motyw „monochrome" (do zmiany
+ * przełącznikiem pod lupami), oświetlenie za trybem aplikacji: „day" w jasnym,
+ * „night" w ciemnym. Wszystkie
  * nazwy ustawień pochodzą z dokumentacji Mapboxa (patrz stałe niżej), żadna
  * nie jest zgadnięta.
  *
@@ -76,6 +77,36 @@ const MOTYW_DOMYSLNY: SposobKolorowania = 'monochrome';
 /** Źródło rzeźby terenu — identyfikator i adres z dokumentacji Mapboxa. */
 const DEM_ID = 'mapbox-dem';
 const DEM_URL = 'mapbox://mapbox.mapbox-terrain-dem-v1';
+
+/*
+ * PODPISÓW MAPY NIE DA SIĘ PRZYGASIĆ — sprawdzone, nie założone.
+ *
+ * Prośba brzmiała: nazwy miast na 30% krycia. Nie zrobiłem tego, bo styl
+ * Mapbox Standard na to nie pozwala, i wolę zostawić tu powód niż martwy kod.
+ *
+ * Co sprawdziłem w działającej aplikacji:
+ *   • warstwy podpisów WIDAĆ w `getStyle().imports[0].data.layers`
+ *     (settlement-major-label, state-label, country-label i dalsze),
+ *   • ale `map.getLayer(id)` zwraca dla nich `undefined` — nie są
+ *     adresowalne z zewnątrz, bo należą do importowanego stylu,
+ *   • `setPaintProperty` na nich NIE rzuca wyjątku, tylko zgłasza błąd
+ *     zdarzeniem `error` — czyli u nas czerwonym banerem „Mapa nie wczytała
+ *     się w całości". To dlatego pierwsze podejście wyglądało na udane:
+ *     wnioskowałem z braku wyjątku, co niczego nie dowodziło,
+ *   • konfiguracja Standard nie ma żadnej właściwości barwy ani krycia
+ *     podpisów — `colorPlaceLabel` i `placeLabelColor` zwracają `null`.
+ *     Jest wyłącznie `showPlaceLabels`: włącz albo wyłącz.
+ *
+ * Zostają więc dwie realne drogi, obie do decyzji:
+ *   1. `showPlaceLabels: false` i własne podpisy miast jako znaczniki —
+ *      pełna kontrola nad krycien, ale trzeba je wybrać i rozmieścić,
+ *   2. zejście ze Standard na klasyczny styl (np. `light-v11`), którego
+ *      warstwy SĄ adresowalne — kosztem trójwymiaru i pola `theme`,
+ *      czyli tych szarości, o które prosiłeś w tej samej wiadomości.
+ *
+ * Do tego czasu podpisy zostają w barwie stylu; motyw `monochrome` i tak
+ * je odbarwia.
+ */
 
 /** Pochylenie kamery. Bez niego „3D" jest tylko nazwą. */
 const POCHYLENIE = 52;
