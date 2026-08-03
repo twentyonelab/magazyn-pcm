@@ -931,12 +931,11 @@ code {
    Rozwinięty panel leży NAD schematem (absolutnie), więc rozwinięcie nie
    przestawia rysunku instalacji pod kursorem. */
 
+/* Pojemnik układu. Wygląd niosą jej dzieci — patrz blok szkła na końcu
+   arkusza, gdzie wyjaśnione jest, dlaczego filtr nie może wisieć tutaj. */
 .belka {
   position: relative;
-  background: var(--surface);
-  border: 0.5px solid var(--hairline);
   border-radius: 12px;
-  box-shadow: var(--shadow-sm);
   /* Nad schematem, ale pod panelami sond (te mają z-index 3). */
   z-index: 4;
 }
@@ -1151,7 +1150,6 @@ code {
   left: 0;
   right: 0;
   z-index: 5;
-  background: var(--surface);
   /* Obramowanie TYLKO u góry i u dołu.
      Boczne dodawałoby pół piksela wcięcia i oś wykresu przestawałaby pokrywać
      się z paskiem co do piksela — a to warunek krytyczny tej belki. Krawędzie
@@ -2940,23 +2938,37 @@ body::after {
    na mini-PC z grafiką zintegrowaną, z mapą WebGL pod spodem, może być
    odczuwalne. Do sprawdzenia na docelowym sprzęcie. */
 :root {
-  --szklo-blur: 72px;
-  --szklo-nasycenie: 1.9;
-  --szklo-jasnosc: 1.18;
-  /* Krycie papieru: drobny interfejs i panele z treścią. */
-  --szklo-papier: 38%;
-  --szklo-papier-panel: 58%;
+  /* Przepis dokładnie taki, jak ustalony: 18% wypełnienia, rozmycie 25 px
+     z podbitym nasyceniem, krawędź jednopikselowa. Bez rozjaśniania —
+     w tej wersji liczy się wygląd, nie zapas czytelności. */
+  --szklo-blur: 25px;
+  --szklo-nasycenie: 1.4;
+  --szklo-papier: 18%;
 
-  --szklo-rozmycie: blur(var(--szklo-blur)) saturate(var(--szklo-nasycenie))
-    brightness(var(--szklo-jasnosc));
-  --szklo-krawedz: 0.5px solid color-mix(in srgb, #ffffff 70%, transparent);
-  --szklo-szlif:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 60%, transparent),
-    0 8px 28px rgba(15, 15, 15, 0.07);
+  --szklo-rozmycie: blur(var(--szklo-blur)) saturate(var(--szklo-nasycenie));
+  --szklo-krawedz: 1px solid rgba(255, 255, 255, 0.35);
+  --szklo-wypelnienie: rgba(255, 255, 255, var(--szklo-papier-ulamek, 0.18));
+  --szklo-szlif: 0 8px 28px rgba(15, 15, 15, 0.07);
 }
 
+/* TU BYŁ BŁĄD, z powodu którego rozmycie „nie działało".
+   =========================================================================
+   `backdrop-filter` na elemencie czyni z niego KORZEŃ TŁA (backdrop root) dla
+   wszystkiego, co w nim siedzi. Rozwinięty panel belki jest jej dzieckiem —
+   więc gdy filtr wisiał na `.belka`, panel rozmywał wyłącznie to, co
+   narysowane WEWNĄTRZ belki pod nim. A tam nie ma nic. Panel był
+   półprzezroczysty i schemat przez niego prześwitywał, ale całkowicie OSTRY:
+   wyglądało to jak brak rozmycia, bo nim było.
+
+   Dlatego filtr schodzi na dwoje dzieci belki — `.belka__glowa` (zwinięta
+   część, cała jest przyciskiem) i `.belka__panel`. Oba są teraz rodzeństwem
+   w kontenerze bez filtra, więc każde rozmywa to, co pod NIM na stronie:
+   schemat, poświatę, mapę.
+
+   Sama `.belka` zostaje przezroczystym pojemnikiem układu — bez tła, bez
+   krawędzi i bez cienia, żeby nie kładła drugiej szyby na te dwie. */
 .nav,
-.belka,
+.belka__glowa,
 .belka__panel,
 .pogoda,
 .tool,
@@ -2968,6 +2980,32 @@ body::after {
   backdrop-filter: var(--szklo-rozmycie);
   border: var(--szklo-krawedz);
   box-shadow: var(--szklo-szlif);
+}
+
+.belka {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Głowa i panel mają wyglądać jak jedna tafla: zaokrąglenia tylko na
+   zewnętrznych narożnikach, a styk bez podwójnej krawędzi. */
+.belka__glowa {
+  border-radius: 12px;
+}
+
+.belka.is-open .belka__glowa {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.belka__panel {
+  border-top-width: 0;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 /* Belka musi leżeć NAD schematem, bo jej rozwinięty panel wchodzi na jego
@@ -2983,21 +3021,32 @@ body::after {
   z-index: 4;
 }
 
-/* Drobny interfejs — najbardziej przejrzysty. */
+/* JEDNO krycie dla wszystkich tafli — podział na „drobny interfejs" i „panele
+   z treścią" znika. Wcześniej panele miały 58–88%, żeby dało się je czytać;
+   teraz wszystkie mają 18% i wyglądają jak szkło. To zamiana czytelności na
+   wygląd, podjęta świadomie. */
 .nav,
-.belka,
-.tool,
-.theme-toggle,
-.demo-przeplyw__przycisk {
-  background: color-mix(in srgb, var(--surface) var(--szklo-papier), transparent);
-}
-
-/* Panele z treścią — więcej papieru, ale nadal szklane. */
+.belka__glowa,
 .belka__panel,
 .pogoda,
+.tool,
+.theme-toggle,
+.demo-przeplyw__przycisk,
 .probe-panel,
 .mapboxgl-popup-content {
-  background: color-mix(in srgb, var(--surface) var(--szklo-papier-panel), transparent);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+:root[data-theme='dark'] .nav,
+:root[data-theme='dark'] .belka__glowa,
+:root[data-theme='dark'] .belka__panel,
+:root[data-theme='dark'] .pogoda,
+:root[data-theme='dark'] .tool,
+:root[data-theme='dark'] .theme-toggle,
+:root[data-theme='dark'] .demo-przeplyw__przycisk,
+:root[data-theme='dark'] .probe-panel,
+:root[data-theme='dark'] .mapboxgl-popup-content {
+  background: rgba(18, 18, 15, 0.32);
 }
 
 /* Rozmycie działa tylko wtedy, gdy pod spodem COŚ JEST. Kafelek pogody, panele
@@ -3008,10 +3057,11 @@ body::after {
   z-index: 0;
 }
 
-/* Rozwinięcie belki dziedziczy taflę, ale bez górnej krawędzi — ma się
-   sklejać z belką w jeden obiekt. */
+/* Styk głowy z panelem BEZ kreski. Wcześniej stała tu szara linia; przy dwóch
+   osobnych taflach czytałaby się jako podwójna krawędź, a mają wyglądać jak
+   jedna szyba przełamana w poziomie. */
 .belka__panel {
-  border-top: 0.5px solid var(--hairline);
+  border-top-width: 0;
 }
 
 /* Nocą JASNOŚĆ IDZIE W DÓŁ, nie w górę: rozjaśnianie tła ma sens tam, gdzie
@@ -3019,26 +3069,14 @@ body::after {
    rozmyte tło trzeba przygasić w stronę czerni — ten sam mechanizm, przeciwny
    kierunek. Papieru też nieco więcej, bo jasny tekst na ciemnym tle ma mniejszy
    zapas kontrastu. */
+/* Nocą biel zamienia się w czerń — 18% bieli na ciemnym tle dałoby mleczną
+   mgłę. Ułamek krycia zostaje ten sam, zmienia się tylko barwa szyby. */
 :root[data-theme='dark'] {
-  --szklo-jasnosc: 0.68;
-  --szklo-papier: 46%;
-  --szklo-papier-panel: 66%;
+  --szklo-krawedz: 1px solid rgba(255, 255, 255, 0.14);
+  --szklo-szlif: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme='dark'] .nav,
-:root[data-theme='dark'] .belka,
-:root[data-theme='dark'] .belka__panel,
-:root[data-theme='dark'] .pogoda,
-:root[data-theme='dark'] .tool,
-:root[data-theme='dark'] .theme-toggle,
-:root[data-theme='dark'] .demo-przeplyw__przycisk,
-:root[data-theme='dark'] .probe-panel,
-:root[data-theme='dark'] .mapboxgl-popup-content {
-  border-color: color-mix(in srgb, #ffffff 10%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent),
-    0 8px 28px rgba(0, 0, 0, 0.35);
-}
+
 
 
 
