@@ -2896,34 +2896,62 @@ body::after {
    robi wrażenie szlifu tafli. Blok stoi na końcu arkusza celowo — wygrywa
    kolejnością z wcześniejszymi definicjami tła tych elementów. */
 
-/* Rozmycie jest MOCNE i jednakowe dla wszystkiego — 44 px zamienia to, co pod
-   spodem, w barwną mgłę, a nie w rozmazany rysunek, który wciąż próbuje się
-   czytać. Trzymamy je w zmiennej, żeby wszystkie tafle miały tę samą optykę.
+/* WERSJA TESTOWA — MOCNE ROZMYCIE.
+   =========================================================================
+   Wszystko, co decyduje o wyglądzie szkła, siedzi w pięciu zmiennych poniżej.
+   Dostrojenie to zmiana jednej liczby, nie przeszukiwanie arkusza.
 
-   PAPIER MA DWA POZIOMY i to jest tu najważniejsza decyzja.
+   TRZY RZECZY, KTÓRE RAZEM DAJĄ EFEKT — i po co każda z nich:
 
-   Przy jednolitych 42% rozwinięta belka pokazywała naraz swój wykres entalpii
-   I schemat instalacji pod nim — dwie grafiki nałożone na siebie, z których
-   żadnej nie dało się odczytać. Samo zwiększenie rozmycia tego nie ratuje:
-   rozmyty rysunek nadal ma kontrast, a kontrast pod tekstem zabija czytelność.
-   Potrzebna jest krycie.
+     rozmycie     72 px. Przy tej średnicy cienkie rury schematu przestają
+                  istnieć, a większe napisy pod spodem tracą kształt.
 
-   Stąd podział:
+     nasycenie    Podbite, bo rozmycie samo z siebie spłaszcza barwy —
+                  bez tego mgła pod taflą wychodzi szara i martwa.
+
+     jasność      TO JEST DŹWIGNIA, która pozwala trzymać niskie krycie.
+                  Rozjaśnienie ciągnie rozmyte tło w stronę bieli, więc traci
+                  ono KONTRAST, zachowując ruch barwny. A pod tekstem
+                  przeszkadza właśnie kontrast, nie kolor. Nocą działa
+                  odwrotnie — przygasza tło w stronę czerni, bo tam czytamy
+                  jasnym pismem po ciemnym.
+
+   PAPIER MA DWA POZIOMY, niżej niż w wersji poprzedniej (88% → 58%), bo przy
+   krycie 88% rozmycia praktycznie nie było widać — przepuszczało tylko
+   kilkanaście procent tła. Teraz efekt jest wyraźny, ale trzeba go OCENIĆ NA
+   ŻYWO: to zamiana czytelności na wygląd i granica jest kwestią decyzji, nie
+   obliczenia.
 
      drobny interfejs   pastylki, przyciski, plakietki. Nie niosą treści do
-                        czytania poza własną etykietą, więc mogą być przejrzyste
-                        — i właśnie na nich efekt szkła widać najładniej.
+                        czytania poza własną etykietą — mogą być najbardziej
+                        przejrzyste i właśnie na nich szkło wygląda najlepiej.
 
      panele z treścią   rozwinięta belka, pogoda, panele sond, dymki mapy.
-                        Tu są liczby, tabele i wykresy. Tło musi być na tyle
-                        kryjące, żeby nic pod spodem z nimi nie konkurowało;
-                        szkło zostaje widoczne na krawędziach i w poświacie,
-                        która przez nie przechodzi. */
+                        Tu są liczby i wykresy, więc papieru jest więcej —
+                        ale mniej, niż wymagałaby pełna czytelność.
+
+   GDYBY BYŁO ZA MAŁO CZYTELNE: następnym krokiem nie jest podnoszenie krycia
+   całego panelu, a podłożenie nieprzezroczystych podkładek POD SAME BLOKI
+   TEKSTU, przy szklanym tle pozostałej części. Wtedy wykres entalpii zostaje
+   szklany, a wartości pod nim czytelne.
+
+   WYDAJNOŚĆ: rozmycie tła przelicza się na karcie graficznej przy każdej
+   klatce, dla całej powierzchni pod panelem. Na laptopie tego nie widać;
+   na mini-PC z grafiką zintegrowaną, z mapą WebGL pod spodem, może być
+   odczuwalne. Do sprawdzenia na docelowym sprzęcie. */
 :root {
-  --szklo-rozmycie: blur(44px) saturate(1.7);
-  --szklo-krawedz: 0.5px solid color-mix(in srgb, #ffffff 65%, transparent);
+  --szklo-blur: 72px;
+  --szklo-nasycenie: 1.9;
+  --szklo-jasnosc: 1.18;
+  /* Krycie papieru: drobny interfejs i panele z treścią. */
+  --szklo-papier: 38%;
+  --szklo-papier-panel: 58%;
+
+  --szklo-rozmycie: blur(var(--szklo-blur)) saturate(var(--szklo-nasycenie))
+    brightness(var(--szklo-jasnosc));
+  --szklo-krawedz: 0.5px solid color-mix(in srgb, #ffffff 70%, transparent);
   --szklo-szlif:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 60%, transparent),
     0 8px 28px rgba(15, 15, 15, 0.07);
 }
 
@@ -2955,21 +2983,21 @@ body::after {
   z-index: 4;
 }
 
-/* Drobny interfejs — przejrzysty. */
+/* Drobny interfejs — najbardziej przejrzysty. */
 .nav,
 .belka,
 .tool,
 .theme-toggle,
 .demo-przeplyw__przycisk {
-  background: color-mix(in srgb, var(--surface) 52%, transparent);
+  background: color-mix(in srgb, var(--surface) var(--szklo-papier), transparent);
 }
 
-/* Panele z treścią — kryjące na tyle, żeby dało się je czytać. */
+/* Panele z treścią — więcej papieru, ale nadal szklane. */
 .belka__panel,
 .pogoda,
 .probe-panel,
 .mapboxgl-popup-content {
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: color-mix(in srgb, var(--surface) var(--szklo-papier-panel), transparent);
 }
 
 /* Rozmycie działa tylko wtedy, gdy pod spodem COŚ JEST. Kafelek pogody, panele
@@ -2986,10 +3014,17 @@ body::after {
   border-top: 0.5px solid var(--hairline);
 }
 
-/* Nocą szkło jest ciemną taflą: mniej papieru, delikatniejsza krawędź. */
-/* Nocą ten sam podział, tylko krawędź i szlif delikatniejsze. Papieru trzeba
-   NAWET WIĘCEJ niż w dzień: na ciemnym tle jasny tekst ma mniejszy zapas
-   kontrastu, więc każde przebicie spod spodu boli bardziej. */
+/* Nocą JASNOŚĆ IDZIE W DÓŁ, nie w górę: rozjaśnianie tła ma sens tam, gdzie
+   czytamy ciemnym pismem po jasnym. W trybie ciemnym jest odwrotnie, więc
+   rozmyte tło trzeba przygasić w stronę czerni — ten sam mechanizm, przeciwny
+   kierunek. Papieru też nieco więcej, bo jasny tekst na ciemnym tle ma mniejszy
+   zapas kontrastu. */
+:root[data-theme='dark'] {
+  --szklo-jasnosc: 0.68;
+  --szklo-papier: 46%;
+  --szklo-papier-panel: 66%;
+}
+
 :root[data-theme='dark'] .nav,
 :root[data-theme='dark'] .belka,
 :root[data-theme='dark'] .belka__panel,
@@ -3005,20 +3040,9 @@ body::after {
     0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme='dark'] .nav,
-:root[data-theme='dark'] .belka,
-:root[data-theme='dark'] .tool,
-:root[data-theme='dark'] .theme-toggle,
-:root[data-theme='dark'] .demo-przeplyw__przycisk {
-  background: color-mix(in srgb, var(--surface) 58%, transparent);
-}
 
-:root[data-theme='dark'] .belka__panel,
-:root[data-theme='dark'] .pogoda,
-:root[data-theme='dark'] .probe-panel,
-:root[data-theme='dark'] .mapboxgl-popup-content {
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-}
+
+
 
 /* =========================================================================
    LOGOTYPY I COPYRIGHT (v0.6)
