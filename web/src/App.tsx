@@ -187,8 +187,11 @@ export function App() {
       <header className="topbar" ref={gornaRef}>
         <div className="brand">
           <span className="brand__nazwa">
-            <span className="brand__mark">Magazyn PCM</span>
-            <span className="brand__dot">.</span>
+            <span className="brand__mark">Vaultherm</span>
+            {/* Znaczek towarowy w prawym GÓRNYM indeksie nazwy — tak się go
+                stawia typograficznie. Bez `aria-hidden`, bo to informacja
+                prawna, nie ozdoba, i czytnik ekranu ma ją przeczytać. */}
+            <span className="brand__tm">™</span>
           </span>
           {/* Wersja pod nazwą — mała, bo to metryczka, nie tytuł. Numer siedzi
               w `wersja.ts`, żeby był jeden dla całej aplikacji. */}

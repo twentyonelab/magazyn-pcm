@@ -235,7 +235,9 @@ code {
 .topbar::before {
   content: '';
   position: absolute;
-  inset: 0 0 -34px;
+  /* Rozmycie schodzi 20% niżej (34 → 41 px), żeby nagłówek gasł łagodniej
+     i dłużej wchodził w treść pod sobą. */
+  inset: 0 0 -41px;
   z-index: -1;
   pointer-events: none;
   background: linear-gradient(
@@ -356,8 +358,10 @@ code {
 .statusbar::before {
   content: '';
   position: absolute;
-  /* W górę wychodzi poza belkę: tam właśnie dzieje się roztapianie. */
-  inset: -34px 0 0;
+  /* W górę wychodzi poza belkę: tam właśnie dzieje się roztapianie.
+     Zasięg podniesiony o 30% (34 → 44 px) — przejście jest przez to dłuższe
+     i granicy paska w ogóle nie widać. */
+  inset: -44px 0 0;
   z-index: -1;
   pointer-events: none;
   background: linear-gradient(
@@ -2058,7 +2062,9 @@ code {
   position: relative;
   width: 26px;
   height: 26px;
-  border: 2.5px solid;
+  /* Obrys dwa razy cieńszy niż w pierwszej wersji (2,5 → 1,25 px): przy
+     dwudziestu jednu znacznikach grubsza kreska robiła z mapy zbiór obwódek. */
+  border: 1.25px solid;
   border-radius: 50%;
   overflow: hidden;
   /* Wnętrze pustego koła: papier aplikacji, nie przezroczystość — inaczej
@@ -2082,7 +2088,7 @@ code {
 .pinezka.is-live .pinezka__kolo {
   width: 36px;
   height: 36px;
-  border-width: 3.5px;
+  border-width: 1.75px;
 }
 
 .pinezka.is-live {
@@ -3409,4 +3415,54 @@ body::after {
 
 .pogoda {
   transition: opacity 220ms ease;
+}
+
+
+/* --- Nazwa aplikacji: Vaultherm™ -----------------------------------------
+   Znaczek towarowy stoi w prawym górnym indeksie nazwy — tak każe typografia
+   i tak czyta się jako część wordmarku, a nie jako osobny element ekranu. */
+
+.brand__tm {
+  font-size: 0.42em;
+  font-weight: 600;
+  vertical-align: super;
+  letter-spacing: 0;
+  margin-left: 0.08em;
+  opacity: 0.75;
+}
+
+/* --- Mapa: przełącznik sposobu kolorowania -------------------------------
+   Siedzi pod przyciskami powiększania i kompasem, które Mapbox stawia
+   w prawym górnym rogu. Odsunięcie od góry uwzględnia wysokość górnej belki,
+   bo mapa idzie pod nią pełną wysokością. */
+
+.mapa__kolor {
+  position: absolute;
+  right: 10px;
+  /* 3 kontrolki Mapboxa (+, −, kompas) po ~29 px plus odstępy. */
+  top: calc(var(--pas-gora, 90px) + 108px);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink-soft);
+}
+
+/* Trzy pola barwne jako znak — mówią, że chodzi o kolory, bez ikony. */
+.mapa__kolor-znak {
+  width: 20px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #d8dee3 0 33%, #e8e2da 33% 66%, var(--akcent) 66%);
+}
+
+.mapa__kolor-podpis {
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }

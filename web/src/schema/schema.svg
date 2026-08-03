@@ -166,8 +166,13 @@
       [data-element].is-selected .karta,
       .karta[data-element].is-selected { stroke: #d85a30; stroke-width: 3px; }
 
-      /* Odczyty cieplomierza wprost na rysunku. 11 px, bo miedzy karta
-         (konczy sie na y=124) a rura (y=156) sa tylko 32 px na dwie linijki. */
+      /* Odczyty cieplomierza wprost na rysunku, nad karta. 11 px — trzy
+         linijki maja sie zmiescic w szerokosci karty (64 px). */
+      .odczyt-miernika__podpis {
+        font-family: ArialMT, Arial;
+        font-size: 10px;
+        fill: #8d8d88;
+      }
       .odczyt-miernika__wartosc {
         font-family: ArialMT, Arial;
         font-size: 11px;
@@ -352,11 +357,6 @@
       </g>
       <g class="st10">
         <g class="st10">
-          <text class="st13" transform="translate(1509.1197 327.7505)"><tspan x="0" y="0">Pompa</tspan></text>
-        </g>
-      </g>
-      <g class="st10">
-        <g class="st10">
           <text class="st13" transform="translate(1512.7315 346.7506)"><tspan x="0" y="0">ciepła</tspan></text>
         </g>
       </g>
@@ -425,17 +425,6 @@
   </g>
   <g id="upper-controls">
     <g id="safety-valve-left" data-element="zawor-bezp-lewy">
-      <g class="st10">
-        <g class="st10">
-          <text class="st13" transform="translate(492.46 11.16)"><tspan x="0" y="0">Zawór</tspan></text>
-        </g>
-      </g>
-      <g class="st10">
-        <g class="st10">
-          <text class="st13" transform="translate(464.27 29.16)"><tspan x="0" y="0">bezpieczeństwa</tspan></text>
-        </g>
-      </g>
-      <path class="st1" d="M510.52,59.16v-17M506.52,49.16l4-7,4,7"/>
       <rect class="st7 karta" x="477.52" y="61.16" width="65" height="64" rx="14" ry="14"/>
       <g>
         <path class="st2" d="M510.52,73.16v10M499.52,79.16l21,23M520.52,79.16l-21,23"/>
@@ -444,16 +433,14 @@
       </g>
     </g>
     <g id="heat-meter" data-element="meter">
-      <g class="st10">
-        <g class="st10">
-          <text class="st13" transform="translate(1158.195 26.161)"><tspan x="0" y="0">Ciepłomierz</tspan></text>
-        </g>
-      </g>
-      <line class="st4" x1="1192.52" y1="34.16" x2="1192.52" y2="59.16"/>
       <rect class="st5 karta" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14" data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>
           <g class="odczyt-miernika">
-            <text class="odczyt-miernika__wartosc" text-anchor="middle" transform="translate(1192.52 139)" data-point="METER_T1" data-unit="°C">—</text>
-            <text class="odczyt-miernika__wartosc" text-anchor="middle" transform="translate(1192.52 152)" data-point="METER_FLOW" data-unit="m³/h">—</text>
+            <text class="odczyt-miernika__podpis" transform="translate(1161 22)">zas.</text>
+            <text class="odczyt-miernika__wartosc" text-anchor="end" transform="translate(1224 22)" data-point="METER_T1" data-unit="°C">—</text>
+            <text class="odczyt-miernika__podpis" transform="translate(1161 36)">pow.</text>
+            <text class="odczyt-miernika__wartosc" text-anchor="end" transform="translate(1224 36)" data-point="METER_T2" data-unit="°C">—</text>
+            <text class="odczyt-miernika__podpis" transform="translate(1161 50)">przep.</text>
+            <text class="odczyt-miernika__wartosc" text-anchor="end" transform="translate(1224 50)" data-point="METER_FLOW" data-unit="m³/h">—</text>
           </g>
       <rect class="st2" x="1175.52" y="79.16" width="34" height="23" rx="5" ry="5"/>
       <g class="st10">
@@ -468,12 +455,6 @@
           <text class="st13" transform="translate(1265.92 24.156)"><tspan x="0" y="0">Pompa</tspan></text>
         </g>
       </g>
-      <g class="st10">
-        <g class="st10">
-          <text class="st13" transform="translate(1258.6869 41.156)"><tspan x="0" y="0">obiegowa</tspan></text>
-        </g>
-      </g>
-      <line class="st4" x1="1286.52" y1="48.16" x2="1286.52" y2="59.16"/>
       <rect class="st5 karta" x="1254.52" y="60.16" width="64" height="64" rx="14" ry="14" data-object="pump" data-label="Pompa obiegowa" data-h="1.3"/>
       <circle class="device__led" cx="1310" cy="68" r="4"/>
       <g>
@@ -482,17 +463,6 @@
       </g>
     </g>
     <g id="safety-valve-right" data-element="zawor-bezp-prawy">
-      <g class="st10">
-        <g class="st10">
-          <text class="st13" transform="translate(1368.4559 11.156)"><tspan x="0" y="0">Zawór</tspan></text>
-        </g>
-      </g>
-      <g class="st10">
-        <g class="st10">
-          <text class="st13" transform="translate(1340.266 29.156)"><tspan x="0" y="0">bezpieczeństwa</tspan></text>
-        </g>
-      </g>
-      <path class="st1" d="M1386.52,59.16v-17M1382.52,49.16l4-7,4,7"/>
       <rect class="st5 karta" x="1354.52" y="61.16" width="65" height="64" rx="14" ry="14"/>
       <g>
         <path class="st2" d="M1386.52,73.16v10M1375.52,79.16l21,23M1396.52,79.16l-21,23"/>
@@ -502,11 +472,6 @@
     </g>
   </g>
   <line class="st3" x1="1295.42" y1="156.9" x2="1295.42" y2="208.76"/>
-  <g class="st10">
-    <g class="st10">
-      <text class="st13" transform="translate(883.78 240.21)"><tspan x="0" y="0">Ciepłomierz</tspan></text>
-    </g>
-  </g>
   <circle class="st6 karta" data-element="manometr-lewy" cx="758.92" cy="57.16" r="14.96"/>
   <g class="st10">
     <g class="st10">

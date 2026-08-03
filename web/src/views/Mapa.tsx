@@ -51,7 +51,27 @@ const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
  */
 const STYL = 'mapbox://styles/mapbox/standard';
 const IMPORT_ID = 'basemap';
-const MOTYW_MAPY = 'faded';
+
+/**
+ * Sposoby kolorowania mapy — wartości pola `theme` stylu Mapbox Standard.
+ *
+ * Domyślny jest teraz `monochrome`: chłodno-ciepłe szarości, bez zieleni
+ * i błękitów, na których znaczniki magazynów gubiły się w tle. Mapa ma być
+ * podkładem, a nie treścią.
+ *
+ * `faded` i `default` zostają do wyboru — pierwszy to poprzedni wygląd,
+ * drugi pełna paleta Mapboxa. Przełącznik siedzi pod przyciskami
+ * powiększania.
+ */
+const SPOSOBY_KOLOROWANIA = [
+  { id: 'monochrome', etykieta: 'szarości', opis: 'Chłodno-ciepłe szarości — domyślny' },
+  { id: 'faded', etykieta: 'przygaszony', opis: 'Przygaszone barwy' },
+  { id: 'default', etykieta: 'kolorowy', opis: 'Pełna paleta Mapboxa' },
+] as const;
+
+type SposobKolorowania = (typeof SPOSOBY_KOLOROWANIA)[number]['id'];
+
+const MOTYW_DOMYSLNY: SposobKolorowania = 'monochrome';
 
 /** Źródło rzeźby terenu — identyfikator i adres z dokumentacji Mapboxa. */
 const DEM_ID = 'mapbox-dem';
@@ -64,10 +84,10 @@ const POCHYLENIE = 52;
 const ZOOM_BLISKO = 18;
 const POCHYLENIE_BLISKO = 62;
 
-function ustawieniaBazy(ciemny: boolean): Record<string, string | boolean> {
+function ustawieniaBazy(ciemny: boolean, motyw: SposobKolorowania): Record<string, string | boolean> {
   return {
     lightPreset: ciemny ? 'night' : 'day',
-    theme: MOTYW_MAPY,
+    theme: motyw,
     show3dObjects: true,
     showPlaceLabels: true,
     // Znaczniki sklepów i restauracji zabierałyby uwagę naszym dwudziestu
@@ -182,6 +202,16 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
    */
   const procentRef = useRef<number | null>(null);
   /**
+   * Sposób kolorowania mapy. Zmiana nie przebudowuje mapy — wystarczy podać
+   * Mapboxowi nową wartość `theme` przez `setConfigProperty`, a on przemaluje
+   * styl na miejscu. Przebudowa gubiłaby kadr, obrót i otwarty dymek.
+   */
+  const [motywMapy, setMotywMapy] = useState<SposobKolorowania>(MOTYW_DOMYSLNY);
+  const motywRef = useRef<SposobKolorowania>(MOTYW_DOMYSLNY);
+  motywRef.current = motywMapy;
+  /** Uchwyt mapy — potrzebny, żeby przemalować ją bez przebudowy. */
+  const mapaRef = useRef<mapboxgl.Map | null>(null);
+  /**
    * Rodzaj magazynu na stanowisku, widziany przez kod budujący znaczniki.
    * Referencją z tego samego powodu co naładowanie: gdyby efekt tworzący mapę
    * zależał od tej wartości, przebudowywałby ją po rozpoznaniu materiału.
@@ -237,7 +267,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         style: STYL,
         // Ustawienia podane od razu przy tworzeniu mapy, a nie po jej wczytaniu —
         // inaczej pierwsza klatka mrugnęłaby domyślnym motywem i oświetleniem.
-        config: { [IMPORT_ID]: ustawieniaBazy(ciemny) },
+        config: { [IMPORT_ID]: ustawieniaBazy(ciemny, motywRef.current) },
         bounds: KADR,
         fitBoundsOptions: { padding: 64, pitch: POCHYLENIE },
         maxBounds: MAX_GRANICE,
@@ -262,6 +292,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       });
 
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+      mapaRef.current = map;
     } catch (error) {
       setBlad(`Nie udało się otworzyć mapy: ${(error as Error).message}`);
       return;
@@ -445,6 +476,25 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     };
   }, [theme]);
 
+  /**
+   * Przemalowanie mapy po zmianie sposobu kolorowania.
+   *
+   * `setConfigProperty` działa na już wczytanym stylu, więc nie ma tu nic do
+   * przebudowywania — kadr, obrót i znaczniki zostają na miejscu. Przy pierwszym
+   * uruchomieniu efekt nie ma nic do roboty, bo motyw wszedł już w `config`
+   * przy tworzeniu mapy.
+   */
+  useEffect(() => {
+    const map = mapaRef.current;
+    if (!map) return;
+    try {
+      map.setConfigProperty(IMPORT_ID, 'theme', motywMapy);
+    } catch {
+      // Styl mógł jeszcze się nie wczytać — wtedy wartość z `config` i tak
+      // jest właściwa, a kolejna zmiana zadziała normalnie.
+    }
+  }, [motywMapy]);
+
   // Pulsowanie kropki stanowiska idzie za stanem łącza — bez przebudowy mapy.
   useEffect(() => {
     const el = hostRef.current?.querySelector('.pinezka.is-live');
@@ -464,6 +514,25 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   return (
     <section className="mapa">
       <div className="mapa__plotno" ref={hostRef} aria-label="Mapa stanowisk na Śląsku" />
+
+      {/* Sposób kolorowania — pod przyciskami powiększania i kompasem, które
+          Mapbox stawia w prawym górnym rogu. Cyklicznie, bo trzy pozycje nie
+          potrzebują listy rozwijanej. */}
+      <button
+        type="button"
+        className="mapa__kolor tool"
+        onClick={() => {
+          const i = SPOSOBY_KOLOROWANIA.findIndex((x) => x.id === motywMapy);
+          setMotywMapy(SPOSOBY_KOLOROWANIA[(i + 1) % SPOSOBY_KOLOROWANIA.length]!.id);
+        }}
+        title={`Kolory mapy: ${SPOSOBY_KOLOROWANIA.find((x) => x.id === motywMapy)?.opis}. Kliknij, żeby zmienić.`}
+        aria-label="Zmień sposób kolorowania mapy"
+      >
+        <span className="mapa__kolor-znak" aria-hidden="true" />
+        <span className="mapa__kolor-podpis">
+          {SPOSOBY_KOLOROWANIA.find((x) => x.id === motywMapy)?.etykieta}
+        </span>
+      </button>
       {blad ? <p className="note is-bad mapa__blad">{blad}</p> : null}
     </section>
   );

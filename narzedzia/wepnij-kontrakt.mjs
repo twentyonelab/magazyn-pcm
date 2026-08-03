@@ -122,8 +122,13 @@ podmien(
       [data-element].is-selected .karta,
       .karta[data-element].is-selected { stroke: #d85a30; stroke-width: 3px; }
 
-      /* Odczyty cieplomierza wprost na rysunku. 11 px, bo miedzy karta
-         (konczy sie na y=124) a rura (y=156) sa tylko 32 px na dwie linijki. */
+      /* Odczyty cieplomierza wprost na rysunku, nad karta. 11 px — trzy
+         linijki maja sie zmiescic w szerokosci karty (64 px). */
+      .odczyt-miernika__podpis {
+        font-family: ArialMT, Arial;
+        font-size: 10px;
+        fill: #8d8d88;
+      }
       .odczyt-miernika__wartosc {
         font-family: ArialMT, Arial;
         font-size: 11px;
@@ -228,33 +233,111 @@ podmien(
   '    <g id="heat-meter">',
   '    <g id="heat-meter" data-element="meter">',
 );
-// Cieplomierz pokazuje ODCZYTY WPROST NA SCHEMACIE — dwie linijki pod karta.
+// Cieplomierz pokazuje ODCZYTY WPROST NA SCHEMACIE — trzy linijki NAD karta.
 //
 // Wczesniej trzeba bylo w niego kliknac, zeby zobaczyc cokolwiek poza napisem
-// „Wh". Temperatura i przeplyw sa jednak tym, co mowi, CZY INSTALACJA PRACUJE,
-// wiec musza byc widoczne bez klikania; reszta (moc, liczniki energii, ΔT)
-// zostaje w panelu.
+// „Wh". Zasilanie, powrot i przeplyw sa jednak tym, co mowi, CZY INSTALACJA
+// PRACUJE, wiec musza byc widoczne bez klikania; reszta (moc, ΔT, liczniki
+// energii) zostaje w panelu.
 //
-// MIEJSCE JEST CIASNE i to ono narzuca uklad. Karta konczy sie na y=124.16,
-// a rura biegnie na y=156.36 — zostaja 32 px. Dwie linijki po 11 px z odstepem
-// 13 px mieszcza sie tam z zapasem okolo 2 px; przy 13 px, jak reszta opisow,
-// druga linijka wchodzilaby juz na rure. Stad mniejszy stopien pisma.
+// MIEJSCE: odczyty stoja tam, gdzie byl podpis „Ciepłomierz" (usuniety nizej
+// razem z odnosnikiem). Nad karta jest 60 px na trzy linijki po 11 px —
+// mieszcza sie z zapasem, a wczesniejsze dwie linijki POD karta musialy sie
+// scieskac w 32 px miedzy karta i rura.
 //
-// Wartosci sa w kolorze ciepla, zeby odrozniac odczyt od podpisow rysunku:
-// czarne cyfry pod czarnym napisem „Ciepłomierz" czytalyby sie jak kolejna
-// etykieta, a nie jak zywa liczba.
+// Kazda linijka to PARA elementow: staly podpis po lewej i wartosc po prawej,
+// wyrownana do prawej krawedzi karty. Jeden element nie wystarczy, bo aplikacja
+// podmienia CALA tresc elementu z data-point — tspan z podpisem by zniknal.
+// Bez podpisow dwie temperatury jedna pod druga byly by nieodroznialne.
+const X_MIERNIK_L = 1161;
+const X_MIERNIK_P = 1224;
+const WIERSZE_MIERNIKA = [
+  { y: 22, podpis: 'zas.', punkt: 'METER_T1', jednostka: '°C' },
+  { y: 36, podpis: 'pow.', punkt: 'METER_T2', jednostka: '°C' },
+  { y: 50, podpis: 'przep.', punkt: 'METER_FLOW', jednostka: 'm³/h' },
+];
+
+const ODCZYTY_MIERNIKA = WIERSZE_MIERNIKA.map(
+  (w) =>
+    `            <text class="odczyt-miernika__podpis" transform="translate(${X_MIERNIK_L} ${w.y})">${w.podpis}</text>\n` +
+    `            <text class="odczyt-miernika__wartosc" text-anchor="end"` +
+    ` transform="translate(${X_MIERNIK_P} ${w.y})" data-point="${w.punkt}" data-unit="${w.jednostka}">—</text>`,
+).join('\n');
+
 podmien(
   'karta cieplomierza',
   '<rect class="st5" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14"/>',
   '<rect class="st5 karta" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14"' +
     ' data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>\n' +
     '          <g class="odczyt-miernika">\n' +
-    '            <text class="odczyt-miernika__wartosc" text-anchor="middle"' +
-    ' transform="translate(1192.52 139)" data-point="METER_T1" data-unit="°C">—</text>\n' +
-    '            <text class="odczyt-miernika__wartosc" text-anchor="middle"' +
-    ' transform="translate(1192.52 152)" data-point="METER_FLOW" data-unit="m³/h">—</text>\n' +
-    '          </g>',
+    ODCZYTY_MIERNIKA +
+    '\n          </g>',
 );
+
+// --- Podpisy urzadzen, ktore schodza z rysunku ----------------------------
+//
+// Zostaja same karty z symbolami. Podpisy byly potrzebne, dopoki rysunek byl
+// dokumentacja; teraz jest ekranem pracy, a nazwe urzadzenia mowi panel po
+// klikniecu. Odnosniki (kreski i strzalki prowadzace od podpisu do karty) ida
+// razem z nimi — bez tekstu wskazywalyby w pustke.
+//
+// USUWAMY PO TRESCI, NIE PO WCIECIACH. Pierwsza wersja dopasowywala cale bloki
+// znak w znak, razem z liczba spacji i klasa opakowania — i rozsypala sie od
+// razu, bo w tym eksporcie opakowania maja klase .st10, nie .st12. Eksporter
+// Illustratora zmienia jedno i drugie przy kazdym zapisie, wiec szukamy tekstu
+// i dopiero wokol niego wycinamy dwa opakowania `<g>`.
+
+/** Wycina `<g><g><text>TRESC</text></g></g>` wraz z opakowaniami. */
+function usunPodpis(opis, tresc, wystapienie = 1) {
+  const wzor = new RegExp(
+    '[ \\t]*<g[^>]*>\\s*<g[^>]*>\\s*<text[^>]*>(?:<tspan[^>]*>)?' +
+      tresc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+      '(?:</tspan>)?</text>\\s*</g>\\s*</g>\\n?',
+    'g',
+  );
+  const trafienia = [...svg.matchAll(wzor)];
+  if (trafienia.length < wystapienie) {
+    bledy.push(`podpis „${opis}": znaleziono ${trafienia.length}, potrzebne ${wystapienie}`);
+    return;
+  }
+  const trafienie = trafienia[wystapienie - 1];
+  svg = svg.slice(0, trafienie.index) + svg.slice(trafienie.index + trafienie[0].length);
+}
+
+/** Wycina odnosnik — kreske albo strzalke prowadzaca od podpisu do karty. */
+function usunOdnosnik(opis, fragment) {
+  if (!svg.includes(fragment)) {
+    bledy.push(`odnosnik „${opis}" nie znaleziony`);
+    return;
+  }
+  svg = svg.replace(new RegExp('[ \\t]*' + fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\n?'), '');
+}
+
+// Podpis „Ciepłomierz" — jego miejsce zajely odczyty.
+usunPodpis('Ciepłomierz', 'Ciepłomierz');
+// DRUGI napis „Ciepłomierz" lezal na plaszczu zbiornika, w calkiem innym
+// miejscu niz sam cieplomierz. Byl zglaszany dwa razy jako prawdopodobna
+// pomylka w rysunku; schodzi razem z pozostalymi podpisami urzadzen.
+usunPodpis('Ciepłomierz na zbiorniku', 'Ciepłomierz');
+usunOdnosnik('cieplomierz', '<line class="st4" x1="1192.52" y1="34.16" x2="1192.52" y2="59.16"/>');
+
+// Pompa obiegowa — podpis w dwoch wierszach.
+usunPodpis('Pompa', 'Pompa');
+usunPodpis('obiegowa', 'obiegowa');
+usunOdnosnik('pompa obiegowa', '<line class="st4" x1="1286.52" y1="48.16" x2="1286.52" y2="59.16"/>');
+
+// Dwa zaworki bezpieczenstwa — po dwa wiersze kazdy, wiec „Zawór"
+// i „bezpieczeństwa" wystepuja dwukrotnie. Usuwamy zawsze PIERWSZE pozostale
+// wystapienie, bo po kazdym ciecu numeracja przesuwa sie o jeden.
+usunPodpis('Zawór (lewy)', 'Zawór');
+usunPodpis('bezpieczeństwa (lewy)', 'bezpieczeństwa');
+usunOdnosnik('zaworek lewy', '<path class="st1" d="M510.52,59.16v-17M506.52,49.16l4-7,4,7"/>');
+
+usunPodpis('Zawór (prawy)', 'Zawór');
+usunPodpis('bezpieczeństwa (prawy)', 'bezpieczeństwa');
+usunOdnosnik('zaworek prawy', '<path class="st1" d="M1386.52,59.16v-17M1382.52,49.16l4-7,4,7"/>');
+
+
 
 podmien(
   'pompa obiegowa',
