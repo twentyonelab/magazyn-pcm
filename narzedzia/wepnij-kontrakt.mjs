@@ -8,16 +8,24 @@
 // co aplikacja dopisuje do cudzej grafiki: geometria, gradienty i klasy .stXX
 // zostaja nietkniete.
 //
+// WERSJA ZRODLA: schemat_instalacji_wektor5.svg
+//
+// CO ZMIENILO SIE WZGLEDEM v4 (poprzedni skrypt lezy jako wepnij-kontrakt-v4.mjs.bak):
+//   * Caly rysunek jest przerysowany i wspolrzedne NIE MAJA nic wspolnego
+//     z v4 — dlatego skrypt jest napisany od nowa, a nie poprawiony.
+//   * Podpisy sa juz w IBM Plex Mono (.st12/.st13), czyli w kroju aplikacji.
+//     Zostaly dwa napisy w Arialu (.st14/.st15) i te podmieniamy na Plex Sans.
+//   * Rury sa jednolitymi sciezkami .st21 — warstwe przeplywu budujemy
+//     z ICH WLASNYCH wspolrzednych (patrz nizej), wiec nie da sie jej
+//     rozjechac z rysunkiem.
+//   * Nie ma karty cieplomierza. Odczyty energii i przeplywu zostaja w panelu
+//     po klikniecu, a na rysunku sa dwie pary temperatur na rurach.
+//
 // PO NOWEJ WERSJI Z ILLUSTRATORA sprawdz po kolei:
 //   1. czy `podmien` nie zglosil bledow (skrypt konczy sie wtedy kodem 1),
 //   2. czy numery .stXX w bloku <style> nadal znacza to samo — eksporter
-//      nadaje je od nowa przy kazdym zapisie i potrafia sie przesunac
-//      (w v3 karty mialy .st5, tusz .st15; w v4 tusz to .st13),
-//   3. czy wspolrzedne w tablicach ponizej zgadzaja sie z rysunkiem.
-//
-// WERSJA ZRODLA: schemat_instalacji_wektor4.svg
-// Wzgledem v3 rury wrocily z rastrow na wektory (klasa .st3), a dolny rzad
-// trzech kart przejal role ukrytej sekcji uzdatniania wody.
+//      nadaje je od nowa przy kazdym zapisie,
+//   3. czy wspolrzedne sond i kart zgadzaja sie z rysunkiem.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -62,19 +70,19 @@ function wytnijGrupe(otwarcie) {
 }
 
 // --- 1. Korzen: kadr, klasa, dostepnosc ----------------------------------
-// viewBox oryginalu ma 1278 px wysokosci, bo Illustrator wliczyl ukryty
-// element na y=1261. Widoczna tresc siega y=497, wiec kadr scinamy — inaczej
-// rysunek renderowalby sie w gornej jednej trzeciej pola.
-// Skrajne punkty: rura dolna konczy sie na x=130.65, pompa ciepla na
-// x=1643.92, gorne podpisy siegaja y≈-2, dolne karty y=497.23. Margines 16 px.
+//
+// Kadr scinamy z 1565x691 do tresci. Skrajne punkty zmierzone w pliku:
+// najdalej w lewo podpis „wodociagowa" (x≈58), w prawo karta pompy ciepla
+// (1477), w gore manometry (y≈66), w dol podpis „Magazyn PCM" (y≈640).
+// Margines 16 px z kazdej strony.
 podmien(
   'korzen svg',
-  '<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1644.42 1278.42">',
+  '<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1565.62 691.4">',
   '<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"\n' +
-    '  viewBox="114 -18 1546 533" preserveAspectRatio="xMidYMid meet"\n' +
-    '  class="schema" role="img" aria-label="Schemat instalacji magazynu ciepła PCM">\n' +
+    '  viewBox="42 50 1451 606" preserveAspectRatio="xMidYMid meet"\n' +
+    '  class="schema schema-rura" role="img" aria-label="Schemat instalacji magazynu ciepła PCM">\n' +
     '  <!--\n' +
-    '    SCHEMAT INSTALACJI — PLIK PROJEKTANTA (Illustrator), wersja v0.8.\n' +
+    '    SCHEMAT INSTALACJI — PLIK PROJEKTANTA (Illustrator), wersja v5.\n' +
     '    Oryginal: narzedzia/schemat-wektor-oryginal.svg\n' +
     '    Kontrakt wpina narzedzia/wepnij-kontrakt.mjs — TEGO PLIKU NIE EDYTUJ\n' +
     '    RECZNIE, bo kolejna wersja z Illustratora go nadpisze. Poprawki nanos\n' +
@@ -91,28 +99,39 @@ podmien(
   `
       /* ============ KONTRAKT — dopisane przez wepnij-kontrakt.mjs ========= */
 
-      /* Rury nieco ciemniejsze. Projektant dal #e0e0e0, co na ciepłym,
-         kremowym tle aplikacji niemal znikalo — instalacja rozpadala sie
-         na osobne kafelki. Kolor trzymamy w zmiennej, zeby dalo sie go
-         dostroic jednym miejscem. */
-      .schema-rura { --rura: #c2c7c6; }
-      .st3, .st6 { stroke: var(--rura, #c2c7c6); }
+      /* KROJE. Projektant sklada podpisy w IBM Plex Mono, czyli dokladnie tym,
+         czego uzywa aplikacja do liczb — to zostaje. Dwa napisy przyszly
+         jeszcze w Arialu (.st14, .st15) i te przechodza na Plex Sans, zeby
+         na rysunku nie stal trzeci krój. */
+      .st14, .st15 { font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; }
+
+      /* Rury: kolor w zmiennej, zeby dalo sie go dostroic jednym miejscem. */
+      .schema-rura { --rura: #d4d9d9; }
+      .st20, .st21 { stroke: var(--rura, #d4d9d9); }
 
       .sensor { cursor: pointer; }
       .sensor__hit { fill: none; pointer-events: all; }
       /* Barwy sond i odczytow ida za NOSNIKIEM: zmienna --akcent ustawia
-         arkusz aplikacji, a wartosc po przecinku jest awaryjna — gdyby ktos
-         otworzyl ten plik samodzielnie, poza aplikacja. */
+         arkusz aplikacji (cieplo — pomarancz, chlod — stal), a wartosc po
+         przecinku jest awaryjna, gdyby ktos otworzyl ten plik poza aplikacja. */
       .sensor__phase { fill: none; stroke: var(--akcent-jasny, #de7854); stroke-width: 2.5px; opacity: 0; }
       .sensor.is-phase .sensor__phase { opacity: 1; }
       .sensor.is-dim { opacity: .45; }
-      /* Kropka sondy: obwodka jak .st8, ale BEZ fill w CSS — wypelnienie
-         ustawia aplikacja atrybutem wedlug temperatury, a regula CSS by je
+      /* Kropka sondy: obwodka jak .st8 w oryginale, ale BEZ fill w CSS —
+         wypelnienie ustawia aplikacja wedlug temperatury, a regula CSS by je
          przykryla. */
       .sensor__cell { stroke: var(--akcent, #ff5b1a); stroke-width: 2.5px; }
       .sensor:hover .sensor__cell { stroke: #202322; }
       text.is-no-data, text.is-not-connected { fill: #a3a3a0; }
       text.is-stale { opacity: .55; }
+
+      /* Odczyt na rurze — ta sama rodzina co sondy, ale bez klikania. */
+      .rura-odczyt { fill: var(--akcent, #ff5b1a); }
+      .rura-odczyt.is-no-data, .rura-odczyt.is-not-connected { fill: #a3a3a0; }
+      .rura-odczyt.is-stale { opacity: .55; }
+      /* Kropka pomiarowa na rurze bez przypisanego punktu: szara, nigdy
+         w barwie nosnika. Punkt bez pomiaru nie moze wygladac jak zywy. */
+      .rura-pomiar--brak { stroke: #a3a3a0; }
 
       [data-element] { cursor: pointer; }
       /* Dwa zapisy, bo manometry NIOSA data-element na samej tarczy,
@@ -120,22 +139,7 @@ podmien(
       [data-element]:hover .karta,
       .karta[data-element]:hover { stroke: #202322; stroke-width: 2px; }
       [data-element].is-selected .karta,
-      .karta[data-element].is-selected { stroke: #d85a30; stroke-width: 3px; }
-
-      /* Odczyty cieplomierza wprost na rysunku, nad karta. 11 px — trzy
-         linijki maja sie zmiescic w szerokosci karty (64 px). */
-      .odczyt-miernika__podpis {
-        font-family: ArialMT, Arial;
-        font-size: 10px;
-        fill: #8d8d88;
-      }
-      .odczyt-miernika__wartosc {
-        font-family: ArialMT, Arial;
-        font-size: 11px;
-        fill: var(--akcent, #d85a30);
-      }
-      .odczyt-miernika__wartosc.is-no-data,
-      .odczyt-miernika__wartosc.is-not-connected { fill: #a3a3a0; }
+      .karta[data-element].is-selected { stroke: var(--akcent, #d85a30); stroke-width: 3px; }
 
       .device__led { fill: #a3a3a0; }
       .device.is-active .device__led { fill: #20a969; }
@@ -143,20 +147,22 @@ podmien(
     </style>`,
 );
 
-// Klasa na korzeniu, zeby zmienna --rura miala gdzie zamieszkac.
-podmien('klasa rury na korzeniu', 'class="schema" role="img"', 'class="schema schema-rura" role="img"');
-
-// --- 3. Sondy: przebudowa obu kolumn -------------------------------------
+// --- 3. Sondy w zbiorniku: przebudowa obu kolumn -------------------------
+//
 // Teksty i kropki leza w oryginale osobno; laczymy je w grupy `.sensor`,
 // bo dopiero grupa niesie klik, podpowiedz i pierscien przemiany.
+//
+// Poziomy licza sie OD DOLU: 1 to dol zbiornika, 3 gora (ustalenie z 2026-07-30,
+// historia pomiarow jest do niego przywiazana). W pliku wiersze ida od gory,
+// wiec kolejnosc identyfikatorow jest odwrotna: A3, A2, A1.
 const SONDY = [
-  { kolumna: 'sensors-left', cx: 823.82, tekstX: 769.32, hitX: 757, id: ['A3', 'A2', 'A1'] },
-  { kolumna: 'sensors-right', cx: 951.82, tekstX: 963.82, hitX: 945, id: ['B3', 'B2', 'B1'] },
+  { kolumna: 'sensors-left', cx: 657.18, tekstX: 602.68, hitX: 590, id: ['A3', 'A2', 'A1'] },
+  { kolumna: 'sensors-right', cx: 785.18, tekstX: 797.18, hitX: 779, id: ['B3', 'B2', 'B1'] },
 ];
 const POZIOMY = [
-  { cy: 211.73, tekstY: 216.73 },
-  { cy: 299.73, tekstY: 304.73 },
-  { cy: 382.73, tekstY: 387.73 },
+  { cy: 350.93, tekstY: 355.93 },
+  { cy: 438.93, tekstY: 443.93 },
+  { cy: 521.93, tekstY: 526.93 },
 ];
 
 for (const kol of SONDY) {
@@ -171,340 +177,192 @@ for (const kol of SONDY) {
       `      <g class="sensor" data-sensor="${id}">\n` +
       `        <rect class="sensor__hit" x="${kol.hitX}" y="${poz.cy - 15}" width="76" height="30"/>\n` +
       `        <circle class="sensor__phase" cx="${kol.cx}" cy="${poz.cy}" r="10"/>\n` +
-      `        <text class="st13" data-point="${id}" data-unit="°C" transform="translate(${kol.tekstX} ${poz.tekstY})">—</text>\n` +
+      `        <text class="st12" data-point="${id}" data-unit="°C" transform="translate(${kol.tekstX} ${poz.tekstY})">—</text>\n` +
       `        <circle class="sensor__cell" fill="#fff" data-fill-point="${id}" cx="${kol.cx}" cy="${poz.cy}" r="4.5"/>\n` +
       `      </g>`
     );
   }).join('\n');
   svg =
     svg.slice(0, grupa.start) +
-    `<g id="${kol.kolumna}">\n${sondy}\n    </g>` +
+    `<g id="${kol.kolumna}">\n${sondy}\n  </g>` +
     svg.slice(grupa.koniec);
 }
 
-// --- 4. Klikalne elementy + bryly 3D --------------------------------------
+// --- 4. Temperatury na rurach --------------------------------------------
+//
+// W pliku stoja cztery odczyty „24.8°C" wpisane na sztywno — dwie pary na
+// rurach nad zbiornikiem. Zadnej z nich nie wolno zostawic jako tekstu, bo
+// liczba wpisana w grafike wyglada dokladnie jak pomiar.
+//
+// PRAWA PARA (x≈859) lezy na obiegu ZRODLA, czyli tam, gdzie stoi cieplomierz
+// AXIOMA: gora — zasilanie, dol — powrot. Te dwa punkty sa zmapowane i zywe.
+//
+// LEWA PARA (x≈596) lezy na obiegu ODBIORU. Tam nie ma czym zmierzyc
+// temperatury — drugi cieplomierz nie jest podlaczony do aplikacji. Zostaje
+// wiec kreska i szara kropka, a podpowiedz mowi wprost, ze pomiaru nie ma.
+// Podstawienie tu czegokolwiek innego byloby zla dana udajaca dobra.
+const ODCZYTY_RUR = [
+  { x: 840.16, y: 99.3, cx: 859.18, cy: 114.63, punkt: 'METER_T1', opis: 'Zasilanie obiegu źródła' },
+  { x: 840.16, y: 174.55, cx: 859.18, cy: 150.33, punkt: 'METER_T2', opis: 'Powrót obiegu źródła' },
+  { x: 577.42, y: 99.3, cx: 596.44, cy: 114.63, punkt: null, opis: 'Obieg odbioru — brak pomiaru temperatury' },
+  { x: 577.42, y: 174.55, cx: 596.44, cy: 150.33, punkt: null, opis: 'Obieg odbioru — brak pomiaru temperatury' },
+];
+
+for (const o of ODCZYTY_RUR) {
+  const tekstStary = `<text class="st12" transform="translate(${o.x} ${o.y})"><tspan x="0" y="0">24.8°C</tspan></text>`;
+  const tekstNowy = o.punkt
+    ? `<text class="st12 rura-odczyt" data-point="${o.punkt}" data-unit="°C" transform="translate(${o.x} ${o.y})">—</text>`
+    : `<text class="st12 rura-odczyt is-not-connected" transform="translate(${o.x} ${o.y})">—<title>${o.opis}</title></text>`;
+  podmien(`odczyt na rurze (${o.x}, ${o.y})`, tekstStary, tekstNowy);
+
+  const kropkaStara = `<circle class="st8" cx="${o.cx}" cy="${o.cy}" r="4.5"/>`;
+  const kropkaNowa = o.punkt
+    ? `<circle class="sensor__cell" fill="#fff" cx="${o.cx}" cy="${o.cy}" r="4.5"><title>${o.opis}</title></circle>`
+    : `<circle class="st8 rura-pomiar--brak" fill="#fff" cx="${o.cx}" cy="${o.cy}" r="4.5"><title>${o.opis}</title></circle>`;
+  podmien(`kropka na rurze (${o.cx}, ${o.cy})`, kropkaStara, kropkaNowa);
+}
+
+// --- 5. Bryly i karty klikalne -------------------------------------------
+//
+// `data-object` / `data-vessel` / `data-h` czyta TAKZE scena 3D
+// (extractScene.ts) — jeden zapis w rysunku opisuje oba widoki, wiec nie moga
+// sie rozjechac. `data-h` to wysokosc bryly w jednostkach sceny.
+
+// Zbiornik PCM — plaszcz. Karta pod nim (przerywana ramka) jest tlem modulu.
 podmien(
-  'karta modulu centralnego',
-  '  <g id="central-module">\n    <rect class="st5" x="755.82" y="132.73" width="270" height="351" rx="8.12" ry="8.12"/>',
-  '  <g id="central-module" data-element="storage">\n    <rect class="st5 karta" x="755.82" y="132.73" width="270" height="351" rx="8.12" ry="8.12"/>',
-);
-podmien(
-  'walec PCM (bryla 3D)',
-  '<rect class="st20" x="823.82" y="161.73" width="129" height="255"/>',
-  '<rect class="st20" x="823.82" y="161.73" width="129" height="255"' +
+  'plaszcz zbiornika PCM',
+  '<rect class="st2" x="657.18" y="300.93" width="129" height="255"/>',
+  '<rect class="st2" x="657.18" y="300.93" width="129" height="255"' +
     ' data-object="storage" data-label="Magazyn PCM" data-h="8" data-vessel="true"/>',
 );
 
 podmien(
-  'zasobnik 80 l',
-  '    <g id="storage-tank">\n      <rect class="st5" x="1085.92" y="208.76" width="90" height="161" rx="15" ry="15"/>',
-  '    <g id="storage-tank" data-element="buffer">\n      <rect class="st5 karta" x="1085.92" y="208.76" width="90" height="161" rx="15" ry="15"' +
-    ' data-object="buffer" data-label="Zasobnik 80 l" data-h="4.4" data-vessel="true"/>',
+  'karta modulu centralnego',
+  '<rect class="st7" x="579.18" y="254.46" width="290" height="356.94" rx="8.12" ry="8.12"/>',
+  '<rect class="st7 karta" data-element="storage" x="579.18" y="254.46" width="290" height="356.94" rx="8.12" ry="8.12"/>',
 );
 
-// Naczynie przeponowe jako jedyne z prawej strony nie ma podpisu w pliku
-// projektanta. Karta jest nizsza od sasiednich (101 zamiast 161 px) i pod
-// ikona zostaje ledwie 33 px — na dwie linijki po 13 px za malo. Podpis idzie
-// wiec POD karte, na tej samej wysokosci co podpisy zasobnika i pompy ciepla
-// (455 i 474 px w ukladzie rysunku to dolny rzad; tutaj 327.76 i 346.76),
-// dzieki czemu cala prawa strona czyta sie w jednej linii.
+// Bufor 80 l — bryla rysowana sciezka, nie prostokatem, wiec `data-*` idzie
+// na nia wprost.
+podmien(
+  'bufor 80 l',
+  '<path class="st5" d="M1095.81,420.65c0-18.95-6.17-35.38-9.94-43.66',
+  '<path class="st5 karta" data-element="buffer" data-object="buffer"' +
+    ' data-label="Bufor 80 l" data-h="4.4" data-vessel="true"' +
+    ' d="M1095.81,420.65c0-18.95-6.17-35.38-9.94-43.66',
+);
+
+// Naczynie przeponowe — mala bryla miedzy buforem i pompa ciepla.
 podmien(
   'naczynie przeponowe',
-  '    <g id="expansion-tank">\n      <rect class="st5" x="1248.92" y="208.76" width="91" height="101" rx="15" ry="15"/>',
-  '    <g id="expansion-tank" data-element="naczynie-prawe">\n      <rect class="st5 karta" x="1248.92" y="208.76" width="91" height="101" rx="15" ry="15"' +
-    ' data-object="naczynie-prawe" data-label="Naczynie przeponowe" data-h="1.4"/>\n' +
-    // Odsuniecia z pomiaru getBBox w przegladarce, nie z oszacowania:
-    // „Naczynie" ma 53.9 px, „przeponowe" 71.2 px przy 13 px Arial.
-    '      <text class="st13" transform="translate(1267.47 327.76)">Naczynie</text>\n' +
-    '      <text class="st13" transform="translate(1258.82 346.76)">przeponowe</text>',
+  '<path class="st5" d="M1165.78,444.49c13.65,0,25.49-4.44,31.45-7.16',
+  '<path class="st5 karta" data-element="naczynie-prawe" data-object="naczynie-prawe"' +
+    ' data-label="Naczynie przeponowe" data-h="1.4"' +
+    ' d="M1165.78,444.49c13.65,0,25.49-4.44,31.45-7.16',
 );
 
+// Pompa ciepla — karta z lampka stanu w prawym gornym rogu.
 podmien(
   'pompa ciepla',
-  '    <g id="heat-pump">\n      <rect class="st5" x="1413.92" y="208.76" width="230" height="161" rx="15" ry="15"/>',
-  '    <g id="heat-pump" class="device" data-state="HP_STATE" data-element="heatpump">\n' +
-    '      <rect class="st5 karta" x="1413.92" y="208.76" width="230" height="161" rx="15" ry="15"' +
+  '<rect class="st5" x="1247.28" y="369.22" width="230" height="161" rx="7.41" ry="7.41"/>',
+  '<g class="device" data-state="HP_STATE" data-element="heatpump">\n' +
+    '    <rect class="st5 karta" x="1247.28" y="369.22" width="230" height="161" rx="7.41" ry="7.41"' +
     ' data-object="heatpump" data-label="Pompa ciepła" data-h="3"/>\n' +
-    '      <circle class="device__led" cx="1624" cy="228" r="5"/>',
+    '    <circle class="device__led" cx="1459" cy="387" r="5"/>\n' +
+    '  </g>',
 );
 
-podmien(
-  'cieplomierz',
-  '    <g id="heat-meter">',
-  '    <g id="heat-meter" data-element="meter">',
-);
-// Cieplomierz pokazuje ODCZYTY WPROST NA SCHEMACIE — trzy linijki NAD karta.
-//
-// Wczesniej trzeba bylo w niego kliknac, zeby zobaczyc cokolwiek poza napisem
-// „Wh". Zasilanie, powrot i przeplyw sa jednak tym, co mowi, CZY INSTALACJA
-// PRACUJE, wiec musza byc widoczne bez klikania; reszta (moc, ΔT, liczniki
-// energii) zostaje w panelu.
-//
-// MIEJSCE: odczyty stoja tam, gdzie byl podpis „Ciepłomierz" (usuniety nizej
-// razem z odnosnikiem). Nad karta jest 60 px na trzy linijki po 11 px —
-// mieszcza sie z zapasem, a wczesniejsze dwie linijki POD karta musialy sie
-// scieskac w 32 px miedzy karta i rura.
-//
-// Kazda linijka to PARA elementow: staly podpis po lewej i wartosc po prawej,
-// wyrownana do prawej krawedzi karty. Jeden element nie wystarczy, bo aplikacja
-// podmienia CALA tresc elementu z data-point — tspan z podpisem by zniknal.
-// Bez podpisow dwie temperatury jedna pod druga byly by nieodroznialne.
-const X_MIERNIK_L = 1161;
-const X_MIERNIK_P = 1224;
-const WIERSZE_MIERNIKA = [
-  { y: 22, podpis: 'zas.', punkt: 'METER_T1', jednostka: '°C' },
-  { y: 36, podpis: 'pow.', punkt: 'METER_T2', jednostka: '°C' },
-  { y: 50, podpis: 'przep.', punkt: 'METER_FLOW', jednostka: 'm³/h' },
-];
-
-const ODCZYTY_MIERNIKA = WIERSZE_MIERNIKA.map(
-  (w) =>
-    `            <text class="odczyt-miernika__podpis" transform="translate(${X_MIERNIK_L} ${w.y})">${w.podpis}</text>\n` +
-    `            <text class="odczyt-miernika__wartosc" text-anchor="end"` +
-    ` transform="translate(${X_MIERNIK_P} ${w.y})" data-point="${w.punkt}" data-unit="${w.jednostka}">—</text>`,
-).join('\n');
-
-podmien(
-  'karta cieplomierza',
-  '<rect class="st5" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14"/>',
-  '<rect class="st5 karta" x="1160.52" y="60.16" width="64" height="64" rx="14" ry="14"' +
-    ' data-object="meter" data-label="Ciepłomierz" data-h="1.2"/>\n' +
-    '          <g class="odczyt-miernika">\n' +
-    ODCZYTY_MIERNIKA +
-    '\n          </g>',
-);
-
-// --- Podpisy urzadzen, ktore schodza z rysunku ----------------------------
-//
-// Zostaja same karty z symbolami. Podpisy byly potrzebne, dopoki rysunek byl
-// dokumentacja; teraz jest ekranem pracy, a nazwe urzadzenia mowi panel po
-// klikniecu. Odnosniki (kreski i strzalki prowadzace od podpisu do karty) ida
-// razem z nimi — bez tekstu wskazywalyby w pustke.
-//
-// USUWAMY PO TRESCI, NIE PO WCIECIACH. Pierwsza wersja dopasowywala cale bloki
-// znak w znak, razem z liczba spacji i klasa opakowania — i rozsypala sie od
-// razu, bo w tym eksporcie opakowania maja klase .st10, nie .st12. Eksporter
-// Illustratora zmienia jedno i drugie przy kazdym zapisie, wiec szukamy tekstu
-// i dopiero wokol niego wycinamy dwa opakowania `<g>`.
-
-/** Wycina `<g><g><text>TRESC</text></g></g>` wraz z opakowaniami. */
-function usunPodpis(opis, tresc, wystapienie = 1) {
-  const wzor = new RegExp(
-    '[ \\t]*<g[^>]*>\\s*<g[^>]*>\\s*<text[^>]*>(?:<tspan[^>]*>)?' +
-      tresc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
-      '(?:</tspan>)?</text>\\s*</g>\\s*</g>\\n?',
-    'g',
-  );
-  const trafienia = [...svg.matchAll(wzor)];
-  if (trafienia.length < wystapienie) {
-    bledy.push(`podpis „${opis}": znaleziono ${trafienia.length}, potrzebne ${wystapienie}`);
-    return;
-  }
-  const trafienie = trafienia[wystapienie - 1];
-  svg = svg.slice(0, trafienie.index) + svg.slice(trafienie.index + trafienie[0].length);
-}
-
-/** Wycina odnosnik — kreske albo strzalke prowadzaca od podpisu do karty. */
-function usunOdnosnik(opis, fragment) {
-  if (!svg.includes(fragment)) {
-    bledy.push(`odnosnik „${opis}" nie znaleziony`);
-    return;
-  }
-  svg = svg.replace(new RegExp('[ \\t]*' + fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\n?'), '');
-}
-
-// Podpis „Ciepłomierz" — jego miejsce zajely odczyty.
-usunPodpis('Ciepłomierz', 'Ciepłomierz');
-// DRUGI napis „Ciepłomierz" lezal na plaszczu zbiornika, w calkiem innym
-// miejscu niz sam cieplomierz. Byl zglaszany dwa razy jako prawdopodobna
-// pomylka w rysunku; schodzi razem z pozostalymi podpisami urzadzen.
-usunPodpis('Ciepłomierz na zbiorniku', 'Ciepłomierz');
-usunOdnosnik('cieplomierz', '<line class="st4" x1="1192.52" y1="34.16" x2="1192.52" y2="59.16"/>');
-
-// Pompa obiegowa — podpis w dwoch wierszach.
-usunPodpis('Pompa', 'Pompa');
-usunPodpis('obiegowa', 'obiegowa');
-usunOdnosnik('pompa obiegowa', '<line class="st4" x1="1286.52" y1="48.16" x2="1286.52" y2="59.16"/>');
-
-// Dwa zaworki bezpieczenstwa — po dwa wiersze kazdy, wiec „Zawór"
-// i „bezpieczeństwa" wystepuja dwukrotnie. Usuwamy zawsze PIERWSZE pozostale
-// wystapienie, bo po kazdym ciecu numeracja przesuwa sie o jeden.
-usunPodpis('Zawór (lewy)', 'Zawór');
-usunPodpis('bezpieczeństwa (lewy)', 'bezpieczeństwa');
-usunOdnosnik('zaworek lewy', '<path class="st1" d="M510.52,59.16v-17M506.52,49.16l4-7,4,7"/>');
-
-usunPodpis('Zawór (prawy)', 'Zawór');
-usunPodpis('bezpieczeństwa (prawy)', 'bezpieczeństwa');
-usunOdnosnik('zaworek prawy', '<path class="st1" d="M1386.52,59.16v-17M1382.52,49.16l4-7,4,7"/>');
-
-
-
+// Pompa obiegowa — tarcza z trojkatem u gory rysunku.
 podmien(
   'pompa obiegowa',
-  '    <g id="circulation-pump">',
-  '    <g id="circulation-pump" class="device" data-state="PUMP_STATE" data-element="pump">',
-);
-podmien(
-  'karta pompy obiegowej',
-  '<rect class="st5" x="1254.52" y="60.16" width="64" height="64" rx="14" ry="14"/>',
-  '<rect class="st5 karta" x="1254.52" y="60.16" width="64" height="64" rx="14" ry="14"' +
+  '<circle class="st6" cx="1104.95" cy="114.13" r="14.39"/>',
+  '<g class="device" data-state="PUMP_STATE" data-element="pump">\n' +
+    '    <circle class="st6 karta" cx="1104.95" cy="114.13" r="14.39"' +
     ' data-object="pump" data-label="Pompa obiegowa" data-h="1.3"/>\n' +
-    '      <circle class="device__led" cx="1310" cy="68" r="4"/>',
+    '    <circle class="device__led" cx="1119" cy="101" r="4"/>\n' +
+    '  </g>',
 );
 
-podmien(
-  'zaworek lewy',
-  '    <g id="safety-valve-left">',
-  '    <g id="safety-valve-left" data-element="zawor-bezp-lewy">',
-);
-podmien(
-  'karta zaworka lewego',
-  '<rect class="st7" x="477.52" y="61.16" width="65" height="64" rx="14" ry="14"/>',
-  '<rect class="st7 karta" x="477.52" y="61.16" width="65" height="64" rx="14" ry="14"/>',
-);
-podmien(
-  'zaworek prawy',
-  '    <g id="safety-valve-right">',
-  '    <g id="safety-valve-right" data-element="zawor-bezp-prawy">',
-);
-podmien(
-  'karta zaworka prawego',
-  '<rect class="st5" x="1354.52" y="61.16" width="65" height="64" rx="14" ry="14"/>',
-  '<rect class="st5 karta" x="1354.52" y="61.16" width="65" height="64" rx="14" ry="14"/>',
-);
-
-// Manometry sa teraz zwyklymi kolkami (w v3 byly rastrami w masce), wiec
-// klikalnosc wiesza sie wprost na tarczy — bez podkladanego lapacza.
+// Manometry — klikalnosc wprost na tarczy.
 podmien(
   'manometr lewy',
-  '<circle class="st6" cx="758.92" cy="57.16" r="14.96"/>',
-  '<circle class="st6 karta" data-element="manometr-lewy" cx="758.92" cy="57.16" r="14.96"/>',
+  '<circle class="st6" cx="320.45" cy="81.13" r="14.96"/>',
+  '<circle class="st6 karta" data-element="manometr-lewy" cx="320.45" cy="81.13" r="14.96"/>',
 );
 podmien(
   'manometr prawy',
-  '<circle class="st6" cx="1045.61" cy="57.16" r="14.96"/>',
-  '<circle class="st6 karta" data-element="manometr-prawy" cx="1045.61" cy="57.16" r="14.96"/>',
+  '<circle class="st6" cx="778.68" cy="81.13" r="14.96"/>',
+  '<circle class="st6 karta" data-element="manometr-prawy" cx="778.68" cy="81.13" r="14.96"/>',
 );
 
-// --- 5. Dolny rzad: uzupelnienie brakujacych urzadzen ---------------------
-//
-// Projektant przeniosl ciag uzdatniania wody z ukrytej sekcji `water-treatment`
-// w dolny rzad trzech kart, ale zdazyl opisac tylko pierwsza. Kolejnosc od
-// lewej zgadza sie z oryginalem (woda → filtr → podgrzewacz), a pierwsza karta
-// nosi juz podpis „Woda wodociagowa", wiec przypisanie jest jednoznaczne.
-//
-// Ikony i podpisy sa PRZENIESIONE z ukrytej sekcji tego samego pliku — nie
-// rysowane od nowa. Dzieki temu kreska, grubosc i kerning zgadzaja sie
-// z reszta rysunku.
-//
-// Uklad kafelka bierzemy z karty zasobnika po prawej (ikona w gornej czesci,
-// dwie linijki podpisu nizej), a nie z ukrytej sekcji, gdzie podpis byl NAD
-// ikona. Srodek ikony wypada 55 px pod gornaa krawedzia karty, podpisy na
-// 119 i 138 px — dokladnie jak w karcie zasobnika.
-const SRODEK_IKONY = 55;
-const KARTA_GORA = 336.23;
-const Y_IKONY = KARTA_GORA + SRODEK_IKONY; // 391.23
-
-/** Przesuniecie ikony z ukrytej sekcji na srodek docelowej karty. */
-function przesunIkone(srodekZrodlaX, srodekZrodlaY, srodekKartyX) {
-  return `translate(${(srodekKartyX - srodekZrodlaX).toFixed(2)} ${(Y_IKONY - srodekZrodlaY).toFixed(2)})`;
-}
-
-// Kropla — z grupy #water-supply. Srodek (57.5, 311.71).
-const IKONA_WODA =
-  `      <g transform="${przesunIkone(57.5, 311.71, 205.33)}">\n` +
-  '        <path class="st2" d="M57.5,298.21c-5,8-9,13-9,18s4.03,9,9,9,9-4.03,9-9-4-10-9-18Z"/>\n' +
-  '      </g>';
-
-// Lejek — z grupy #filter. Srodek (217.5, 312.21).
-const IKONA_FILTR =
-  `      <g transform="${przesunIkone(217.5, 312.21, 368.12)}">\n` +
-  '        <path class="st2" d="M207.5,303.21h20M210.5,303.21v5h14v-5M211.5,308.21l2,16h8l2-16M216.5,312.21v8M219.5,312.21v8"/>\n' +
-  '        <path class="st2" d="M213.5,300.21h8"/>\n' +
-  '      </g>';
-
-// Grzalka — z grupy #water-heater. Srodek (395, 311.71).
-const IKONA_PODGRZEWACZ =
-  `      <g transform="${przesunIkone(395, 311.71, 545.61)}">\n` +
-  '        <rect class="st2" x="376.5" y="300.21" width="37" height="23" rx="5" ry="5"/>\n' +
-  '        <path class="st2" d="M383.5,317.21v-10c0-2,1-3,3-3s3,1,3,3v9c0,2,1,3,3,3s3-1,3-3v-9c0-2,1-3,3-3s3,1,3,3v9c0,2,1,3,3,3s3-1,3-3v-10"/>\n' +
-  '      </g>';
-
-/** Dwie linijki podpisu. Odsuniecia od srodka karty przepisane z oryginalu,
- *  wiec tekst jest wysrodkowany tak samo jak na pozostalych kafelkach. */
-function podpis(srodekX, gora, dol) {
-  return (
-    `      <text class="st13" transform="translate(${(srodekX + gora.dx).toFixed(2)} 455.23)">${gora.tekst}</text>\n` +
-    `      <text class="st13" transform="translate(${(srodekX + dol.dx).toFixed(2)} 474.23)">${dol.tekst}</text>`
-  );
-}
-
-// Woda wodociagowa — karta ma juz podpis, dokladamy sama ikone.
+// Rzad uzdatniania wody po lewej. Przypisanie idzie po polozeniu: pigulka przy
+// podpisie „Woda wodociągowa", szeroka karta obok to podgrzewacz (jego podpis
+// jest w pliku obrysowany na krzywe, wiec nie da sie go znalezc po tresci).
 podmien(
-  'ikona wody wodociagowej',
-  '    <g id="storage-tank2" data-name="storage-tank">\n      <rect class="st5" x="145.83" y="336.23" width="119" height="161" rx="15" ry="15"/>',
-  '    <g id="storage-tank2" data-name="storage-tank" data-element="woda">\n' +
-    '      <rect class="st5 karta" x="145.83" y="336.23" width="119" height="161" rx="15" ry="15"' +
-    ' data-object="woda" data-label="Woda wodociągowa" data-h="1.2"/>\n' +
-    IKONA_WODA,
+  'karta wody wodociagowej',
+  '<rect class="st20" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"/>',
+  '<rect class="st20 karta" data-element="woda" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"' +
+    ' data-object="woda" data-label="Woda wodociągowa" data-h="1.2"/>',
 );
-
-// Filtr odkamieniajacy — karta byla calkiem pusta.
 podmien(
-  'filtr odkamieniajacy',
-  '    <g id="storage-tank1" data-name="storage-tank">\n      <rect class="st5" x="308.62" y="336.23" width="119" height="161" rx="15" ry="15"/>\n    </g>',
-  '    <g id="storage-tank1" data-name="storage-tank" data-element="filtr">\n' +
-    '      <rect class="st5 karta" x="308.62" y="336.23" width="119" height="161" rx="15" ry="15"' +
-    ' data-object="filtr" data-label="Filtr odkamieniający" data-h="1.6"/>\n' +
-    IKONA_FILTR +
-    '\n' +
-    podpis(368.12, { dx: -11.55, tekst: 'Filtr' }, { dx: -44.9, tekst: 'odkamieniający' }) +
-    '\n    </g>',
+  'karta podgrzewacza',
+  '<rect class="st20" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>',
+  '<rect class="st20 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"' +
+    ' data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>',
 );
 
-// Podgrzewacz wody wodociagowej — karta byla calkiem pusta.
-podmien(
-  'podgrzewacz wody',
-  '    <g id="heat-pump1" data-name="heat-pump">\n      <rect class="st5" x="472.13" y="336.23" width="146.96" height="161" rx="15" ry="15"/>\n    </g>',
-  '    <g id="heat-pump1" data-name="heat-pump" data-element="podgrzewacz">\n' +
-    '      <rect class="st5 karta" x="472.13" y="336.23" width="146.96" height="161" rx="15" ry="15"' +
-    ' data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>\n' +
-    IKONA_PODGRZEWACZ +
-    '\n' +
-    podpis(545.61, { dx: -56, tekst: 'Podgrzewacz wody' }, { dx: -40.83, tekst: 'wodociągowej' }) +
-    '\n    </g>',
-);
-
-// --- 6. Warstwa przeplywu -------------------------------------------------
+// --- 6. Warstwa przeplywu ------------------------------------------------
 //
-// W v4 rury sa znowu wektorami, wiec sciezki przeplywu to NIE aproksymacja:
-// kazda z nich odtwarza wspolrzedne konkretnej rury z pliku projektanta.
-// Zaokraglenia naroznikow (r=11.34) pomijamy — kreska ma 3 px w rurze o 6 px,
-// wiec sciecie rogu jest niewidoczne, a zapis M/H/V czyta tez parser sceny 3D.
+// SCIEZKI PRZEPISANE Z RUR, NIE NARYSOWANE OD NOWA. Kazda linia nizej to
+// atrybut `d` konkretnej rury (.st21) z pliku projektanta, skopiowany znak
+// w znak. Dzieki temu animowana kreska biegnie dokladnie osia rury i nie ma
+// czego dostrajac po kolejnej wersji rysunku — wystarczy przepisac na nowo.
+//
+// Kierunek zapisu jest kierunkiem rysowania projektanta i nie zawsze zgadza
+// sie z kierunkiem przeplywu; `--supply` / `--return` mowi tylko, ktora
+// kreska nalezy do zasilania, a ktora do powrotu.
+const RURY = [
+  {
+    nazwa: 'odbior-gora',
+    rola: 'supply',
+    d: 'M167.53,244.91v-118.42c0-6.48,5.26-11.74,11.74-11.74h504.43c6.22,0,11.3,5.1,10.47,12.27v169.19',
+  },
+  {
+    nazwa: 'odbior-powrot',
+    rola: 'return',
+    d: 'M671.99,296.22v-134.54c0-6.24-5.11-11.35-11.35-11.35h-129.45c-6.24,0-11.35,5.11-11.35,11.35v262.91c0,6.28-5.09,11.37-11.37,11.37h-36.02',
+  },
+  {
+    nazwa: 'zrodlo-zasilanie',
+    rola: 'supply',
+    d: 'M749.26,296.22V126.1c0-6.24,5.1-11.34,11.34-11.34h530.95c6.24,0,11.34,5.1,11.34,11.34v243.12',
+  },
+  {
+    nazwa: 'bufor-zasilanie',
+    rola: 'return',
+    d: 'M772.26,296.22v-134.55c0-6.24,5.1-11.34,11.34-11.34h146.91c6.24,0,11.34,5.1,11.34,11.34v209.7',
+  },
+  {
+    nazwa: 'bufor-pompa',
+    rola: 'return',
+    d: 'M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55',
+  },
+];
+
 const PRZEPLYW =
   '  <!-- KONTRAKT: warstwa przeplywu — osie rur przepisane z rysunku. -->\n' +
   '  <g id="warstwa-przeplywu" fill="none">\n' +
-  // Pompa ciepla → magazyn. Rura gorna, kierunek odwrocony wzgledem zapisu
-  // projektanta, bo animacja ma isc od zrodla do zbiornika.
-  '    <path class="tube__flow tube__flow--supply" data-flow="pcm-supply"' +
-  ' data-flow-source="METER_FLOW" d="M1469.53 207.36 V90.79 H922.73 V156.9"/>\n' +
-  // Magazyn → zasobnik 80 l.
-  '    <path class="tube__flow tube__flow--return" data-flow="pcm-return"' +
-  ' data-flow-source="METER_FLOW" d="M938.9 157.02 V106.36 H1108.49 V207.35"/>\n' +
-  // Zasobnik → pompa ciepla (spiecie po prawej, w v3 go nie bylo).
-  '    <path class="tube__flow tube__flow--return" data-flow="hp-loop"' +
-  ' data-flow-source="METER_FLOW" d="M1151.75 207.23 V156.36 H1443.34 V207.35"/>\n' +
-  // Magazyn → dolny rzad uzdatniania wody.
-  '    <path class="tube__flow tube__flow--supply" data-flow="dhw-supply"' +
-  ' data-flow-source="METER_FLOW" d="M838.63 157.02 V106.36 H686.48 V460.92 H130.65"/>\n' +
-  // Powrot gorna rura do zbiornika.
-  '    <path class="tube__flow tube__flow--return" data-flow="dhw-return"' +
-  ' data-flow-source="METER_FLOW" d="M334.17 90.79 H854.8 V156.9"/>\n' +
-  '  </g>\n';
+  RURY.map(
+    (r) =>
+      `    <path class="tube__flow tube__flow--${r.rola}" data-flow="${r.nazwa}"` +
+      ` data-flow-source="METER_FLOW" d="${r.d}"/>`,
+  ).join('\n') +
+  '\n  </g>\n';
 
-// Warstwa ma lezec NA rurach, ale POD kartami zaworkow, cieplomierza i pompy
-// — plyn wchodzi w urzadzenie, nie przechodzi po jego wierzchu.
-podmien('miejsce na przeplyw', '  <g id="upper-controls">', PRZEPLYW + '  <g id="upper-controls">');
+// Warstwa lezy NA rurach, ale pod kartami urzadzen — plyn wchodzi
+// w urzadzenie, nie przechodzi po jego wierzchu. Wstawiamy ja przed grupa
+// zbiornika, ktora jest pierwsza po rurach.
+podmien('miejsce na przeplyw', '  <g id="tank">', PRZEPLYW + '  <g id="tank">');
 
 // --- Zapis ----------------------------------------------------------------
 if (bledy.length) {
