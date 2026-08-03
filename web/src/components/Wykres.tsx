@@ -108,8 +108,23 @@ export function Wykres({ series, band, events, fromMs, toMs }: WykresProps) {
     return ticks;
   }, [fromMs, rangeMs]);
 
-  // Mediana odstepu probek — do wykrywania dziur w danych.
+  /**
+   * PROG PRZERWY — kiedy uznajemy, ze danych NIE BYLO.
+   *
+   * Wczesniej bylo tu `mediana * 2.5` i to rozsypywalo wykres na kreski.
+   * Powod: przez SSE ida tylko ZMIENIONE wartosci, a temperatura w PCM stoi
+   * godzinami. Odstepy probek sa wiec z natury nierowne — mediana wypadala
+   * na dwie minuty, a co kilka probek trafiala sie normalna, dziesieciominutowa
+   * cisza. Kazda taka cisza podnosila piorko i linia zamieniala sie w chmure
+   * odcinkow, chociaz zbieranie danych ani na chwile nie ustalo.
+   *
+   * Prawdziwa przerwa ma inna miare: serwer zapisuje BICIE SERCA co 5 minut
+   * (HISTORY_HEARTBEAT_S), nawet gdy wartosc nie drgnela. Brak probki przez
+   * wielokrotnosc tego okresu znaczy, ze serwer nie pisal — czyli nie mierzyl.
+   * Dopiero to jest dziura i dopiero wtedy linia ma sie urwac.
+   */
   const gapLimitMs = useMemo(() => {
+    const BICIE_SERCA_MS = 300_000;
     const deltas: number[] = [];
     for (const s of series) {
       for (let i = 1; i < s.points.length; i += 1) {
@@ -118,7 +133,9 @@ export function Wykres({ series, band, events, fromMs, toMs }: WykresProps) {
     }
     deltas.sort((a, b) => a - b);
     const median = deltas[Math.floor(deltas.length / 2)] ?? 60_000;
-    return median * 2.5;
+    // Kubelki dluzszych zakresow (7 dni) sa szerokie od bicia serca — wtedy
+    // rozstrzyga mediana, bo prog stalej dlugosci cialby co drugi kubelek.
+    return Math.max(BICIE_SERCA_MS * 2.5, median * 3);
   }, [series]);
 
   // --- Sciezki: przerwane na null i na dziurze czasowej ----------------------

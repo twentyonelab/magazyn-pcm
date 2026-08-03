@@ -136,7 +136,7 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
     const usable = status === 'ok' || status === 'stale';
     const numeric = usable ? value!.v : null;
 
-    element.setAttribute('fill', usable ? temperatureFill(numeric, profile) : NO_DATA_FILL);
+    element.setAttribute('fill', usable ? temperatureFill(numeric) : NO_DATA_FILL);
     setState(element, `is-${status}`);
 
     // Pasmo przemiany fazowej ma OSOBNE oznaczenie na grupie sondy —

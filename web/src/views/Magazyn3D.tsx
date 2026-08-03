@@ -694,14 +694,20 @@ export function Magazyn3D({ data }: { data: LiveData }) {
       const numeric = usable ? (value?.v ?? null) : null;
 
       const material = handle.mesh.material as THREE.MeshStandardMaterial;
-      material.color.set(temperatureFill(numeric, profile));
+      material.color.set(temperatureFill(numeric));
       material.opacity = state === 'not-connected' ? 0.35 : 1;
       material.transparent = state === 'not-connected';
 
       handle.outline.visible = state === 'ok' && isInPhaseBand(numeric, profile);
 
       const text = point && value ? formatValue(value, point) : NO_DATA;
-      handle.label.textContent = `${handle.pointId}  ${text}`;
+      // Sondy w zbiorniku maja krotkie, umowne nazwy (A1…B3) i te sa na
+      // rysunku obowiazujace. Punkty cieplomierzy maja identyfikatory
+      // techniczne (METER_T1) — na etykiecie w scenie stawiamy wiec ich
+      // podpis, bo scena jest do patrzenia, nie do debugowania.
+      const nazwa =
+        handle.pointId.length <= 3 ? handle.pointId : (point?.label ?? handle.pointId);
+      handle.label.textContent = `${nazwa}  ${text}`;
       handle.label.dataset.state = state;
     }
 

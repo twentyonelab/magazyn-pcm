@@ -147,7 +147,7 @@ export const POINTS: readonly PointDef[] = [
     // (stare 210f77xx nalezą dzis do ciepłomierza ODBIORU — dlatego zasilanie
     // i powrot dalej cos pokazywaly, tylko nie ten obieg, co trzeba).
     uuid: '211470a8-00fd-47c4-ffff86611eeca57b', // ZRODLO_Przeplyw
-    label: 'Ciepłomierz · przepływ',
+    label: 'Źródło · przepływ',
     unit: 'm³/h',
     kind: 'flow',
     group: 'meter',
@@ -198,7 +198,7 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'METER_T1',
     uuid: '211470ca-005a-55c9-ffff86611eeca57b', // ZRODLO_T_zasilanie
-    label: 'Ciepłomierz · zasilanie',
+    label: 'Źródło · zasilanie',
     unit: '°C',
     kind: 'temperature',
     group: 'meter',
@@ -208,11 +208,55 @@ export const POINTS: readonly PointDef[] = [
   {
     id: 'METER_T2',
     uuid: '211470e4-0369-669b-ffff86611eeca57b', // ZRODLO_T_powrot
-    label: 'Ciepłomierz · powrót',
+    label: 'Źródło · powrót',
     unit: '°C',
     kind: 'temperature',
     group: 'meter',
     precision: 1,
+    available: true,
+  },
+
+  // -------------------------------------------------------------------------
+  // CIEPLOMIERZ ODBIORU — drugi licznik, obieg po lewej stronie schematu.
+  //
+  // Nazwy kontrolek w Loxone Config (pokoj „Cieplomierz_odbior"):
+  //   ODBIOR_T_zasilanie, ODBIOR_T_powrot, ODBIOR_Przeplyw
+  //
+  // UUID-y sa jeszcze puste — kontrolki wchodza do konfiguracji 2026-08-04.
+  // `available: true` z pustym UUID-em znaczy „punkt istnieje w instalacji,
+  // ale aplikacja nie ma go czym odpytac": widok Ustawienia pokazuje wtedy
+  // „czeka na UUID", a na schemacie stoi kreska. To jedyny uczciwy stan
+  // przejsciowy — punkt niedostepny (available: false) mowilby, ze czujnika
+  // NIE MA, a punkt z podstawionym UUID-em pokazywalby cudzy odczyt.
+  // -------------------------------------------------------------------------
+  {
+    id: 'ODBIOR_T_ZASILANIE',
+    uuid: null,
+    label: 'Odbiór · zasilanie',
+    unit: '°C',
+    kind: 'temperature',
+    group: 'meter',
+    precision: 1,
+    available: true,
+  },
+  {
+    id: 'ODBIOR_T_POWROT',
+    uuid: null,
+    label: 'Odbiór · powrót',
+    unit: '°C',
+    kind: 'temperature',
+    group: 'meter',
+    precision: 1,
+    available: true,
+  },
+  {
+    id: 'ODBIOR_FLOW',
+    uuid: null,
+    label: 'Odbiór · przepływ',
+    unit: 'm³/h',
+    kind: 'flow',
+    group: 'meter',
+    precision: 3,
     available: true,
   },
   {

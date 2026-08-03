@@ -178,13 +178,16 @@
       text.is-no-data, text.is-not-connected { fill: #a3a3a0; }
       text.is-stale { opacity: .55; }
 
-      /* Odczyt na rurze — ta sama rodzina co sondy, ale bez klikania. */
+      /* Odczyty cieplomierzy na rurach. Klikalne tak samo jak sondy
+         w zbiorniku — sa w grupach .sensor, wiec dziedzicza kursor i obwodke. */
       .rura-odczyt { fill: var(--akcent, #ff5b1a); }
       .rura-odczyt.is-no-data, .rura-odczyt.is-not-connected { fill: #a3a3a0; }
       .rura-odczyt.is-stale { opacity: .55; }
-      /* Kropka pomiarowa na rurze bez przypisanego punktu: szara, nigdy
-         w barwie nosnika. Punkt bez pomiaru nie moze wygladac jak zywy. */
-      .rura-pomiar--brak { stroke: #a3a3a0; }
+      /* Przeplyw stoi nad temperatura, mniejszym stopniem i wycofana barwa:
+         to dana pomocnicza, a nie druga rownorzedna liczba. */
+      .rura-przeplyw { font-size: 11px; fill: #8d8d88; }
+      .rura-przeplyw.is-no-data, .rura-przeplyw.is-not-connected { fill: #b6b6b1; }
+      .rura-przeplyw.is-stale { opacity: .55; }
 
       [data-element] { cursor: pointer; }
       /* Dwa zapisy, bo manometry NIOSA data-element na samej tarczy,
@@ -282,7 +285,6 @@
   </g>
   <g class="device" data-state="HP_STATE" data-element="heatpump">
     <rect class="st5 karta" x="1247.28" y="369.22" width="230" height="161" rx="7.41" ry="7.41" data-object="heatpump" data-label="Pompa ciepła" data-h="3"/>
-    <circle class="device__led" cx="1459" cy="387" r="5"/>
   </g>
   <g class="st16">
     <g class="st16">
@@ -408,8 +410,8 @@
   <g id="right-devices1">
     <g id="storage-tank1">
       <g>
-        <rect class="st7" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"/>
-        <rect class="st20 karta" data-element="woda" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95" data-object="woda" data-label="Woda wodociągowa" data-h="1.2"/>
+        <rect class="st7 karta" data-element="filtr" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95" data-object="filtr" data-label="Filtr odkamieniający" data-h="1.6"/>
+        <rect class="st20" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"/>
       </g>
     </g>
     <g id="storage-tank2">
@@ -463,8 +465,8 @@
     </g>
     <g id="heat-pump1">
       <g>
-        <rect class="st7" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>
-        <rect class="st20 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15" data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>
+        <rect class="st7 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15" data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>
+        <rect class="st20" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>
       </g>
     </g>
   </g>
@@ -482,8 +484,6 @@
       <text class="st12" transform="translate(774.78 85.63)"><tspan x="0" y="0">P</tspan></text>
     </g>
   </g>
-  <circle class="sensor__cell" fill="#fff" cx="859.18" cy="150.33" r="4.5"><title>Powrót obiegu źródła</title></circle>
-  <circle class="sensor__cell" fill="#fff" cx="859.18" cy="114.63" r="4.5"><title>Zasilanie obiegu źródła</title></circle>
   <circle class="st5" cx="1322.66" cy="446.18" r="45.96"/>
   <polyline class="st3" points="167.4 210.01 171.95 202.13 162.84 202.13 167.4 210.01"/>
   <polyline class="st3" points="167.4 210.01 171.95 217.9 162.84 217.9 167.4 210.01"/>
@@ -526,30 +526,50 @@
   <g class="st16">
     <g class="st16">
       <g class="st16">
+        <g class="sensor sensor--rura" data-sensor="METER_T1">
+        <rect class="sensor__hit" x="834.16" y="79.3" width="86" height="30"/>
+        <circle class="sensor__phase" cx="859.18" cy="114.63" r="10"/>
         <text class="st12 rura-odczyt" data-point="METER_T1" data-unit="°C" transform="translate(840.16 99.3)">—</text>
+        <circle class="sensor__cell" fill="#fff" data-fill-point="METER_T1" cx="859.18" cy="114.63" r="4.5"/>
+        <text class="st12 rura-przeplyw" data-point="METER_FLOW" data-unit="m³/h" transform="translate(840.16 78)">—</text>
+      </g>
       </g>
     </g>
   </g>
   <g class="st16">
     <g class="st16">
       <g class="st16">
+        <g class="sensor sensor--rura" data-sensor="METER_T2">
+        <rect class="sensor__hit" x="834.16" y="154.55" width="86" height="30"/>
+        <circle class="sensor__phase" cx="859.18" cy="150.33" r="10"/>
         <text class="st12 rura-odczyt" data-point="METER_T2" data-unit="°C" transform="translate(840.16 174.55)">—</text>
+        <circle class="sensor__cell" fill="#fff" data-fill-point="METER_T2" cx="859.18" cy="150.33" r="4.5"/>
       </g>
-    </g>
-  </g>
-  <circle class="st8 rura-pomiar--brak" fill="#fff" cx="596.44" cy="150.33" r="4.5"><title>Obieg odbioru — brak pomiaru temperatury</title></circle>
-  <circle class="st8 rura-pomiar--brak" fill="#fff" cx="596.44" cy="114.63" r="4.5"><title>Obieg odbioru — brak pomiaru temperatury</title></circle>
-  <g class="st16">
-    <g class="st16">
-      <g class="st16">
-        <text class="st12 rura-odczyt is-not-connected" transform="translate(577.42 99.3)">—<title>Obieg odbioru — brak pomiaru temperatury</title></text>
       </g>
     </g>
   </g>
   <g class="st16">
     <g class="st16">
       <g class="st16">
-        <text class="st12 rura-odczyt is-not-connected" transform="translate(577.42 174.55)">—<title>Obieg odbioru — brak pomiaru temperatury</title></text>
+        <g class="sensor sensor--rura" data-sensor="ODBIOR_T_POWROT">
+        <rect class="sensor__hit" x="571.42" y="79.3" width="86" height="30"/>
+        <circle class="sensor__phase" cx="596.44" cy="114.63" r="10"/>
+        <text class="st12 rura-odczyt" data-point="ODBIOR_T_POWROT" data-unit="°C" transform="translate(577.42 99.3)">—</text>
+        <circle class="sensor__cell" fill="#fff" data-fill-point="ODBIOR_T_POWROT" cx="596.44" cy="114.63" r="4.5"/>
+        <text class="st12 rura-przeplyw" data-point="ODBIOR_FLOW" data-unit="m³/h" transform="translate(577.42 78)">—</text>
+      </g>
+      </g>
+    </g>
+  </g>
+  <g class="st16">
+    <g class="st16">
+      <g class="st16">
+        <g class="sensor sensor--rura" data-sensor="ODBIOR_T_ZASILANIE">
+        <rect class="sensor__hit" x="571.42" y="154.55" width="86" height="30"/>
+        <circle class="sensor__phase" cx="596.44" cy="150.33" r="10"/>
+        <text class="st12 rura-odczyt" data-point="ODBIOR_T_ZASILANIE" data-unit="°C" transform="translate(577.42 174.55)">—</text>
+        <circle class="sensor__cell" fill="#fff" data-fill-point="ODBIOR_T_ZASILANIE" cx="596.44" cy="150.33" r="4.5"/>
+      </g>
       </g>
     </g>
   </g>
@@ -563,7 +583,6 @@
   <line class="st20" x1="547.13" y1="170.22" x2="533.25" y2="170.22"/>
   <g class="device" data-state="PUMP_STATE" data-element="pump">
     <circle class="st6 karta" cx="1104.95" cy="114.13" r="14.39" data-object="pump" data-label="Pompa obiegowa" data-h="1.3"/>
-    <circle class="device__led" cx="1119" cy="101" r="4"/>
   </g>
   <polyline class="st6" points="1117.84 114.13 1098.5 125.31 1098.5 102.98 1117.84 114.13"/>
   <g class="st16">

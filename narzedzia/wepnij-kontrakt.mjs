@@ -48,6 +48,18 @@ function podmien(opis, szukaj, zamien) {
   svg = svg.replace(szukaj, zamien);
 }
 
+/** Usuwa fragment wraz z wcieciem i koncem wiersza. Tez KRZYCZY przy braku. */
+function usunFragment(opis, fragment) {
+  if (!svg.includes(fragment)) {
+    bledy.push(`nie znaleziono do usuniecia: ${opis}`);
+    return;
+  }
+  svg = svg.replace(
+    new RegExp('[ \\t]*' + fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\n?'),
+    '',
+  );
+}
+
 /** Wycina grupe wraz z zawartoscia, liczac zagniezdzenia <g>. */
 function wytnijGrupe(otwarcie) {
   const start = svg.indexOf(otwarcie);
@@ -125,13 +137,16 @@ podmien(
       text.is-no-data, text.is-not-connected { fill: #a3a3a0; }
       text.is-stale { opacity: .55; }
 
-      /* Odczyt na rurze — ta sama rodzina co sondy, ale bez klikania. */
+      /* Odczyty cieplomierzy na rurach. Klikalne tak samo jak sondy
+         w zbiorniku — sa w grupach .sensor, wiec dziedzicza kursor i obwodke. */
       .rura-odczyt { fill: var(--akcent, #ff5b1a); }
       .rura-odczyt.is-no-data, .rura-odczyt.is-not-connected { fill: #a3a3a0; }
       .rura-odczyt.is-stale { opacity: .55; }
-      /* Kropka pomiarowa na rurze bez przypisanego punktu: szara, nigdy
-         w barwie nosnika. Punkt bez pomiaru nie moze wygladac jak zywy. */
-      .rura-pomiar--brak { stroke: #a3a3a0; }
+      /* Przeplyw stoi nad temperatura, mniejszym stopniem i wycofana barwa:
+         to dana pomocnicza, a nie druga rownorzedna liczba. */
+      .rura-przeplyw { font-size: 11px; fill: #8d8d88; }
+      .rura-przeplyw.is-no-data, .rura-przeplyw.is-not-connected { fill: #b6b6b1; }
+      .rura-przeplyw.is-stale { opacity: .55; }
 
       [data-element] { cursor: pointer; }
       /* Dwa zapisy, bo manometry NIOSA data-element na samej tarczy,
@@ -188,38 +203,95 @@ for (const kol of SONDY) {
     svg.slice(grupa.koniec);
 }
 
-// --- 4. Temperatury na rurach --------------------------------------------
+// --- 4. Cieplomierze na rurach: cztery temperatury i dwa przeplywy -------
 //
-// W pliku stoja cztery odczyty „24.8°C" wpisane na sztywno — dwie pary na
-// rurach nad zbiornikiem. Zadnej z nich nie wolno zostawic jako tekstu, bo
-// liczba wpisana w grafike wyglada dokladnie jak pomiar.
+// W pliku stoja cztery odczyty „24.8°C" wpisane na sztywno. Zadnego nie wolno
+// zostawic jako tekstu: liczba wpisana w grafike wyglada dokladnie jak pomiar.
 //
-// PRAWA PARA (x≈859) lezy na obiegu ZRODLA, czyli tam, gdzie stoi cieplomierz
-// AXIOMA: gora — zasilanie, dol — powrot. Te dwa punkty sa zmapowane i zywe.
+// PRZYPISANIE (ustalone przez projektanta 2026-08-03, zgodne z nazwami
+// kontrolek w Loxone Config):
+//   lewa gora  — ODBIOR_T_powrot      + przeplyw odbioru
+//   lewa dol   — ODBIOR_T_zasilanie
+//   prawa gora — ZRODLO_T_zasilanie   + przeplyw zrodla
+//   prawa dol  — ZRODLO_T_powrot
 //
-// LEWA PARA (x≈596) lezy na obiegu ODBIORU. Tam nie ma czym zmierzyc
-// temperatury — drugi cieplomierz nie jest podlaczony do aplikacji. Zostaje
-// wiec kreska i szara kropka, a podpowiedz mowi wprost, ze pomiaru nie ma.
-// Podstawienie tu czegokolwiek innego byloby zla dana udajaca dobra.
-const ODCZYTY_RUR = [
-  { x: 840.16, y: 99.3, cx: 859.18, cy: 114.63, punkt: 'METER_T1', opis: 'Zasilanie obiegu źródła' },
-  { x: 840.16, y: 174.55, cx: 859.18, cy: 150.33, punkt: 'METER_T2', opis: 'Powrót obiegu źródła' },
-  { x: 577.42, y: 99.3, cx: 596.44, cy: 114.63, punkt: null, opis: 'Obieg odbioru — brak pomiaru temperatury' },
-  { x: 577.42, y: 174.55, cx: 596.44, cy: 150.33, punkt: null, opis: 'Obieg odbioru — brak pomiaru temperatury' },
+// Przeplyw stoi tylko przy GORNYCH odczytach, bo licznik mierzy go raz na
+// obieg — dwie liczby na jednym obiegu sugerowalyby dwa przeplywomierze.
+//
+// TE ODCZYTY SA PELNYMI SONDAMI, nie tekstem: grupa `.sensor` z data-sensor
+// niesie klikniecie, wiec panel z wykresem historii otwiera sie tak samo jak
+// dla sond w zbiorniku. Kropka dostaje data-fill-point, czyli barwe mapy
+// cieplnej, a hit-box 30 px wysokosci — palcem tez da sie trafic.
+const CIEPLOMIERZE = [
+  {
+    strona: 'lewa-gora',
+    x: 577.42,
+    y: 99.3,
+    cx: 596.44,
+    cy: 114.63,
+    punkt: 'ODBIOR_T_POWROT',
+    przeplyw: 'ODBIOR_FLOW',
+    // Podpis przeplywu idzie NAD temperature po lewej stronie: nizej stoi
+    // druga temperatura, a wyzej jest wolne miejsce nad rura.
+    przeplywY: 78,
+  },
+  {
+    strona: 'lewa-dol',
+    x: 577.42,
+    y: 174.55,
+    cx: 596.44,
+    cy: 150.33,
+    punkt: 'ODBIOR_T_ZASILANIE',
+    przeplyw: null,
+  },
+  {
+    strona: 'prawa-gora',
+    x: 840.16,
+    y: 99.3,
+    cx: 859.18,
+    cy: 114.63,
+    punkt: 'METER_T1',
+    przeplyw: 'METER_FLOW',
+    przeplywY: 78,
+  },
+  {
+    strona: 'prawa-dol',
+    x: 840.16,
+    y: 174.55,
+    cx: 859.18,
+    cy: 150.33,
+    punkt: 'METER_T2',
+    przeplyw: null,
+  },
 ];
 
-for (const o of ODCZYTY_RUR) {
+for (const o of CIEPLOMIERZE) {
+  // Tekst temperatury i kropka leza w pliku osobno, w roznych miejscach
+  // dokumentu. Tekst zamieniamy na CALA grupe sondy, a kropke usuwamy
+  // z jej dawnego miejsca — inaczej byloby jej dwie.
   const tekstStary = `<text class="st12" transform="translate(${o.x} ${o.y})"><tspan x="0" y="0">24.8°C</tspan></text>`;
-  const tekstNowy = o.punkt
-    ? `<text class="st12 rura-odczyt" data-point="${o.punkt}" data-unit="°C" transform="translate(${o.x} ${o.y})">—</text>`
-    : `<text class="st12 rura-odczyt is-not-connected" transform="translate(${o.x} ${o.y})">—<title>${o.opis}</title></text>`;
-  podmien(`odczyt na rurze (${o.x}, ${o.y})`, tekstStary, tekstNowy);
+  const przeplyw = o.przeplyw
+    ? `\n        <text class="st12 rura-przeplyw" data-point="${o.przeplyw}" data-unit="m³/h"` +
+      ` transform="translate(${o.x} ${o.przeplywY})">—</text>`
+    : '';
 
-  const kropkaStara = `<circle class="st8" cx="${o.cx}" cy="${o.cy}" r="4.5"/>`;
-  const kropkaNowa = o.punkt
-    ? `<circle class="sensor__cell" fill="#fff" cx="${o.cx}" cy="${o.cy}" r="4.5"><title>${o.opis}</title></circle>`
-    : `<circle class="st8 rura-pomiar--brak" fill="#fff" cx="${o.cx}" cy="${o.cy}" r="4.5"><title>${o.opis}</title></circle>`;
-  podmien(`kropka na rurze (${o.cx}, ${o.cy})`, kropkaStara, kropkaNowa);
+  podmien(
+    `sonda cieplomierza ${o.strona}`,
+    tekstStary,
+    `<g class="sensor sensor--rura" data-sensor="${o.punkt}">\n` +
+      `        <rect class="sensor__hit" x="${o.x - 6}" y="${o.y - 20}" width="86" height="30"/>\n` +
+      `        <circle class="sensor__phase" cx="${o.cx}" cy="${o.cy}" r="10"/>\n` +
+      `        <text class="st12 rura-odczyt" data-point="${o.punkt}" data-unit="°C"` +
+      ` transform="translate(${o.x} ${o.y})">—</text>\n` +
+      `        <circle class="sensor__cell" fill="#fff" data-fill-point="${o.punkt}"` +
+      ` cx="${o.cx}" cy="${o.cy}" r="4.5"/>${przeplyw}\n` +
+      `      </g>`,
+  );
+
+  usunFragment(
+    `stara kropka cieplomierza ${o.strona}`,
+    `<circle class="st8" cx="${o.cx}" cy="${o.cy}" r="4.5"/>`,
+  );
 }
 
 // --- 5. Bryly i karty klikalne -------------------------------------------
@@ -261,25 +333,31 @@ podmien(
     ' d="M1165.78,444.49c13.65,0,25.49-4.44,31.45-7.16',
 );
 
-// Pompa ciepla — karta z lampka stanu w prawym gornym rogu.
+// Pompa ciepla.
+//
+// BEZ LAMPKI STANU. Pierwsza wersja dokladala kropke w prawym gornym rogu
+// karty — obca plamka na rysunku, w ktorym projektant ma juz wlasny znak
+// (tarcze wentylatora). Punkt HP_STATE i tak nie jest podlaczony, wiec lampka
+// swiecilaby stale na szaro i nie mowilaby nic. `data-state` zostaje na grupie:
+// gdy stan bedzie dostepny, wroci tu wskaznik — ale zaprojektowany, nie dopiety.
 podmien(
   'pompa ciepla',
   '<rect class="st5" x="1247.28" y="369.22" width="230" height="161" rx="7.41" ry="7.41"/>',
   '<g class="device" data-state="HP_STATE" data-element="heatpump">\n' +
     '    <rect class="st5 karta" x="1247.28" y="369.22" width="230" height="161" rx="7.41" ry="7.41"' +
     ' data-object="heatpump" data-label="Pompa ciepła" data-h="3"/>\n' +
-    '    <circle class="device__led" cx="1459" cy="387" r="5"/>\n' +
     '  </g>',
 );
 
-// Pompa obiegowa — tarcza z trojkatem u gory rysunku.
+// Pompa obiegowa — tarcza z trojkatem u gory rysunku. Bez lampki, z tego
+// samego powodu co przy pompie ciepla: PUMP_STATE nie jest podlaczony, wiec
+// kropka swiecilaby stale na szaro i byla tylko plamka na rysunku.
 podmien(
   'pompa obiegowa',
   '<circle class="st6" cx="1104.95" cy="114.13" r="14.39"/>',
   '<g class="device" data-state="PUMP_STATE" data-element="pump">\n' +
     '    <circle class="st6 karta" cx="1104.95" cy="114.13" r="14.39"' +
     ' data-object="pump" data-label="Pompa obiegowa" data-h="1.3"/>\n' +
-    '    <circle class="device__led" cx="1119" cy="101" r="4"/>\n' +
     '  </g>',
 );
 
@@ -295,19 +373,32 @@ podmien(
   '<circle class="st6 karta" data-element="manometr-prawy" cx="778.68" cy="81.13" r="14.96"/>',
 );
 
-// Rzad uzdatniania wody po lewej. Przypisanie idzie po polozeniu: pigulka przy
-// podpisie „Woda wodociągowa", szeroka karta obok to podgrzewacz (jego podpis
-// jest w pliku obrysowany na krzywe, wiec nie da sie go znalezc po tresci).
+// Rzad uzdatniania wody po lewej.
+//
+// PRZYPISANIE PO POLOZENIU PODPISOW, sprawdzone wspolrzednymi:
+//   „Woda wodociągowa" (x 58–117, y 436) stoi przy KONCU RURY wchodzacej
+//      z lewej (odnoga y=435.96, x 123.66–161.98) — opisuje doprowadzenie
+//      wody, nie urzadzenie. Zadna karta go nie dostaje.
+//   „Filtr odkamieniający" (x 183–250, y 475) stoi POD pigulka 161.98–280.98.
+//   Podpis podgrzewacza jest obrysowany na krzywe (x 353–443, y 502–515)
+//      i stoi pod szeroka karta 325.49–472.45.
+//
+// Pierwsza wersja przypisywala pigulke do wody i to byl blad zgloszony przez
+// projektanta.
+//
+// ATRYBUTY IDA NA PROSTOKAT WYPELNIONY (.st7), NIE NA OBWODKE (.st20).
+// Obwodka ma `fill: none`, wiec kursor trafial w nia tylko na samej kresce —
+// karta wygladala na klikalna i nie byla. To ta sama pomylka w obu kartach.
 podmien(
-  'karta wody wodociagowej',
-  '<rect class="st20" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"/>',
-  '<rect class="st20 karta" data-element="woda" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"' +
-    ' data-object="woda" data-label="Woda wodociągowa" data-h="1.2"/>',
+  'karta filtra odkamieniajacego',
+  '<rect class="st7" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"/>',
+  '<rect class="st7 karta" data-element="filtr" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"' +
+    ' data-object="filtr" data-label="Filtr odkamieniający" data-h="1.6"/>',
 );
 podmien(
   'karta podgrzewacza',
-  '<rect class="st20" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>',
-  '<rect class="st20 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"' +
+  '<rect class="st7" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>',
+  '<rect class="st7 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"' +
     ' data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>',
 );
 
