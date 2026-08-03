@@ -101,11 +101,11 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
 
 ## Do zrobienia
 
-- **Hasło na Railway.** Brama i ekran startowy są gotowe (gałąź `ekran-startowy`),
-  hash leży w lokalnym `.env`. Adres publiczny zostaje otwarty, dopóki te same
-  dwie zmienne (`AUTH_ENABLED`, `AUTH_PASSWORD_HASH`) nie zostaną ustawione
-  w panelu Railway — plik `.env` tam nie dochodzi. Dodać też
-  `AUTH_COOKIE_SECURE=true`, bo Railway podaje HTTPS.
+- **Hasło na Railway.** Brama i ekran startowy stoją na `master`, hash leży
+  w lokalnym `.env`. Adres publiczny zostaje OTWARTY, dopóki `AUTH_ENABLED`,
+  `AUTH_PASSWORD_HASH` i `AUTH_COOKIE_SECURE=true` nie zostaną ustawione
+  w panelu Railway — plik `.env` tam nie dochodzi. Lokalnie brama jest
+  wyłączona celowo: w sieci laboratorium tylko przeszkadza.
 - Osobny token Mapbox: tylko do czytania, ograniczony do adresu.
 - Kopie zapasowe z wolumenu Railway.
 - `METER_POWER` nie istnieje w Miniserverze — mocy chwilowej nie ma czym podać.
@@ -113,5 +113,3 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
   przepływu i energii — do dołożenia jako kanały Modbus w Loxone Config.
 - Ciepłomierz AXIOMA: błąd 0002 (montaż odwrotny) i milczące kanały Modbus —
   sprawdzić zasilanie 24 VDC, bo na baterii licznik wystawia Modbusa 80 s/godz.
-- Nierozstrzygnięte: `solidus 53` w belce naładowania wobec `phaseBandMin: 55`
-  w konfiguracji serwera dla 57HC.
