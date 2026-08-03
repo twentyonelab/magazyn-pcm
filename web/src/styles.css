@@ -22,11 +22,18 @@
 
      Teraz wszystkie cztery warstwy mają własne zmienne. Nazwy mówią, którą
      część ekranu malują, a nie jakiego są koloru — inaczej po zmianie na
-     chłód znowu zostałyby „pomarańczowe" nazwy z niebieską zawartością. */
-  --tlo-strony: #f7f1ea;
-  --tlo-blask-lewy: var(--akcent);
-  --tlo-blask-prawy: var(--ladunek-jasny);
-  --tlo-blask-gorny: #f2ddc4;
+     chłód znowu zostałyby „pomarańczowe" nazwy z niebieską zawartością.
+
+     WARTOŚCI TU SĄ NEUTRALNE, bo `:root` bez `data-kierunek` znaczy PRZEGLĄD:
+     mapa i lista, gdzie żaden magazyn nie jest wybrany. Wcześniej stał tu krem
+     z pomarańczową poświatą — czyli barwa ciepła — i przegląd wyglądał, jakby
+     ogłaszał ciepło jeszcze przed jakimkolwiek wyborem. Na mapie tego nie było
+     widać, bo płótno Mapboxa zakrywa całe tło; w liście widać było od razu.
+     Barwę nośnika wstawiają dopiero bloki `[data-kierunek]` niżej. */
+  --tlo-strony: #f5f5f3;
+  --tlo-blask-lewy: #dcdcd8;
+  --tlo-blask-prawy: #e4e4e0;
+  --tlo-blask-gorny: #e8e8e4;
 
   --bg: var(--tlo-strony);
   --surface: #ffffff;
@@ -34,8 +41,21 @@
   --ink: #0d0d0d;
   --ink-soft: #6b6b68;
   --ink-faint: #a3a3a0;
-  --accent: #ffe14d;
-  --accent-ink: #0d0d0d;
+
+  /* AKCENT INTERFEJSU (przyciski, obwódki skupienia, podkreślenia).
+     Siedział tu żółty #ffe14d z pierwszej wersji języka wizualnego, jeszcze
+     zanim barwa poszła za nośnikiem. Wychodziło z tego trzecie stronnictwo
+     kolorów: pomarańcz ciepła, błękit chłodu i żółty przycisk, który nie
+     należał do żadnego z nich i przeciągał wzrok na siebie.
+     Teraz akcent idzie za `--akcent`, czyli za nośnikiem — a na przeglądzie,
+     gdzie nośnika nie ma, jest grafitowy jak reszta neutralnego interfejsu.
+
+     Wypełnione przyciski biorą `--akcent-mocny`, nie `--akcent`. Biały napis na
+     pomarańczu #d85a30 daje około 3,9:1, a na błękicie #4d7a91 około 4,0:1 —
+     poniżej 4,5:1 wymaganych dla tekstu tej wielkości. Przyciemniony wariant
+     tego samego odcienia przekracza próg i nie zmienia kodu barwnego. */
+  --accent: var(--akcent-mocny);
+  --accent-ink: #ffffff;
   --ok-bg: #e8f3e4;
   --ok-ink: #2f6b3f;
   --warn-bg: #fdf0d5;
@@ -75,10 +95,17 @@
      a chłodna chłodna — tylko która jest którą, zależy od nośnika (niżej).
 
      Interfejs używa WYŁĄCZNIE `--akcent`. Bezpośrednie `var(--cieplo)`
-     zostaje tylko tam, gdzie naprawdę chodzi o ciepło jako zjawisko. */
-  --akcent: var(--cieplo);
-  --akcent-jasny: var(--akcent-jasny);
-  --akcent-tlo: var(--cieplo-tlo);
+     zostaje tylko tam, gdzie naprawdę chodzi o ciepło jako zjawisko.
+
+     Wartość domyślna jest NEUTRALNA — patrz komentarz przy tle wyżej. */
+  --neutralny: #55555f;
+  --neutralny-jasny: #9a9aa2;
+  --neutralny-tlo: #ececef;
+
+  --akcent: var(--neutralny);
+  --akcent-jasny: var(--neutralny-jasny);
+  --akcent-tlo: var(--neutralny-tlo);
+  --akcent-mocny: #45454e;
 
   /* Zasilanie niesie nośnik, powrót wraca zużyty. W magazynie ciepła
      zasilanie jest gorące, w magazynie chłodu — zimne. */
@@ -114,15 +141,26 @@
  * na ciemnym tle świecą i przestają znaczyć to, co miały znaczyć.
  */
 :root[data-theme='dark'] {
-  --tlo-strony: #14140f;
-  --tlo-blask-gorny: #3a2f22;
-  --surface: #1e1e19;
-  --surface-sunken: #26261f;
+  /* Neutralnie, bo `:root` bez `data-kierunek` to przegląd — barwę nośnika
+     dokładają bloki `[data-kierunek]`. */
+  --tlo-strony: #131315;
+  --tlo-blask-lewy: #2a2a30;
+  --tlo-blask-prawy: #26262b;
+  --tlo-blask-gorny: #2d2d33;
+  --surface: #1d1d20;
+  --surface-sunken: #252529;
   --ink: #f4f4ee;
   --ink-soft: #a8a89e;
   --ink-faint: #6f6f68;
-  --accent: #ffe14d;
-  --accent-ink: #14140f;
+  --accent: var(--akcent-mocny);
+  --accent-ink: #ffffff;
+
+  /* Grafit z motywu jasnego nocą znika w tle — rozjaśniony. Wariant mocny
+     zostaje ciemny, bo to podkład pod biały napis, nie kolor tekstu. */
+  --neutralny: #9ea0ad;
+  --neutralny-jasny: #c8cad4;
+  --neutralny-tlo: #2a2a31;
+  --akcent-mocny: #565663;
   --ok-bg: #1f3324;
   --ok-ink: #8fd6a0;
   --warn-bg: #3a2f16;
@@ -724,6 +762,24 @@ code {
 .stack {
   display: grid;
   gap: 1.25rem;
+}
+
+/*
+ * ELEMENT SIATKI NIE ZWĘŻA SIĘ SAM — i to psuło przewijanie tabel.
+ *
+ * Domyślne `min-width: auto` na elemencie siatki znaczy „nie schodź poniżej
+ * szerokości minimalnej swojej treści". Karta z tabelą o sześciu kolumnach ma
+ * tę szerokość rzędu ośmiuset pikseli, więc na telefonie rozpychała się do
+ * 832 px w torze szerokości 356 px. Skutek był podstępny: `.table-scroll` ma
+ * `overflow-x: auto`, ale nigdy się nie włączał, bo sam był już szerszy od
+ * tabeli. Nadwyżkę obcinał dopiero `.app { overflow-x: clip }` — czyli ostatnie
+ * kolumny nie były przewijalne, tylko NIEDOSTĘPNE.
+ *
+ * `min-width: 0` przywraca zwężanie: karta wchodzi w tor, tabela zostaje przy
+ * swojej szerokości, a pole przewijania zaczyna działać tak, jak zamierzono.
+ */
+.stack > * {
+  min-width: 0;
 }
 
 /* --- Kafle stanu ---------------------------------------------------------- */
@@ -1698,7 +1754,10 @@ code {
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--accent);
+  /* Podpowiedź ma CIEMNE tło w obu motywach, więc bierze jasny wariant barwy
+     nośnika, a nie `--accent` — ten jest podkładem pod biały napis i na
+     ciemnym tle sam by zniknął. */
+  color: var(--akcent-jasny);
 }
 
 /* =========================================================================
@@ -1754,6 +1813,32 @@ code {
   }
 }
 
+/* Magazyn ciepła: krem i pomarańcz.
+   ---------------------------------------------------------------------------
+   Te wartości stały wcześniej w `:root` jako domyślne, bo ciepło było jedyną
+   możliwością. Teraz domyślny jest PRZEGLĄD (neutralny), więc ciepło musi się
+   przedstawić tak samo jawnie jak chłód — inaczej lista i mapa dziedziczyłyby
+   barwę nośnika, którego nikt nie wybrał. */
+:root[data-kierunek='cieplo'] {
+  --akcent: var(--cieplo);
+  --akcent-jasny: var(--cieplo-jasny);
+  --akcent-tlo: var(--cieplo-tlo);
+  --akcent-mocny: #ad431d;
+
+  --tlo-strony: #f7f1ea;
+  --tlo-blask-lewy: var(--akcent);
+  --tlo-blask-prawy: var(--ladunek-jasny);
+  --tlo-blask-gorny: #f2ddc4;
+}
+
+/* Ciepło NOCĄ — z tego samego powodu co chłód nocą (patrz niżej): dwa atrybuty
+   w selektorze, żeby waga rozstrzygała o `--tlo-strony` bez oglądania się na
+   kolejność w arkuszu. */
+:root[data-theme='dark'][data-kierunek='cieplo'] {
+  --tlo-strony: #14140f;
+  --tlo-blask-gorny: #3a2f22;
+}
+
 /* Magazyn chłodu: cały interfejs przechodzi w lodowy błękit, a kierunek
    nitek się odwraca — zasilanie jest tu zimne, powrót cieplejszy. Atrybut
    ustawia App na korzeniu dokumentu, na podstawie materiału sesji albo
@@ -1762,6 +1847,7 @@ code {
   --akcent: var(--chlod);
   --akcent-jasny: var(--chlod-jasny);
   --akcent-tlo: var(--chlod-tlo);
+  --akcent-mocny: #3a6072;
   --zasilanie: var(--chlod);
   --powrot: var(--cieplo);
 
@@ -2047,6 +2133,30 @@ code {
   color: var(--ink-soft);
 }
 
+/* Odnośnik do pełnej prognozy. Podpis źródła i tak stał na dole kafelka, więc
+   nie dokładamy osobnego przycisku — samo źródło staje się drogą do niego. */
+.pogoda__zrodlo--link {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  cursor: pointer;
+  /* Kafelek pogody ma `pointer-events: none` na niektórych warstwach nakładki,
+     a ten element musi klikać się zawsze. */
+  pointer-events: auto;
+}
+
+.pogoda__zrodlo--link:hover,
+.pogoda__zrodlo--link:focus-visible {
+  color: var(--akcent);
+  text-decoration: underline;
+}
+
+.pogoda__strzalka {
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
 /* Dopóki pogoda nie idzie ze sterownika, karta nosi znak zapytania w postaci
    przerywanej obwódki — ten sam sposób, którym reszta aplikacji oznacza dane
    spoza instalacji. */
@@ -2328,6 +2438,38 @@ code {
 /* Znak Mapboxa i atrybucja leżą nad legendą, więc muszą być nad jej tłem. */
 .mapa .mapboxgl-ctrl-bottom-right {
   z-index: 3;
+}
+
+/*
+ * ZNAKU MAPBOXA NIE USUWAM — bo nie wolno.
+ *
+ * Warunki Mapboxa wymagają pokazywania znaku i atrybucji przy mapach, które
+ * korzystają z ich stylów albo danych. Wyjątek dotyczy wyłącznie własnych
+ * stylów i własnych danych; my używamy jednego i drugiego od Mapboxa, więc
+ * wyjątek nas nie obejmuje. `display: none`, zerowa przezroczystość, zasłonięcie
+ * czymkolwiek albo wypchnięcie za krawędź to to samo naruszenie w czterech
+ * przebraniach — i pierwsza rzecz, którą sprawdza się przy audycie licencji.
+ *
+ * Tyle da się zrobić legalnie i tyle jest zrobione: atrybucja chodzi w formie
+ * zwiniętej (`compact: true` w Mapa.tsx), czyli najmniejszej, jaką Mapbox
+ * przewiduje — mały krążek „i" zamiast pełnego wiersza tekstu. Poniżej znak
+ * dostaje jeszcze mniej kontrastu, ale zostaje czytelny: przygaszenie do
+ * niewidoczności byłoby ukryciem, nie oszczędnością miejsca.
+ *
+ * JEŚLI ZNAK MA ZNIKNĄĆ NAPRAWDĘ, trzeba zmienić źródło mapy — MapLibre GL
+ * z kaflami OpenStreetMap albo własnymi. Wtedy odchodzi też koszt Mapboxa
+ * i token, a znak przestaje mieć podstawę prawną. To jednak przebudowa widoku
+ * mapy, nie reguła w arkuszu stylów.
+ */
+.mapa .mapboxgl-ctrl-logo {
+  opacity: 0.45;
+  transform: scale(0.82);
+  transform-origin: bottom right;
+}
+
+.mapa .mapboxgl-ctrl-logo:hover,
+.mapa .mapboxgl-ctrl-logo:focus-visible {
+  opacity: 1;
 }
 
 /* Mapbox wstawia własne kontrolki z jasnym tłem — w trybie ciemnym trzeba je
@@ -3266,6 +3408,49 @@ body::after {
   color: var(--surface);
 }
 
+/* --- Przełącznik rzutu 2D / 3D --------------------------------------------
+   Ten sam kształt co `.segment`, ale własne reguły, bo siedzi nad płótnem
+   schematu i musi być szkłem — segment w karcie stoi na papierze i ma tło
+   nieprzezroczyste. Wyśrodkowany, bo dotyczy całego rysunku pod nim. */
+
+.wymiar {
+  align-self: center;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  -webkit-backdrop-filter: var(--szklo-rozmycie);
+  backdrop-filter: var(--szklo-rozmycie);
+  border: var(--szklo-krawedz);
+  box-shadow: var(--shadow-sm);
+}
+
+.wymiar__item {
+  min-width: 3rem;
+  padding: 4px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.wymiar__item:hover {
+  color: var(--ink);
+}
+
+.wymiar__item.is-active {
+  background: var(--akcent);
+  color: #fff;
+}
+
 .przeglad__sondy {
   display: flex;
   flex-wrap: wrap;
@@ -3329,6 +3514,7 @@ body::after {
 }
 
 .przeglad__skala-pasek {
+  position: relative;
   display: flex;
   width: min(320px, 45vw);
   height: 12px;
@@ -3338,6 +3524,26 @@ body::after {
 
 .przeglad__skala-pasek i {
   flex: 1;
+}
+
+/* Pasmo przemiany na skali. Obrys, nie wypełnienie — barwa jest już zajęta
+   przez temperaturę i domalowanie jej tutaj drugiego znaczenia zabrałoby
+   skali jednoznaczność. */
+.przeglad__skala-pasmo {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(15, 15, 15, 0.55),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.45);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+:root[data-theme='dark'] .przeglad__skala-pasmo {
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.7),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.35);
 }
 
 .przeglad__skala-opis {
@@ -3373,74 +3579,122 @@ body::after {
   }
 }
 
-/* --- Pasek oglądanego punktu pokazowego -----------------------------------
-   Wisi nad stopką przy lewej krawędzi. Jest jedynym wyjściem z powrotem na
-   stanowisko: nawigacja u góry przełącza WIDOKI, nie źródło danych, i gdyby
-   powrót siedział tam, mieszałby dwie różne rzeczy. */
+/* --- Plakietka otwartego magazynu ------------------------------------------
+   Wyśrodkowana nad dolnym paskiem. Odpowiada na jedno pytanie — „czyje liczby
+   widzę" — i stoi w tym samym miejscu na każdym widoku.
 
-.punkt-pasek {
+   Zastąpiła dwie rzeczy: nazwę obiektu z górnej pastylki (rosła razem z nazwą
+   i przesuwała menu) oraz osobny pasek punktu pokazowego przy lewej krawędzi. */
+
+.plakietka-obiektu {
   position: fixed;
-  left: clamp(1rem, 3vw, 2rem);
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(var(--pas-dol, 36px) + 10px);
   z-index: 6;
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.45rem 0.55rem 0.45rem 0.8rem;
+  align-items: baseline;
+  gap: 0.55rem;
+  max-width: min(92vw, 34rem);
+  padding: 0.4rem 0.9rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 62%, transparent);
   -webkit-backdrop-filter: var(--szklo-rozmycie);
   backdrop-filter: var(--szklo-rozmycie);
   border: var(--szklo-krawedz);
   box-shadow: 0 8px 24px rgba(15, 15, 15, 0.1);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  /* Plakietka informuje; klikalne jest to, co pod nią. Bez tego przejmowałaby
+     kliknięcia w środek schematu, bo leży nad płótnem. */
+  pointer-events: none;
 }
 
-.punkt-pasek__kropka {
+.plakietka-obiektu__kropka {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   flex: none;
+  /* Do środka wiersza, nie do linii pisma — inaczej kropka wisi nad tekstem,
+     bo przy `align-items: baseline` element bez tekstu nie ma na czym stanąć. */
+  align-self: center;
+  background: var(--ink-faint);
 }
 
-.punkt-pasek__kropka.is-cieplo {
-  background: var(--cieplo);
+/* Żyje: pulsuje zielenią, dopóki dane naprawdę napływają. */
+.plakietka-obiektu.is-zywe .plakietka-obiektu__kropka {
+  background: #3ea55f;
+  box-shadow: 0 0 0 0 rgba(62, 165, 95, 0.55);
+  animation: plakietka-puls 2s ease-out infinite;
 }
 
-.punkt-pasek__kropka.is-chlod {
-  background: var(--chlod);
+/* Serwer odpowiada, Miniserver nie w pełni — bursztyn, ale BEZ pulsu. Puls
+   znaczy „świeże dane", więc przy niepełnym źródle byłby obietnicą na wyrost. */
+.plakietka-obiektu.is-uwaga .plakietka-obiektu__kropka {
+  background: #d9922b;
 }
 
-.punkt-pasek__nazwa {
+.plakietka-obiektu.is-martwe .plakietka-obiektu__kropka {
+  background: var(--ink-faint);
+}
+
+@keyframes plakietka-puls {
+  70% {
+    box-shadow: 0 0 0 7px rgba(62, 165, 95, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(62, 165, 95, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plakietka-obiektu.is-zywe .plakietka-obiektu__kropka {
+    animation: none;
+  }
+}
+
+.plakietka-obiektu__nazwa {
   font-weight: 700;
   color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.punkt-pasek__opis {
+.plakietka-obiektu__miasto {
   color: var(--ink-soft);
+  font-size: 0.74rem;
+  white-space: nowrap;
 }
 
-.punkt-pasek__wroc {
-  border: 0;
+.plakietka-obiektu__znacznik {
+  flex: none;
+  padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  padding: 0.3rem 0.75rem;
-  background: var(--ink);
-  color: var(--surface);
-  font: inherit;
-  font-size: 0.76rem;
-  cursor: pointer;
+  background: var(--akcent-tlo);
+  color: var(--akcent);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.punkt-pasek__wroc:hover {
-  background: var(--akcent);
-}
-
-@media (max-width: 720px) {
-  /* Na wąskim ekranie zostaje nazwa i wyjście — opis jest wtedy dopowiedzeniem,
-     bez którego pasek nadal mówi wszystko, co trzeba. */
-  .punkt-pasek__opis {
+/* Na wąskim ekranie miasto ustępuje — nazwa niesie wszystko, co konieczne. */
+@media (max-width: 560px) {
+  .plakietka-obiektu__miasto {
     display: none;
   }
+}
+
+/* Dostępne dla czytnika ekranu, niewidoczne dla oczu. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Kafelek pogody ustępuje, gdy belka jest rozwinięta.
@@ -3534,34 +3788,9 @@ body::after {
   line-height: 1;
 }
 
-.nav__obiekt {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0 0.5rem 0 0.35rem;
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--ink);
-  white-space: nowrap;
-  max-width: 15rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nav__obiekt-kropka {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-}
-
-.nav__obiekt-kropka.is-cieplo {
-  background: var(--cieplo);
-}
-
-.nav__obiekt-kropka.is-chlod {
-  background: var(--chlod);
-}
+/* `.nav__obiekt` już nie istnieje — nazwa obiektu przeniosła się na plakietkę
+   nad dolnym paskiem. Reguły zniknęły razem z nim, żeby nie zostawiać w
+   arkuszu stylu dla czegoś, czego nie ma w drzewie. */
 
 .nav__rozdzielacz {
   width: 1px;
@@ -3570,19 +3799,63 @@ body::after {
   background: var(--hairline);
 }
 
-/* Na wąskim ekranie nazwa ustępuje — dom i widoki są ważniejsze,
-   a nazwę i tak powtarza pasek punktu pokazowego oraz tytuł widoku. */
-@media (max-width: 900px) {
-  .nav__obiekt,
-  .nav__rozdzielacz {
-    display: none;
-  }
-}
-
 /* --- Lista magazynów ------------------------------------------------------
    Wiersz jest przyciskiem: cały, nie tylko strzałka na końcu. Dwadzieścia jeden
    pozycji przeglądanych wzrokiem w dół kolumny — celowanie w małą strzałkę
    byłoby tu karą, nie ułatwieniem. */
+
+/* Nagłówek sortujący.
+
+   Przyciskiem jest zawartość komórki, a nie sama komórka: `<th>` z `onClick`
+   nie da się osiągnąć klawiaturą ani ogłosić czytnikowi jako coś do wciśnięcia.
+   Przycisk wypełnia komórkę w całości, więc celuje się tak samo łatwo, jakby
+   klikalny był cały nagłówek. */
+.sortownik {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  cursor: pointer;
+}
+
+/* Liczby są wyrównane do prawej, więc i ich nagłówek musi być — inaczej podpis
+   stoi nad kolumną, z którą się nie pokrywa. */
+.num > .sortownik {
+  justify-content: flex-end;
+}
+
+.sortownik__strzalka {
+  font-size: 0.85em;
+  /* Nieczynna strzałka jest przygaszona, ale WIDOCZNA: to ona mówi, że kolumnę
+     da się sortować. Pokazywanie jej dopiero po najechaniu ukrywa tę
+     możliwość przed każdym, kto nie ma myszki. */
+  opacity: 0.35;
+}
+
+.sortownik.is-active {
+  color: var(--akcent);
+}
+
+.sortownik.is-active .sortownik__strzalka {
+  opacity: 1;
+}
+
+.sortownik:hover .sortownik__strzalka {
+  opacity: 0.75;
+}
+
+.sortownik:focus-visible {
+  outline: 2px solid var(--akcent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 .tabela-magazynow__wiersz {
   cursor: pointer;
@@ -3650,4 +3923,328 @@ body::after {
   font-size: 0.7rem;
   font-weight: 600;
   cursor: help;
+}
+
+/* =========================================================================
+   RESPONSYWNOŚĆ — tablety i telefony
+   =========================================================================
+   Arkusz powstawał na monitor stanowiska i to widać: belki mają odsunięcia
+   liczone w centymetrach ekranu, menu ma siedem pozycji w jednym rzędzie,
+   a pod schematem stoi kafelek pogody szerokości piętnastu znaków. Na
+   telefonie każda z tych rzeczy działa, ale nie razem.
+
+   Blok stoi na KOŃCU arkusza świadomie: nadpisuje reguły spisane wyżej, a przy
+   równej wadze selektorów rozstrzyga kolejność. Wstawienie go w środku
+   działałoby zależnie od tego, co dopisze się później — czyli przypadkiem.
+
+   Trzy progi, każdy z powodem:
+     900 px  tablet w pionie i telefon w poziomie. Mieści się jeszcze wszystko,
+             ale nie ze zapasem — schodzą logotypy i odsunięcia.
+     640 px  telefon w pionie. Menu przestaje się mieścić w rzędzie i zaczyna
+             przewijać w poziomie; z paska stanu schodzą liczby diagnostyczne.
+     380 px  najwęższe telefony w użyciu. Zostaje sama treść.
+
+   Zasada, której się tu trzymam: NIC NIE ZNIKA BEZ ADRESU. Element ukryty na
+   telefonie musi być osiągalny gdzie indziej — opóźnienie i czas działania są
+   w Diagnostyce, nazwa obiektu na plakietce, źródło pogody w podpowiedzi.
+   Ukrywanie po to, żeby się zmieściło, jest wtedy zwężeniem widoku, a nie
+   utratą informacji.
+   ========================================================================= */
+
+/* --- Do 900 px: tablet ---------------------------------------------------- */
+@media (max-width: 900px) {
+  .topbar {
+    gap: 0.75rem;
+    padding: 0.8rem clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  /* Logotyp klienta schodzi z 54 do 38 px. Przy trzech rzeczach w jednym
+     rzędzie to on zabierał najwięcej miejsca, a jest znakiem, nie treścią. */
+  .topbar__logo--tauron {
+    height: 38px;
+  }
+
+  .topbar__right {
+    gap: 0.5rem;
+  }
+
+  .main {
+    padding-left: clamp(0.75rem, 3vw, 1.5rem);
+    padding-right: clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  .statusbar {
+    gap: 0.3rem 0.9rem;
+    padding: 0.5rem clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  /* Nota o prawach autorskich ma `margin-left: auto`, więc przy zawijaniu
+     spadała do własnego wiersza i podnosiła pasek o całą linijkę. */
+  .statusbar__copy {
+    display: none;
+  }
+
+  .logo-21 {
+    height: 30px;
+    bottom: 42px;
+  }
+
+  /* Kafelek pogody zwęża się i przestaje być szerszy niż połowa ekranu. */
+  .pogoda {
+    width: min(15.5rem, 46vw);
+    padding: 0.7rem 0.8rem;
+    left: clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  .magazyn-widok .canvas__tools {
+    right: clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  .canvas {
+    min-height: 340px;
+  }
+}
+
+/* --- Do 640 px: telefon w pionie ----------------------------------------- */
+@media (max-width: 640px) {
+  .brand__logo {
+    height: 21px;
+  }
+
+  .topbar__logo--tauron {
+    height: 28px;
+  }
+
+  /*
+    MENU PRZEWIJA SIĘ W POZIOMIE, a nie zawija.
+
+    `flex-wrap: wrap` z siedmioma pozycjami robił na telefonie trzy rzędy
+    pastylki — czyli pasek nawigacji wysokości ćwierci ekranu, na każdym
+    widoku. Jeden rząd z przewijaniem zabiera tyle samo miejsca co jeden
+    przycisk i nie przestawia się przy wejściu w inny magazyn.
+
+    `scroll-snap` zatrzymuje przewijanie na całych pozycjach, żeby nie zostawał
+    na krawędzi pół przycisku wyglądające na obcięty interfejs.
+  */
+  .topbar__center {
+    width: 100%;
+    min-width: 0;
+    gap: 0.4rem;
+  }
+
+  .nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    /* Pastylka ma zaokrąglone końce, więc przewijana treść musi mieć czym
+       odetchnąć od krawędzi, inaczej pierwszy przycisk wchodzi w łuk. */
+    scroll-padding: 0.25rem;
+    /* Paska przewijania nie pokazujemy: pastylka ma 40 px wysokości, a pasek
+       zjadłby z tego szóstą część. Przewijanie palcem jest oczywiste. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav__item {
+    flex: none;
+    scroll-snap-align: center;
+    /* Palec potrzebuje około 40 px. Wysokość bierze się z odsunięcia w pionie,
+       więc rośnie ono, a nie font. */
+    padding: 0.5rem 0.7rem;
+    font-size: 0.84rem;
+  }
+
+  .theme-toggle {
+    flex: none;
+  }
+
+  /*
+    PASEK STANU: zostają dwie rzeczy, które odpowiadają na pytanie „czy to,
+    co widzę, jest aktualne" — zegar żywotności i oba łącza. Opóźnienie, czas
+    działania i sesja schodzą, bo są liczbami do diagnozowania, a nie do
+    pilnowania, i stoją w całości w widoku Diagnostyka.
+  */
+  .statusbar__field--wtorne {
+    display: none;
+  }
+
+  .statusbar__label {
+    /* Podpisy „przeglądarka → serwer" i „serwer → Miniserver" nie mieszczą się
+       obok wartości. Zostaje sama wartość — kolor i puls mówią, czy jest
+       dobrze, a pełny opis jest w Diagnostyce. */
+    display: none;
+  }
+
+  .statusbar {
+    gap: 0.25rem 0.8rem;
+    font-size: 0.78rem;
+  }
+
+  .logo-21 {
+    height: 24px;
+    bottom: 38px;
+  }
+
+  /* Plakietka jest wyśrodkowana, logotyp 21 zmysłów stoi przy prawej krawędzi
+     na tej samej wysokości. Ograniczenie szerokości zostawia mu miejsce,
+     zamiast wsuwać się pod niego. */
+  .plakietka-obiektu {
+    max-width: calc(100vw - 6.5rem);
+    font-size: 0.76rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  /* Kafelek pogody przestaje dzielić szerokość ze schematem i staje się wąskim
+     paskiem u góry rysunku. Na 360 px ekranu karta 15 rem zakrywała zbiornik. */
+  .pogoda {
+    width: min(11.5rem, 60vw);
+    font-size: 0.9em;
+  }
+
+  .pogoda__ikona-nieba {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Wiersze wtórne pogody schodzą — zostaje temperatura, stan nieba i źródło.
+     Wilgotność, wiatr i nasłonecznienie są w pełnej prognozie pod odnośnikiem. */
+  .pogoda__rzad {
+    display: none;
+  }
+
+  .canvas {
+    min-height: 280px;
+    padding: 0.6rem;
+    border-radius: var(--radius);
+  }
+
+  .card {
+    border-radius: var(--radius);
+  }
+
+  .stack {
+    gap: 0.9rem;
+  }
+
+  /* Nagłówek karty przestaje być rzędem: tytuł i metryczka jeden pod drugim,
+     bo `space-between` przy zawijaniu zostawiał metryczkę wyrównaną do prawej
+     i czytało się to jak osobny, niezrozumiały napis. */
+  .card__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  /* Formularz zakresu: pola na pełną szerokość, przycisk pobrania też — celuje
+     się w niego palcem, a nie kursorem. */
+  .rangebar {
+    gap: 0.6rem;
+  }
+
+  .rangebar .field {
+    flex: 1 1 100%;
+  }
+
+  .rangebar .field input,
+  .rangebar .field select {
+    width: 100%;
+  }
+
+  .rangebar .button-primary {
+    flex: 1 1 100%;
+    padding: 0.7rem 1rem;
+  }
+
+  .rangebar__presets {
+    margin-right: 0;
+    flex: 1 1 100%;
+  }
+
+  /* Tabele przewijają się w poziomie (`.table-scroll`), ale muszą jeszcze mieć
+     po czym: bez `min-width` komórki ściskają się do jednej litery na wiersz. */
+  .table {
+    min-width: 34rem;
+    font-size: 0.86rem;
+  }
+
+  .table th,
+  .table td {
+    white-space: nowrap;
+  }
+
+  /* Wykres doby ma płótno 1400 × 520 i skaluje się przez `viewBox`, więc na
+     telefonie robi się z niego pasek wysokości trzech centymetrów. Podniesiona
+     proporcja przywraca mu czytelność — rysunek zostaje ten sam, zmienia się
+     tylko, ile pikseli ekranu na niego idzie. */
+  .chart__svg {
+    min-height: 240px;
+  }
+
+  .wymiar__item {
+    min-width: 2.6rem;
+  }
+}
+
+/* --- Do 380 px: najwęższe telefony --------------------------------------- */
+@media (max-width: 380px) {
+  .topbar {
+    padding: 0.6rem 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .brand__logo {
+    height: 19px;
+  }
+
+  /* Logotyp klienta schodzi z nagłówka. Nie znika z aplikacji — zostaje
+     w widoku Ustawienia i w stopce dokumentów; tutaj ustępuje nawigacji,
+     bo bez niej nie da się z tego ekranu wyjść. */
+  .topbar__logo--tauron {
+    display: none;
+  }
+
+  .main {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .statusbar {
+    padding: 0.45rem 0.6rem;
+  }
+
+  .logo-21 {
+    display: none;
+  }
+
+  .plakietka-obiektu {
+    max-width: calc(100vw - 1.6rem);
+  }
+
+  .card {
+    padding: 0.9rem;
+  }
+}
+
+/* --- Urządzenia dotykowe, niezależnie od szerokości ---------------------- */
+/*
+  Podpowiedzi po najechaniu na dotyku nie istnieją: pierwszy dotyk jest
+  kliknięciem, a nie najechaniem. Reguła nie wyłącza więc niczego — pilnuje
+  tylko, żeby elementy, które na myszce reagują dopiero po najechaniu, na
+  dotyku były widoczne od razu.
+*/
+@media (hover: none) {
+  .sortownik__strzalka {
+    opacity: 0.55;
+  }
+
+  /* Pole dotyku przycisków narzędziowych schematu (+, −, dopasuj) rośnie do
+     44 px — poniżej tej wielkości celuje się w nie palcem na ślepo. */
+  .tool {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

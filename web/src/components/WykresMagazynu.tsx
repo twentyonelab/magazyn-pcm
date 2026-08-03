@@ -63,10 +63,38 @@ const KOLOR: Record<IdSondy, string> = {
   B1: SERIES_COLORS[6]!,
 };
 
-type Forma = 'linie' | 'rozwarstwienie' | 'mapa';
+/**
+ * FORMY PREZENTACJI.
+ *
+ * „linie" i „odczyty" rysują te same dane i różnią się jedną rzeczą: co robią
+ * z PRZERWĄ w pomiarach.
+ *
+ *   linie    Ciągły przebieg. Przerwy są przeskakiwane, więc kreska idzie od
+ *            początku do końca zakresu bez rozspajania. Do patrzenia na
+ *            kształt: gdzie zaczęło rosnąć, gdzie przystanęło, jak wygląda
+ *            półka przemiany. Serwer zapisuje tylko wtedy, gdy działa, więc
+ *            każdy restart robił dziurę — a przy sześciu seriach naraz
+ *            posiekana kreska przestawała się czytać jako przebieg.
+ *
+ *   odczyty  Te same serie, ale widać POJEDYNCZE PRÓBKI i przerwy między nimi.
+ *            Do pytania „czy naprawdę to zmierzyliśmy", a nie „jaki to kształt".
+ *            Ciągła kreska w poprzedniej formie łączy punkty przez przerwę, co
+ *            jest wygodne i jest domysłem — ta forma pokazuje, ile w niej
+ *            domysłu.
+ */
+type Forma = 'linie' | 'odczyty' | 'rozwarstwienie' | 'mapa';
 
 const FORMY: Array<{ id: Forma; etykieta: string; opis: string }> = [
-  { id: 'linie', etykieta: 'linie', opis: 'Każda sonda osobno — do odczytu konkretnej wartości.' },
+  {
+    id: 'linie',
+    etykieta: 'linie',
+    opis: 'Ciągły przebieg każdej sondy — do czytania kształtu: wzrostu, półki przemiany, spadku.',
+  },
+  {
+    id: 'odczyty',
+    etykieta: 'odczyty',
+    opis: 'Pojedyncze próbki z widocznymi przerwami — pokazuje, co zostało zmierzone, a co dopowiada linia.',
+  },
   {
     id: 'rozwarstwienie',
     etykieta: 'rozwarstwienie',
@@ -151,30 +179,55 @@ function ticksY(min: number, max: number, ile = 6): number[] {
 }
 
 /**
- * Barwa temperatury w mapie cieplnej — TRZY REŻIMY, nie jedna tęcza.
+ * SKALA BARWNA MAPY CIEPLNEJ — jedna ciągła rampa po temperaturze bezwzględnej.
  *
- * Zwykły gradient od zimnego do ciepłego rozmyłby przemianę fazową w środku
- * skali. Tutaj materiał stały idzie w błękitach, ciekły w pomarańczach,
- * a przemiana dostaje osobną, piaskową rodzinę — dzięki temu obszar przemiany
- * rysuje się jako zwarta plama, a nie jako kolejny odcień po drodze.
+ * Wcześniej były tu TRZY REŻIMY zaczepione o profil materiału: błękity poniżej
+ * pasma przemiany, piaski w pasmie, pomarańcze powyżej. Pomysł był taki, żeby
+ * przemiana rysowała się jako zwarta plama — i to działało, ale za cenę dwóch
+ * OSTRYCH CIĘĆ na granicach pasma. Przy 8HC pasmo ma dwa stopnie szerokości
+ * (7–9 °C), więc ćwierć stopnia różnicy przeskakiwało z błękitu na piasek:
+ * mapa pokazywała skok tam, gdzie w zbiorniku nic nie skakało.
+ *
+ * Druga wada była cichsza i gorsza: skala zależała od profilu, więc ten sam
+ * kolor znaczył inną temperaturę dla 57HC i dla 8HC. Dwóch materiałów nie dało
+ * się porównać — a to w tym badaniu jest jednym z głównych pytań.
+ *
+ * Teraz punkty oparcia są WPISANE W STOPNIE i wspólne dla wszystkich
+ * materiałów. Barwa nie koduje już przemiany; przemianę pokazuje osobno obrys
+ * pasma na skali i granice w podpisie. Kolor mówi „ile stopni", i tylko to.
  */
-function barwa(t: number, profil: MaterialProfile): string {
-  const mieszaj = (a: number[], b: number[], u: number): string => {
-    const k = Math.max(0, Math.min(1, u));
-    const c = a.map((v, i) => Math.round(v + (b[i]! - v) * k));
-    return `rgb(${c[0]} ${c[1]} ${c[2]})`;
-  };
+const RAMPA: ReadonlyArray<{ t: number; rgb: [number, number, number] }> = [
+  { t: -20, rgb: [40, 74, 132] }, // głęboki granat — mróz
+  { t: -5, rgb: [120, 168, 214] }, // błękit
+  { t: 0, rgb: [246, 249, 252] }, // biel: zero jako punkt odniesienia
+  { t: 10, rgb: [198, 196, 190] }, // szarość — ani zimno, ani ciepło
+  { t: 15, rgb: [237, 168, 88] }, // pomarańcz
+  { t: 25, rgb: [219, 84, 46] }, // czerwień
+  { t: 40, rgb: [138, 26, 22] }, // bordo dopiero tutaj
+  { t: 70, rgb: [92, 12, 14] }, // najgłębsze bordo — koniec skali
+];
 
-  if (t < profil.phaseBandMin) {
-    const u = (t - profil.scaleMin) / Math.max(profil.phaseBandMin - profil.scaleMin, 0.001);
-    return mieszaj([176, 205, 224], [232, 238, 244], u);
+function barwa(t: number): string {
+  const pierwszy = RAMPA[0]!;
+  const ostatni = RAMPA[RAMPA.length - 1]!;
+  const zapis = (c: readonly [number, number, number]): string => `rgb(${c[0]} ${c[1]} ${c[2]})`;
+
+  if (t <= pierwszy.t) return zapis(pierwszy.rgb);
+  if (t >= ostatni.t) return zapis(ostatni.rgb);
+
+  for (let i = 1; i < RAMPA.length; i += 1) {
+    const b = RAMPA[i]!;
+    if (t > b.t) continue;
+    const a = RAMPA[i - 1]!;
+    const u = (t - a.t) / (b.t - a.t);
+    return zapis([
+      Math.round(a.rgb[0] + (b.rgb[0] - a.rgb[0]) * u),
+      Math.round(a.rgb[1] + (b.rgb[1] - a.rgb[1]) * u),
+      Math.round(a.rgb[2] + (b.rgb[2] - a.rgb[2]) * u),
+    ]);
   }
-  if (t <= profil.phaseBandMax) {
-    const u = (t - profil.phaseBandMin) / Math.max(profil.phaseBandMax - profil.phaseBandMin, 0.001);
-    return mieszaj([247, 217, 160], [237, 160, 74], u);
-  }
-  const u = (t - profil.phaseBandMax) / Math.max(profil.scaleMax - profil.phaseBandMax, 0.001);
-  return mieszaj([235, 104, 52], [166, 40, 16], u);
+
+  return zapis(ostatni.rgb);
 }
 
 export function WykresMagazynu({ profil }: Props) {
@@ -286,29 +339,73 @@ export function WykresMagazynu({ profil }: Props) {
     return (odstepy[Math.floor(odstepy.length / 2)] ?? 60_000) * 2.5;
   }, [serie]);
 
-  /** Ścieżki linii — przerywane na braku danych i na dziurze czasowej. */
-  const sciezki = useMemo(
-    () =>
-      serie.map((s) => {
-        let d = '';
-        let poprzedni: number | null = null;
-        let pisze = false;
-        for (const p of s.punkty) {
-          if (p.v === null) {
-            poprzedni = p.ms;
-            pisze = false;
-            continue;
-          }
-          if (poprzedni !== null && p.ms - poprzedni > limitDziury) pisze = false;
-          d += `${pisze ? ' L' : ' M'}${xOf(p.ms).toFixed(1)} ${yOf(p.v).toFixed(1)}`;
-          pisze = true;
+  /**
+   * Ścieżki linii.
+   *
+   * `ciagle` decyduje o losie przerwy w pomiarach. Forma „linie" przeskakuje ją
+   * i prowadzi kreskę dalej; forma „odczyty" rozspaja ścieżkę, więc przerwa
+   * zostaje przerwą. Jedna funkcja, bo geometria jest identyczna — różni się
+   * tylko to jedno rozstrzygnięcie, a dwie kopie tego kodu rozeszłyby się przy
+   * pierwszej poprawce.
+   */
+  const zbudujSciezki = (ciagle: boolean) =>
+    serie.map((s) => {
+      let d = '';
+      let poprzedni: number | null = null;
+      let pisze = false;
+      for (const p of s.punkty) {
+        if (p.v === null) {
+          // Brak wartości to brak wartości także w formie ciągłej: kubełek bez
+          // pomiaru nie ma współrzędnej Y, więc nie da się przez niego
+          // przeprowadzić kreski. Ciągłość dotyczy DZIURY CZASOWEJ — kubełków,
+          // których serwer w ogóle nie zwrócił.
           poprzedni = p.ms;
+          if (!ciagle) pisze = false;
+          continue;
         }
-        return { id: s.id, kolor: s.kolor, d: d.trim() };
-      }),
+        if (!ciagle && poprzedni !== null && p.ms - poprzedni > limitDziury) pisze = false;
+        d += `${pisze ? ' L' : ' M'}${xOf(p.ms).toFixed(1)} ${yOf(p.v).toFixed(1)}`;
+        pisze = true;
+        poprzedni = p.ms;
+      }
+      return { id: s.id, kolor: s.kolor, d: d.trim() };
+    });
+
+  const sciezkiCiagle = useMemo(
+    () => zbudujSciezki(true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serie, yMin, yMax, odMs, zakresMs],
+  );
+
+  const sciezkiPrzerywane = useMemo(
+    () => zbudujSciezki(false),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [serie, limitDziury, yMin, yMax, odMs, zakresMs],
   );
+
+  /**
+   * Znaczniki pojedynczych próbek dla formy „odczyty".
+   *
+   * Przy dobie surowych danych punktów jest kilka tysięcy na serię i kropka
+   * przy każdym zlewa się w pasek — wtedy przerzedzamy, żeby zostały kropkami.
+   * Sama LINIA pozostaje pełna: przerzedzenie dotyczy tylko znaczników, więc
+   * przebieg nie gubi kształtu.
+   */
+  const znaczniki = useMemo(() => {
+    const ILE_MAKS = 220;
+    return serie.map((s) => {
+      const istotne = s.punkty.filter((p) => p.v !== null);
+      const skok = Math.max(1, Math.ceil(istotne.length / ILE_MAKS));
+      return {
+        id: s.id,
+        kolor: s.kolor,
+        punkty: istotne
+          .filter((_, i) => i % skok === 0)
+          .map((p) => ({ x: xOf(p.ms), y: yOf(p.v as number) })),
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serie, yMin, yMax, odMs, zakresMs]);
 
   /**
    * Rozwarstwienie: dla każdej chwili min, max i średnia po WIDOCZNYCH sondach.
@@ -396,7 +493,7 @@ export function WykresMagazynu({ profil }: Props) {
           // które inaczej rysują się jako biała krateczka.
           w: szer + 0.6,
           h: wysokosc,
-          fill: p && p.v !== null ? barwa(p.v, profil) : 'transparent',
+          fill: p && p.v !== null ? barwa(p.v) : 'transparent',
         };
       }),
     );
@@ -581,12 +678,41 @@ export function WykresMagazynu({ profil }: Props) {
               </text>
             ))}
 
-            {/* --- Forma: linie --- */}
+            {/* --- Forma: linie (ciągłe, przerwy przeskakiwane) --- */}
             {forma === 'linie'
-              ? sciezki.map((s) =>
+              ? sciezkiCiagle.map((s) =>
                   s.d ? <path key={s.id} d={s.d} fill="none" stroke={s.kolor} strokeWidth={2} strokeLinejoin="round" /> : null,
                 )
               : null}
+
+            {/* --- Forma: odczyty (cieńsza linia + kropki próbek) ---
+                Linia zostaje, bo bez niej sześć serii kropek nie da się od
+                siebie odróżnić — ale jest cieńsza i przygaszona, żeby wzrok
+                szedł na próbki, a przerwy były widoczne jako przerwy. */}
+            {forma === 'odczyty' ? (
+              <g>
+                {sciezkiPrzerywane.map((s) =>
+                  s.d ? (
+                    <path
+                      key={s.id}
+                      d={s.d}
+                      fill="none"
+                      stroke={s.kolor}
+                      strokeWidth={1}
+                      strokeOpacity={0.45}
+                      strokeLinejoin="round"
+                    />
+                  ) : null,
+                )}
+                {znaczniki.map((s) => (
+                  <g key={`pkt-${s.id}`} fill={s.kolor}>
+                    {s.punkty.map((p, i) => (
+                      <circle key={i} cx={p.x} cy={p.y} r={1.9} />
+                    ))}
+                  </g>
+                ))}
+              </g>
+            ) : null}
 
             {/* --- Forma: rozwarstwienie --- */}
             {forma === 'rozwarstwienie' && rozwarstwienie ? (
@@ -637,7 +763,7 @@ export function WykresMagazynu({ profil }: Props) {
                   y2={M.top + PLOT_H}
                   className="chart__crosshair"
                 />
-                {forma === 'linie'
+                {forma === 'linie' || forma === 'odczyty'
                   ? podpowiedz.wiersze.map((w) =>
                       w.v !== null ? <circle key={w.id} cx={xOf(w.ms)} cy={yOf(w.v)} r={4} fill={w.kolor} /> : null,
                     )
@@ -663,21 +789,48 @@ export function WykresMagazynu({ profil }: Props) {
             </div>
           ) : null}
 
-          {/* Skala barwna — tylko przy mapie, bo tylko tam barwa niesie wartość. */}
+          {/*
+            Skala barwna — tylko przy mapie, bo tylko tam barwa niesie wartość.
+
+            Zakres skali idzie za DANYMI (ta sama dziedzina co oś Y), nie za
+            profilem materiału. Rampa jest bezwzględna i sięga od −20 do 70 °C,
+            a pokazanie całej sprowadziłoby dwustopniowe pasmo przemiany 8HC do
+            paska szerokości włosa. Podpisy końców mówią, jaki wycinek widać.
+
+            Pasmo przemiany dostaje OBRYS na skali, nie własną barwę — barwa
+            znaczy teraz wyłącznie liczbę stopni.
+          */}
           {forma === 'mapa' && profil ? (
-            <div className="przeglad__skala">
-              <span className="mono">{profil.scaleMin} °C</span>
-              <span className="przeglad__skala-pasek" aria-hidden="true">
-                {Array.from({ length: 60 }, (_, i) => {
-                  const t = profil.scaleMin + ((profil.scaleMax - profil.scaleMin) * i) / 59;
-                  return <i key={i} style={{ background: barwa(t, profil) }} />;
-                })}
-              </span>
-              <span className="mono">{profil.scaleMax} °C</span>
-              <span className="przeglad__skala-opis">
-                pole piaskowe = przemiana {profil.phaseBandMin}–{profil.phaseBandMax} °C
-              </span>
-            </div>
+            (() => {
+              const rozpietosc = Math.max(yMax - yMin, 0.001);
+              const udzial = (t: number): number => ((t - yMin) / rozpietosc) * 100;
+              const odBandu = Math.max(0, udzial(profil.phaseBandMin));
+              const doBandu = Math.min(100, udzial(profil.phaseBandMax));
+              const pasmoWidac = doBandu > 0 && odBandu < 100 && doBandu > odBandu;
+
+              return (
+                <div className="przeglad__skala">
+                  <span className="mono">{yMin.toFixed(0)} °C</span>
+                  <span className="przeglad__skala-pasek" aria-hidden="true">
+                    {Array.from({ length: 60 }, (_, i) => {
+                      const t = yMin + (rozpietosc * i) / 59;
+                      return <i key={i} style={{ background: barwa(t) }} />;
+                    })}
+                    {pasmoWidac ? (
+                      <span
+                        className="przeglad__skala-pasmo"
+                        style={{ left: `${odBandu}%`, width: `${doBandu - odBandu}%` }}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="mono">{yMax.toFixed(0)} °C</span>
+                  <span className="przeglad__skala-opis">
+                    {pasmoWidac ? 'obrys' : 'poza zakresem'} = przemiana {profil.phaseBandMin}–
+                    {profil.phaseBandMax} °C
+                  </span>
+                </div>
+              );
+            })()
           ) : null}
 
           {forma === 'rozwarstwienie' && rozwarstwienie ? (

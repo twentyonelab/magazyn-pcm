@@ -17,6 +17,7 @@ import { OPCJE_API, adresApi } from '../adres-api.js';
 import { TRYB_POKAZOWY } from '../demo/stale.js';
 import { pogodaPokazowa } from '../demo/zrodlo.js';
 import { NO_DATA } from '../format.js';
+import { STANOWISKO } from '../map/lokalizacje.js';
 import { ikonaNieba } from './IkonyPogody.js';
 
 /** Pogoda zmienia się w minutach — pytamy raz na pięć. */
@@ -35,6 +36,33 @@ const OPIS_ZRODLA: Record<WeatherReading['source'], string> = {
   loxone: 'ze sterownika',
   'open-meteo': 'Open-Meteo',
 };
+
+/**
+ * Pełna prognoza — dokąd prowadzi kliknięcie w kafelek.
+ *
+ * Adres składamy z WSPÓŁRZĘDNYCH STANOWISKA, a nie z nazwy miejsca: nazwa
+ * przeszłaby przez cudze wyszukiwanie i mogłaby trafić w inne Gliwice albo
+ * w środek gminy zamiast w Kaszubską. Współrzędne trafiają tam, gdzie stoi
+ * instalacja.
+ *
+ * Celem jest Open-Meteo, czyli TO SAMO ŹRÓDŁO, z którego kafelek bierze liczby.
+ * Wysłanie badacza na inny serwis pogodowy byłoby wygodniejsze wizualnie i
+ * mylące: dwa serwisy podają dla tego samego kwadransa różne wartości, a wtedy
+ * nie wiadomo, która liczba weszła do bilansu.
+ *
+ * Przy pogodzie ZE STEROWNIKA odnośnika nie ma — tam liczby pochodzą z czujnika
+ * na budynku i żadna zewnętrzna strona ich nie rozwinie.
+ */
+function adresProgozy(lon: number, lat: number): string {
+  const p = new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    hourly: 'temperature_2m,relative_humidity_2m,wind_speed_10m,shortwave_radiation',
+    forecast_days: '3',
+    timezone: 'Europe/Warsaw',
+  });
+  return `https://open-meteo.com/en/docs?${p.toString()}`;
+}
 
 export function Pogoda() {
   const [dane, setDane] = useState<WeatherReading | null>(null);
@@ -149,9 +177,27 @@ export function Pogoda() {
         </div>
       ) : null}
 
-      <p className="pogoda__zrodlo" title={`${dane.place} · odczyt ${dane.ts}`}>
-        {dane.place} · {OPIS_ZRODLA[dane.source]}
-      </p>
+      {dane.source === 'open-meteo' ? (
+        <a
+          className="pogoda__zrodlo pogoda__zrodlo--link"
+          href={adresProgozy(STANOWISKO.lon, STANOWISKO.lat)}
+          /* Nowa karta, bo aplikacja żyje na strumieniu zdarzeń: wyjście pod
+             tym samym adresem zerwałoby połączenie i po powrocie trzeba by
+             czekać na ponowne wczytanie całej historii. */
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`${dane.place} · odczyt ${dane.ts} — otwórz pełną prognozę w nowej karcie`}
+        >
+          {dane.place} · {OPIS_ZRODLA[dane.source]}
+          <span className="pogoda__strzalka" aria-hidden="true">
+            ↗
+          </span>
+        </a>
+      ) : (
+        <p className="pogoda__zrodlo" title={`${dane.place} · odczyt ${dane.ts}`}>
+          {dane.place} · {OPIS_ZRODLA[dane.source]}
+        </p>
+      )}
     </div>
   );
 }

@@ -33,14 +33,32 @@ function Pole({
   tone,
   /** Zielona pulsująca kropka — tylko gdy łącze naprawdę żyje. */
   pulse = false,
+  /**
+   * Pole WTÓRNE — schodzi z paska na telefonie.
+   *
+   * Oznaczamy je tutaj, a nie w arkuszu przez liczenie rodzeństwa. Selektor
+   * `:nth-of-type` policzyłby także kropkę żywotności, która jest takim samym
+   * `<div>`, i ukryłby o jedno pole za dużo; poza tym każde przestawienie
+   * kolejności cicho zmieniałoby, co znika. Klasa mówi wprost, o które pola
+   * chodzi, i przenosi się razem z nimi.
+   *
+   * Wtórne znaczy „do diagnozowania, nie do pilnowania" — te liczby stoją
+   * w całości w widoku Diagnostyka.
+   */
+  wtorne = false,
 }: {
   label: string;
   value: string;
   tone?: 'ok' | 'warn' | 'bad';
   pulse?: boolean;
+  wtorne?: boolean;
 }) {
   return (
-    <div className={`statusbar__field${tone ? ` is-${tone}` : ''}`}>
+    <div
+      className={`statusbar__field${tone ? ` is-${tone}` : ''}${
+        wtorne ? ' statusbar__field--wtorne' : ''
+      }`}
+    >
       <span className="statusbar__label">{label}</span>
       <span className="statusbar__value mono">
         {pulse ? <span className="statusbar__led" aria-hidden="true" /> : null}
@@ -108,17 +126,19 @@ export const PasekStanu = forwardRef<HTMLElement, { data: LiveData }>(function P
       <Pole
         label="opóźnienie"
         value={!live || !health || health.latencyMs === null ? NO_DATA : `${health.latencyMs} ms`}
+        wtorne
       />
 
       <Pole
         label="czas działania"
         value={!live || !health ? NO_DATA : formatUptime(health.uptimeS)}
+        wtorne
       />
 
       {data.session ? (
-        <Pole label="sesja" value={data.session.label} tone="ok" />
+        <Pole label="sesja" value={data.session.label} tone="ok" wtorne />
       ) : (
-        <Pole label="sesja" value="brak" />
+        <Pole label="sesja" value="brak" wtorne />
       )}
 
       <span className="statusbar__copy">copyright 2026 · 21 zmysłów LAB</span>

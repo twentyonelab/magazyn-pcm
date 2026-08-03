@@ -52,7 +52,7 @@ export interface Lokalizacja {
 /** Stanowisko badawcze — jedyny punkt z prawdziwymi danymi. */
 export const STANOWISKO: Lokalizacja = {
   id: 'gliwice-kaszubska',
-  nazwa: 'Magazyn Politechnika',
+  nazwa: 'Instalacja testowa Politechnika',
   miasto: 'Gliwice',
   opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26',
   lon: 18.6804,
@@ -80,6 +80,14 @@ export const STANOWISKO: Lokalizacja = {
  * Punkty pokazowe: nazwa instalacji, miasto, rodzaj magazynu i poziom
  * naładowania.
  *
+ * NAZWY SĄ WYMYŚLONE i mają brzmieć jak odbiorca ciepła albo chłodu, a nie
+ * jak dzielnica: „Chłodnia Frigoria", „Centrum danych Krioton". Wcześniej
+ * stały tu nazwy prawdziwych dzielnic („Magazyn Koszutka") i czytały się jak
+ * istniejące obiekty — a nic za nimi nie stoi. Zmyślona firma nie da się
+ * pomylić z niczyją instalacją, a przy okazji mówi, PO CO komu taki magazyn:
+ * chłód idzie do serwerowni, mleczarni i chłodni, ciepło do osiedla,
+ * uzdrowiska i suszarni.
+ *
  * Trzynaście magazynów CIEPŁA i siedem CHŁODU. Każdy rodzaj ma własną barwę
  * znacznika — pomarańcz i lodowy błękit — a po wejściu w punkt cały interfejs
  * przechodzi na barwę jego nośnika. Dzięki temu widać na mapie, z czym się ma
@@ -93,26 +101,26 @@ const DEMO: ReadonlyArray<{
   typ: Kierunek;
   poziom: number;
 }> = [
-  { nazwa: 'Magazyn Koszutka', miasto: 'Katowice', lon: 19.0232, lat: 50.2585, typ: 'cieplo', poziom: 0.82 },
-  { nazwa: 'Magazyn Zaborze', miasto: 'Zabrze', lon: 18.7854, lat: 50.3084, typ: 'cieplo', poziom: 0.34 },
-  { nazwa: 'Magazyn Miechowice', miasto: 'Bytom', lon: 18.922, lat: 50.3469, typ: 'chlod', poziom: 0.71 },
-  { nazwa: 'Magazyn Zagórze', miasto: 'Sosnowiec', lon: 19.1302, lat: 50.2761, typ: 'cieplo', poziom: 0.58 },
-  { nazwa: 'Magazyn Boguszowice', miasto: 'Rybnik', lon: 18.5424, lat: 50.0959, typ: 'chlod', poziom: 0.19 },
-  { nazwa: 'Magazyn Paprocany', miasto: 'Tychy', lon: 18.9865, lat: 50.1131, typ: 'cieplo', poziom: 0.95 },
-  { nazwa: 'Magazyn Batory', miasto: 'Chorzów', lon: 18.9536, lat: 50.2974, typ: 'cieplo', poziom: 0.12 },
-  { nazwa: 'Magazyn Gołonóg', miasto: 'Dąbrowa Górnicza', lon: 19.2081, lat: 50.3309, typ: 'chlod', poziom: 0.88 },
-  { nazwa: 'Magazyn Zdrój', miasto: 'Jastrzębie-Zdrój', lon: 18.5971, lat: 49.9502, typ: 'cieplo', poziom: 0.47 },
-  { nazwa: 'Magazyn Halemba', miasto: 'Ruda Śląska', lon: 18.8745, lat: 50.2859, typ: 'cieplo', poziom: 0.66 },
-  { nazwa: 'Magazyn Raków', miasto: 'Częstochowa', lon: 19.1182, lat: 50.8119, typ: 'chlod', poziom: 0.41 },
-  { nazwa: 'Magazyn Wapienica', miasto: 'Bielsko-Biała', lon: 19.0468, lat: 49.8232, typ: 'cieplo', poziom: 0.73 },
-  { nazwa: 'Magazyn Repty', miasto: 'Tarnowskie Góry', lon: 18.8548, lat: 50.4444, typ: 'cieplo', poziom: 0.26 },
-  { nazwa: 'Magazyn Ostróg', miasto: 'Racibórz', lon: 18.2182, lat: 50.0917, typ: 'chlod', poziom: 0.55 },
-  { nazwa: 'Magazyn Bobrek', miasto: 'Cieszyn', lon: 18.6337, lat: 49.7486, typ: 'cieplo', poziom: 0.9 },
-  { nazwa: 'Magazyn Sporysz', miasto: 'Żywiec', lon: 19.2012, lat: 49.6886, typ: 'chlod', poziom: 0.63 },
-  { nazwa: 'Magazyn Brzezinka', miasto: 'Mysłowice', lon: 19.1386, lat: 50.2423, typ: 'cieplo', poziom: 0.38 },
-  { nazwa: 'Magazyn Michałkowice', miasto: 'Siemianowice Śląskie', lon: 19.032, lat: 50.3024, typ: 'cieplo', poziom: 0.51 },
-  { nazwa: 'Magazyn Szarlej', miasto: 'Piekary Śląskie', lon: 18.9449, lat: 50.3844, typ: 'chlod', poziom: 0.29 },
-  { nazwa: 'Magazyn Wilchwy', miasto: 'Wodzisław Śląski', lon: 18.4658, lat: 50.0026, typ: 'cieplo', poziom: 0.77 },
+  { nazwa: 'Węzeł ciepła Termalis', miasto: 'Katowice', lon: 19.0232, lat: 50.2585, typ: 'cieplo', poziom: 0.82 },
+  { nazwa: 'Zakłady Stalmet', miasto: 'Zabrze', lon: 18.7854, lat: 50.3084, typ: 'cieplo', poziom: 0.34 },
+  { nazwa: 'Chłodnia Frigoria', miasto: 'Bytom', lon: 18.922, lat: 50.3469, typ: 'chlod', poziom: 0.71 },
+  { nazwa: 'Park przemysłowy Ostoja', miasto: 'Sosnowiec', lon: 19.1302, lat: 50.2761, typ: 'cieplo', poziom: 0.58 },
+  { nazwa: 'Centrum danych Krioton', miasto: 'Rybnik', lon: 18.5424, lat: 50.0959, typ: 'chlod', poziom: 0.19 },
+  { nazwa: 'Osiedle Słoneczna Przystań', miasto: 'Tychy', lon: 18.9865, lat: 50.1131, typ: 'cieplo', poziom: 0.95 },
+  { nazwa: 'Huta szkła Vitralux', miasto: 'Chorzów', lon: 18.9536, lat: 50.2974, typ: 'cieplo', poziom: 0.12 },
+  { nazwa: 'Hala logistyczna Borea', miasto: 'Dąbrowa Górnicza', lon: 19.2081, lat: 50.3309, typ: 'chlod', poziom: 0.88 },
+  { nazwa: 'Uzdrowisko Solanka', miasto: 'Jastrzębie-Zdrój', lon: 18.5971, lat: 49.9502, typ: 'cieplo', poziom: 0.47 },
+  { nazwa: 'Węzeł ciepła Kalorik', miasto: 'Ruda Śląska', lon: 18.8745, lat: 50.2859, typ: 'cieplo', poziom: 0.66 },
+  { nazwa: 'Mleczarnia Biała Dolina', miasto: 'Częstochowa', lon: 19.1182, lat: 50.8119, typ: 'chlod', poziom: 0.41 },
+  { nazwa: 'Szklarnie Zielony Klin', miasto: 'Bielsko-Biała', lon: 19.0468, lat: 49.8232, typ: 'cieplo', poziom: 0.73 },
+  { nazwa: 'Zakład wapienniczy Retmar', miasto: 'Tarnowskie Góry', lon: 18.8548, lat: 50.4444, typ: 'cieplo', poziom: 0.26 },
+  { nazwa: 'Serwerownia Nordis', miasto: 'Racibórz', lon: 18.2182, lat: 50.0917, typ: 'chlod', poziom: 0.55 },
+  { nazwa: 'Pensjonat Zdrojowa', miasto: 'Cieszyn', lon: 18.6337, lat: 49.7486, typ: 'cieplo', poziom: 0.9 },
+  { nazwa: 'Browar Pod Skałą', miasto: 'Żywiec', lon: 19.2012, lat: 49.6886, typ: 'chlod', poziom: 0.63 },
+  { nazwa: 'Ciepłownia miejska Kalinka', miasto: 'Mysłowice', lon: 19.1386, lat: 50.2423, typ: 'cieplo', poziom: 0.38 },
+  { nazwa: 'Zakład chemiczny Polichem', miasto: 'Siemianowice Śląskie', lon: 19.032, lat: 50.3024, typ: 'cieplo', poziom: 0.51 },
+  { nazwa: 'Centrum handlowe Rynek Zachodni', miasto: 'Piekary Śląskie', lon: 18.9449, lat: 50.3844, typ: 'chlod', poziom: 0.29 },
+  { nazwa: 'Suszarnia drewna Borowik', miasto: 'Wodzisław Śląski', lon: 18.4658, lat: 50.0026, typ: 'cieplo', poziom: 0.77 },
 ];
 
 /**

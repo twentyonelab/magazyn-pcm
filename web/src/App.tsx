@@ -27,6 +27,7 @@ import { BladWidoku } from './components/BladWidoku.js';
 import { PlakietkaPokazowa } from './components/PlakietkaPokazowa.js';
 import { Logowanie } from './components/Logowanie.js';
 import { PasekStanu } from './components/PasekStanu.js';
+import { PlakietkaObiektu } from './components/PlakietkaObiektu.js';
 import { PrzelacznikMotywu } from './components/PrzelacznikMotywu.js';
 
 /**
@@ -99,7 +100,6 @@ type WidokPrzegladu = 'mapa' | 'lista';
 
 type WidokMagazynu =
   | 'schemat'
-  | 'schemat3d'
   | 'przebiegi'
   | 'bilans'
   | 'diagnostyka'
@@ -107,11 +107,23 @@ type WidokMagazynu =
   | 'ustawienia';
 
 /**
+ * WYMIAR SCHEMATU — 2D albo 3D.
+ *
+ * Nie jest już osobną pozycją w menu, bo nią nie był: „Schemat" i „Schemat 3D"
+ * pokazują tę samą instalację i te same sondy, tylko z innego rzutu. W menu
+ * stały jako dwa różne miejsca, więc przejście między nimi wyglądało na zmianę
+ * tematu, a nie na obrócenie tego samego rysunku. Teraz to przełącznik wewnątrz
+ * widoku schematu — i menu jest o jedną pozycję krótsze, co na telefonie
+ * znaczy więcej niż na monitorze.
+ */
+type Wymiar = '2d' | '3d';
+
+/**
  * Widoki, w których obraz jest treścią i ma zająć cały ekran.
  * Pozostałe zostają w czytelnej kolumnie — tam treścią są liczby i tabele,
  * a wiersz ciągnący się przez cały monitor czyta się gorzej.
  */
-const OBRAZOWE = new Set<string>(['mapa', 'schemat', 'schemat3d']);
+const OBRAZOWE = new Set<string>(['mapa', 'schemat']);
 
 const WIDOKI_PRZEGLADU: Array<{ id: WidokPrzegladu; label: string }> = [
   { id: 'mapa', label: 'Mapa' },
@@ -133,7 +145,6 @@ function plik(nazwa: string): string {
 
 const WIDOKI_MAGAZYNU: Array<{ id: WidokMagazynu; label: string; icon?: 'trybik' }> = [
   { id: 'schemat', label: 'Schemat' },
-  { id: 'schemat3d', label: 'Schemat 3D' },
   { id: 'przebiegi', label: 'Przebiegi' },
   { id: 'bilans', label: 'Bilans' },
   { id: 'sesje', label: 'Sesje' },
@@ -151,6 +162,7 @@ export function App() {
   const [otwarty, setOtwarty] = useState<Lokalizacja | null>(null);
   const [widokPrzegladu, setWidokPrzegladu] = useState<WidokPrzegladu>('mapa');
   const [widokMagazynu, setWidokMagazynu] = useState<WidokMagazynu>('schemat');
+  const [wymiar, setWymiar] = useState<Wymiar>('2d');
   /** Sondy przekazane ze schematu do Przebiegów (klik w sondę). */
   const [przebiegiIds, setPrzebiegiIds] = useState<string[]>([]);
 
@@ -231,13 +243,17 @@ export function App() {
     return <Logowanie onSuccess={data.reload} />;
   }
 
-  // Widok 3D da się wyłączyć w opcjach — także wtedy, gdy jest otwarty.
-  const widokiMagazynu = WIDOKI_MAGAZYNU.filter(
-    (item) => item.id !== 'schemat3d' || settings.widok3d,
-  );
+  const widokiMagazynu = WIDOKI_MAGAZYNU;
   const widokWMagazynie = widokiMagazynu.some((item) => item.id === widokMagazynu)
     ? widokMagazynu
     : 'schemat';
+
+  /**
+   * Wymiar użyty NAPRAWDĘ. Scenę 3D da się wyłączyć w opcjach, więc żądanie
+   * trójwymiaru przy wyłączonej scenie musi spaść na 2D — inaczej zostałby
+   * pusty ekran bez wyjaśnienia.
+   */
+  const wymiarCzynny: Wymiar = settings.widok3d ? wymiar : '2d';
 
   /** Nazwa aktywnego widoku — decyduje o ramie i o kluczu granicy błędu. */
   const activeView: string = otwarty ? widokWMagazynie : widokPrzegladu;
@@ -289,13 +305,9 @@ export function App() {
                     ⌂
                   </span>
                 </button>
-                <span className="nav__obiekt" title={`${otwarty.nazwa} · ${otwarty.miasto}`}>
-                  <span
-                    className={`nav__obiekt-kropka is-${kierunek ?? otwarty.typ}`}
-                    aria-hidden="true"
-                  />
-                  {otwarty.nazwa}
-                </span>
+                {/* Nazwa obiektu przeniosła się nad dolny pasek — patrz
+                    PlakietkaObiektu. Tu został sam rozdzielacz, bo dom i widoki
+                    to dwie różne rzeczy i mają być rozdzielone. */}
                 <span className="nav__rozdzielacz" aria-hidden="true" />
                 {widokiMagazynu.map((item) => (
                   <button
@@ -373,12 +385,17 @@ export function App() {
           ) : null}
 
           {otwarty && widokWMagazynie === 'schemat' ? (
-            <Magazyn data={data} onOpenInPrzebiegi={openInPrzebiegi} />
-          ) : null}
-          {otwarty && widokWMagazynie === 'schemat3d' ? (
-            <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
-              <Magazyn3D data={data} />
-            </Suspense>
+            <Magazyn
+              data={data}
+              onOpenInPrzebiegi={openInPrzebiegi}
+              wymiar={wymiarCzynny}
+              onWymiar={settings.widok3d ? setWymiar : null}
+              scena3d={
+                <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
+                  <Magazyn3D data={data} />
+                </Suspense>
+              }
+            />
           ) : null}
           {otwarty && widokWMagazynie === 'przebiegi' ? (
             // Klucz zeruje stan formularza, gdy przyjdziemy z inną sondą.
@@ -391,17 +408,16 @@ export function App() {
         </BladWidoku>
       </main>
 
-{/* Ostrzeżenie, że oglądany magazyn nie ma instalacji.
-          Nazwa i wyjście przeniosły się do nagłówka (dom + nazwa obiektu), więc
-          zostaje samo to, czego nagłówek nie powie: że te liczby są wyliczone. */}
-      {punktPokazowy ? (
-        <div className="punkt-pasek">
-          <span className={`punkt-pasek__kropka is-${punktPokazowy.typ}`} aria-hidden="true" />
-          <span className="punkt-pasek__opis">
-            punkt pokazowy · {punktPokazowy.typ === 'chlod' ? 'magazyn chłodu' : 'magazyn ciepła'} ·
-            dane wyliczone, nie zmierzone
-          </span>
-        </div>
+      {/*
+        Gdzie jestem — wyśrodkowane nad dolnym paskiem.
+
+        Zastąpiło dwie rzeczy naraz: nazwę obiektu z górnej pastylki i osobny
+        pasek ostrzegający o punkcie pokazowym. Oba mówiły o tym samym obiekcie
+        z dwóch różnych krawędzi ekranu, a przy wejściu w punkt pokazowy stały
+        jednocześnie i powtarzały jego rodzaj.
+      */}
+      {otwarty ? (
+        <PlakietkaObiektu punkt={otwarty} kierunek={kierunek ?? otwarty.typ} data={data} />
       ) : null}
 
       {/* 21 zmysłów — prawy dolny róg, nad stopką (v0.6). */}

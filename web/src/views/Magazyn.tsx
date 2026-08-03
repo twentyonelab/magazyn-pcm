@@ -11,7 +11,7 @@
  * wnętrza.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { MaterialProfile } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { bindSchema } from '../schema/bindSchema.js';
@@ -70,12 +70,33 @@ interface MagazynProps {
   data: LiveData;
   /** Przejscie do widoku Przebiegi z wskazana sonda zaznaczona. */
   onOpenInPrzebiegi: (pointId: string) => void;
+  /** Rzut: plaski schemat czy scena trojwymiarowa. */
+  wymiar: '2d' | '3d';
+  /** `null` = scena 3D wylaczona w opcjach, wiec nie ma czego przelaczac. */
+  onWymiar: ((wymiar: '2d' | '3d') => void) | null;
+  /**
+   * Scena 3D wstrzykiwana z powloki, a nie importowana tutaj.
+   *
+   * Powodem jest leniwe wczytywanie: three.js wisi w osobnej paczce i to
+   * powloka trzyma jej `lazy` oraz `Suspense`. Gdyby ten widok importowal
+   * scene sam, paczka trafialaby do wspolnego pliku i placilby za nia takze
+   * ten, kto nigdy nie klika trojwymiaru.
+   */
+  scena3d: ReactNode;
 }
 
-export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
+export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: MagazynProps) {
   const now = useTicker(1000);
   const settings = useSettings();
-  const hostRef = useRef<HTMLDivElement>(null);
+  /**
+   * Kontener wstrzykniętego SVG — trzymany w STANIE, nie w referencji.
+   *
+   * Referencja nie powiadamia o zmianie, więc efekty musiałyby zgadywać, kiedy
+   * węzeł się pojawił. Stan ustawiany przez `ref={setHost}` zmusza React do
+   * przeliczenia efektów dokładnie wtedy, gdy kontener przychodzi albo odchodzi
+   * — a odchodzi przy każdym przejściu na widok 3D.
+   */
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(ZOOM_STARTOWY);
   /**
    * Tryb pokazowy przepływu. Domyślnie WYŁĄCZONY — ekran ma domyślnie mówić
@@ -109,16 +130,25 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
     ? (materials.profiles[activeMaterial] ?? materials.profiles[materials.defaultMaterial])
     : null;
 
-  // --- Wstrzyknięcie rysunku, raz ------------------------------------------
+  // --- Wstrzyknięcie rysunku ------------------------------------------------
+  //
+  // Zależność to WĘZEŁ, nie pusta tablica. Wcześniej stało tu `[]`, czyli „raz,
+  // przy montowaniu widoku" — i przestało wystarczać, gdy schemat dostał
+  // przełącznik 2D/3D. Przejście na 3D usuwa kontener rysunku z drzewa, ale nie
+  // usuwa całego widoku, więc powrót na 2D tworzył PUSTY kontener i żaden efekt
+  // go już nie wypełniał: schemat po prostu nie wracał.
+  //
+  // Referencja zwrotna (`setHost` w `ref`) rozwiązuje to u źródła. React woła ją
+  // za każdym przypięciem i odpięciem węzła, więc efekt uruchamia się dokładnie
+  // wtedy, gdy jest co wypełniać — i nie trzeba pamiętać o dopisywaniu `wymiar`
+  // do zależności trzech osobnych efektów.
   useEffect(() => {
-    const host = hostRef.current;
     if (!host || host.childElementCount > 0) return;
     host.innerHTML = schemaMarkup;
-  }, []);
+  }, [host]);
 
   // --- Aktualizacja rysunku przy każdej zmianie danych ---------------------
   useEffect(() => {
-    const host = hostRef.current;
     if (!host || !profile || host.childElementCount === 0) return;
 
     bindSchema(host, {
@@ -131,11 +161,10 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
       channelAlive,
       przeplywDemo: demo ? PRZEPLYW_DEMO_M3H : null,
     });
-  }, [pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo]);
+  }, [host, pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo]);
 
   // --- Najechanie i klikanie sond na schemacie ------------------------------
   useEffect(() => {
-    const host = hostRef.current;
     if (!host) return;
 
     /** Identyfikator sondy pod kursorem albo null. */
@@ -181,7 +210,7 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
       host.removeEventListener('mouseleave', onLeave);
       host.removeEventListener('click', onClick);
     };
-  }, []);
+  }, [host]);
 
   const pcmPoints = points.filter((p) => p.group === 'pcm' && p.geometry);
   const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
@@ -269,6 +298,39 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
         kierunekZmiany={kierunekZmiany}
       />
 
+      {/*
+        PRZEŁĄCZNIK RZUTU — 2D / 3D.
+        Stoi nad rysunkiem, bo dotyczy całego rysunku, a nie jego fragmentu.
+        Gdy scena 3D jest wyłączona w opcjach, przełącznika nie ma wcale:
+        martwy przycisk gorszy niż brak przycisku.
+      */}
+      {onWymiar ? (
+        <div className="wymiar" role="group" aria-label="Rzut schematu">
+          <button
+            type="button"
+            className={`wymiar__item${wymiar === '2d' ? ' is-active' : ''}`}
+            onClick={() => onWymiar('2d')}
+            aria-pressed={wymiar === '2d'}
+            title="Płaski schemat instalacji"
+          >
+            2D
+          </button>
+          <button
+            type="button"
+            className={`wymiar__item${wymiar === '3d' ? ' is-active' : ''}`}
+            onClick={() => onWymiar('3d')}
+            aria-pressed={wymiar === '3d'}
+            title="Scena trójwymiarowa — zbiornik i rozkład sond"
+          >
+            3D
+          </button>
+        </div>
+      ) : null}
+
+      {wymiar === '3d' ? (
+        scena3d
+      ) : (
+        <>
       {/* ------------------------- Schemat ------------------------- */}
       {/* Wylaczenie animacji w opcjach zatrzymuje ruch kreski na rurach —
           niezaleznie od tego zerowy przeplyw i tak nigdy sie nie animuje. */}
@@ -338,7 +400,7 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
           <div
             className="canvas__stage"
             style={{ transform: `scale(${zoom})` }}
-            ref={hostRef}
+            ref={setHost}
             aria-label="Schemat instalacji"
           />
         </div>
@@ -373,6 +435,8 @@ export function Magazyn({ data, onOpenInPrzebiegi }: MagazynProps) {
           />
         ) : null}
       </section>
+        </>
+      )}
     </div>
   );
 }
