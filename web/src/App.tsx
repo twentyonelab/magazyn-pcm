@@ -353,9 +353,18 @@ export function App() {
         </div>
 
         <div className="topbar__right">
-          {/* Logo klienta w prawym górnym rogu (v0.6). Żyje na białej
-              pastylce, bo jego kolory potrzebują białego tła w obu motywach. */}
-          <img className="topbar__logo--tauron" src={plik('tauron-cieplo.png')} alt="Tauron Ciepło" />
+          {/* Logo klienta w prawym górnym rogu (v0.6) — wprost na tle.
+
+              DWA PLIKI, NIE FILTR. Nocą litery muszą być białe, a magenta musi
+              zostać firmowa (#e4007b). Filtr CSS pierwszego z tych warunków
+              spełnić potrafi, drugiego nie: `hue-rotate` jest przybliżeniem
+              macierzowym i wypuszczał bladoróżowe #e9a6e9. Wersję na ciemne tło
+              robi `node narzedzia/logo-na-ciemne.mjs`. */}
+          <img
+            className="topbar__logo--tauron"
+            src={plik(theme === 'dark' ? 'tauron-cieplo-ciemny.png' : 'tauron-cieplo.png')}
+            alt="Tauron Ciepło"
+          />
         </div>
       </header>
 

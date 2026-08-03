@@ -128,8 +128,11 @@
   --shadow: 0 18px 44px rgba(15, 15, 15, 0.07);
   --shadow-sm: 0 6px 18px rgba(15, 15, 15, 0.05);
 
-  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+  /* Kroje wgrywane z własnego serwera — patrz web/src/fonts.ts.
+     Dalej w spisie stoją kroje systemowe: gdyby plik nie doszedł, aplikacja
+     ma być czytelna, a nie ładna. */
+  --font: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
 }
 
 /**
@@ -543,7 +546,7 @@ code {
 
 .brand {
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   white-space: nowrap;
   display: grid;
@@ -771,7 +774,7 @@ code {
 .page-head h1 {
   margin: 0.3rem 0 0.4rem;
   font-size: clamp(2.25rem, 6vw, 4rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 0.95;
 }
@@ -1011,7 +1014,7 @@ code {
 .gate__title {
   margin: 0.2rem 0 0.6rem;
   font-size: 2.1rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -3351,17 +3354,9 @@ body::after {
   display: block;
 }
 
-:root[data-theme='dark'] .topbar__logo--tauron {
-  /* Odwrócenie z korektą barwy: magenta zostaje magentą, a szare litery
-     robią się jasne. Prostsze i lżejsze niż druga wersja pliku.
-
-     `saturate` niżej jednej jednostki PRZYGASZA SAM ZNAK, nie napis. Magenta
-     w pełnym nasyceniu na ciemnym tle wibruje — jest najjaśniejszą i najbardziej
-     krzyczącą plamą całego ekranu, mocniejszą niż odczyty, o które tu chodzi.
-     Litery są szare, czyli bez nasycenia, więc ten filtr ich nie dotyka:
-     zostają jasne. Barwa marki pozostaje rozpoznawalna, tylko cichsza. */
-  filter: invert(1) hue-rotate(180deg) brightness(1.12) saturate(0.68);
-}
+/* Bez filtru na ciemnym motywie — nocą podmieniamy PLIK (patrz App.tsx).
+   Filtr nie umie utrzymać barwy marki: `hue-rotate` jest przybliżeniem
+   macierzowym i z #e4007b robił #e9a6e9. */
 
 /* 21 zmysłów — prawy dolny róg, tuż nad stopką. Powiększone o połowę
    względem v0.6 (26 → 39 px). */
@@ -3851,6 +3846,22 @@ body::after {
   padding-right: 0.7rem;
   font-size: 1.05rem;
   line-height: 1;
+  /* Środkowanie pola, nie znaku — patrz korekta niżej. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* KOREKTA OPTYCZNA ZNAKU ⌂.
+   Pole przycisku było wyśrodkowane co do piksela, a znak i tak czytał się nisko
+   i przy lewej krawędzi. Powód jest w kroju, nie w układzie: zmierzone przy
+   15 px tusz ⌂ ma 8 px wysokości i środek 4 px nad linią pisma, gdy wersaliki
+   sąsiednich etykiet mają 10 px i środek 5 px — czyli znak siedzi o piksel
+   niżej. W poziomie ⌂ wypełnia swoją kratkę bez lewego odsądzenia (0 px, przy
+   −1 px dla „H"), więc przy równym środkowaniu wygląda na przesunięty w lewo.
+   Stąd jeden piksel w górę i jeden w prawo. */
+.nav__item--dom .nav__emoji {
+  transform: translate(1px, -1px);
 }
 
 /* `.nav__obiekt` już nie istnieje — nazwa obiektu przeniosła się na plakietkę

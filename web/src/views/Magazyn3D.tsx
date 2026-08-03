@@ -760,13 +760,9 @@ export function Magazyn3D({ data }: { data: LiveData }) {
         </button>
       </div>
 
+      {/* Bez podpisu pod scena: opis ukladu nalezy do dokumentacji i do
+          komentarza na gorze tego pliku, nie na ekran. */}
       <div className="stage3d" ref={hostRef} />
-
-      <p className="flow-note">
-        Ten sam układ co w widoku 2D — współrzędne bryły i rur pochodzą z tego samego pliku
-        schematu. Wnętrze zbiornika jest odwzorowane przestrzennie: wysokość sondy to jej poziom,
-        a położenie w rzucie wynika z przekątnej A/B. Obracaj przeciągnięciem, przybliżaj kółkiem.
-      </p>
     </section>
   );
 }

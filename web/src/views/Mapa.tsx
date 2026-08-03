@@ -240,6 +240,19 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const [motywMapy, setMotywMapy] = useState<SposobKolorowania>(MOTYW_DOMYSLNY);
   const motywRef = useRef<SposobKolorowania>(MOTYW_DOMYSLNY);
   motywRef.current = motywMapy;
+  /**
+   * Motyw aplikacji widziany przez efekt tworzący mapę.
+   *
+   * REFERENCJĄ, NIE ZALEŻNOŚCIĄ — i to jest poprawka usterki, nie ozdoba.
+   * Wcześniej `theme` stał w zależnościach tego efektu, więc przełączenie
+   * jasny/ciemny burzyło mapę i stawiało ją od nowa: kadr wracał do widoku
+   * całego Śląska. Kto dojechał do jednego magazynu, tracił go z oczu i musiał
+   * szukać ponownie. Motyw dotyka wyłącznie oświetlenia (`lightPreset`),
+   * a to Mapbox podmienia na wczytanym stylu — dokładnie jak sposób
+   * kolorowania niżej.
+   */
+  const ciemnyRef = useRef(false);
+  ciemnyRef.current = theme === 'dark';
   /** Uchwyt mapy — potrzebny, żeby przemalować ją bez przebudowy. */
   const mapaRef = useRef<mapboxgl.Map | null>(null);
   /**
@@ -289,7 +302,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     }
 
     mapboxgl.accessToken = TOKEN;
-    const ciemny = theme === 'dark';
+    const ciemny = ciemnyRef.current;
 
     let map: mapboxgl.Map;
     try {
@@ -505,6 +518,23 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       dymekLiveRef.current = null;
       map.remove();
     };
+    // Mapa budowana RAZ. Motyw i sposób kolorowania wchodzą osobnymi efektami.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Oświetlenie mapy idzie za motywem aplikacji — bez przebudowy.
+   * Kadr, obrót, otwarty dymek i znaczniki zostają na miejscu.
+   */
+  useEffect(() => {
+    const map = mapaRef.current;
+    if (!map) return;
+    try {
+      map.setConfigProperty(IMPORT_ID, 'lightPreset', theme === 'dark' ? 'night' : 'day');
+    } catch {
+      // Styl mógł jeszcze się nie wczytać — wtedy wartość z `config` przy
+      // tworzeniu mapy jest właściwa, a kolejna zmiana zadziała normalnie.
+    }
   }, [theme]);
 
   /**
@@ -530,7 +560,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   useEffect(() => {
     const el = hostRef.current?.querySelector('.pinezka.is-live');
     el?.classList.toggle('is-plynie', zywe);
-  }, [zywe, theme]);
+  }, [zywe]);
 
   // Naładowanie stanowiska odświeża się z danymi: treść dymka i wysokość
   // wypełnienia zbiornika. Podmieniamy tylko te dwie rzeczy, żeby nie

@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App.js';
 import { initTheme } from './theme.js';
+// Kroje przed arkuszem: `@font-face` musi być znany, zanim style go zawołają.
+import './fonts.js';
 import './styles.css';
 
 // Motyw ustawiamy przed pierwszym renderem, żeby strona nie mrugnęła jasnym
