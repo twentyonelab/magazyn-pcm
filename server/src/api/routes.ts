@@ -105,8 +105,12 @@ export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<
   const { registry, cache, health, stream, sessions, historyReader, weather, cfg, getSession } =
     deps;
 
-  // Krótka lista endpointow — dla czlowieka, ktory wpisze adres w przegladarce.
-  app.get('/', async () => ({
+  // Krotka lista endpointow — dla czlowieka, ktory wpisze adres w przegladarce.
+  //
+  // Siedzi pod /api, a nie pod korzeniem: korzen nalezy teraz do zbudowanego
+  // interfejsu (patrz frontend.ts). Wczesniej ta trasa go przechwytywala
+  // i pod adresem hostingu widac bylo liste adresow zamiast aplikacji.
+  app.get('/api', async () => ({
     app: 'magazyn-pcm',
     endpoints: [
       '/api/points',

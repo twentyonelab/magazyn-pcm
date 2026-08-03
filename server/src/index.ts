@@ -13,12 +13,13 @@ import { spawnSync } from 'node:child_process';
 import Fastify, { LogController, type FastifyBaseLogger } from 'fastify';
 import pino from 'pino';
 import type { BankId, BankState, PointValues, Session, SourceKind } from '@magazyn-pcm/shared';
-import { ConfigError, envFileExists, loadConfig } from './config.js';
+import { ConfigError, envFileExists, loadConfig, repoRoot } from './config.js';
 import { DEFAULT_MATERIAL, MATERIALS } from './materials.config.js';
 import { createRegistry, RegistryError } from './registry.js';
 import { ValueCache } from './cache.js';
 import { HealthTracker } from './health.js';
 import { registerApi } from './api/routes.js';
+import { registerFrontend } from './frontend.js';
 import { registerAuth } from './auth.js';
 import { BankDetector } from './bank-detector.js';
 import { renderPcmTable } from './console-view.js';
@@ -382,6 +383,10 @@ async function main(): Promise<void> {
     cfg,
     getSession,
   });
+  // Interfejs rejestrujemy PO API — obsluga nieznanego adresu oddaje
+  // index.html, a nie moze przechwycic zapytan do /api/*.
+  await registerFrontend(app, { repoRoot, logger });
+
   await app.listen({ host: cfg.HOST, port: cfg.PORT });
 
   // --- Rozpoznanie zestawu sond -------------------------------------------
