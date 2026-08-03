@@ -106,6 +106,8 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
 - Osobny token Mapbox: tylko do czytania, ograniczony do adresu.
 - Kopie zapasowe z wolumenu Railway.
 - `METER_POWER` nie istnieje w Miniserverze — mocy chwilowej nie ma czym podać.
+- Ciepłomierz **odbioru** ma w Loxone tylko dwie temperatury i ΔT. Brakuje
+  przepływu i energii — do dołożenia jako kanały Modbus w Loxone Config.
 - Ciepłomierz AXIOMA: błąd 0002 (montaż odwrotny) i milczące kanały Modbus —
   sprawdzić zasilanie 24 VDC, bo na baterii licznik wystawia Modbusa 80 s/godz.
 - Nierozstrzygnięte: `solidus 53` w belce naładowania wobec `phaseBandMin: 55`

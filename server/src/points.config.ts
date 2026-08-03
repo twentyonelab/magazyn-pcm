@@ -219,19 +219,18 @@ export const POINTS: readonly PointDef[] = [
   // -------------------------------------------------------------------------
   // CIEPLOMIERZ ODBIORU — drugi licznik, obieg po lewej stronie schematu.
   //
-  // Nazwy kontrolek w Loxone Config (pokoj „Cieplomierz_odbior"):
-  //   ODBIOR_T_zasilanie, ODBIOR_T_powrot, ODBIOR_Przeplyw
+  // Pokoj „Cieplomierz_odbior" w Loxone Config ma TRZY kontrolki (stan na
+  // 2026-08-03, `npm run uuid`): ODBIOR_T_zasilanie, ODBIOR_T_powrot,
+  // ODBIOR_dT. PRZEPLYWU I ENERGII TAM NIE MA — patrz ODBIOR_FLOW nizej.
   //
-  // UUID-y sa jeszcze puste — kontrolki wchodza do konfiguracji 2026-08-04.
-  // `available: true` z pustym UUID-em znaczy „punkt istnieje w instalacji,
-  // ale aplikacja nie ma go czym odpytac": widok Ustawienia pokazuje wtedy
-  // „czeka na UUID", a na schemacie stoi kreska. To jedyny uczciwy stan
-  // przejsciowy — punkt niedostepny (available: false) mowilby, ze czujnika
-  // NIE MA, a punkt z podstawionym UUID-em pokazywalby cudzy odczyt.
+  // UWAGA NA PREFIKS UUID-a: kontrolki tego licznika maja 210f77xx, czyli
+  // dokladnie te, ktore do 2026-08-03 byly wpisane jako cieplomierz ZRODLA.
+  // Tamto mapowanie bylo bledne (przebudowa konfiguracji przestawila bloki)
+  // i wlasnie dlatego zrodlo pokazywalo liczby z niewlasciwego obiegu.
   // -------------------------------------------------------------------------
   {
     id: 'ODBIOR_T_ZASILANIE',
-    uuid: null,
+    uuid: '210f7702-032b-4d09-ffff86611eeca57b', // ODBIOR_T_zasilanie
     label: 'Odbiór · zasilanie',
     unit: '°C',
     kind: 'temperature',
@@ -241,7 +240,7 @@ export const POINTS: readonly PointDef[] = [
   },
   {
     id: 'ODBIOR_T_POWROT',
-    uuid: null,
+    uuid: '210f7726-0029-59bd-ffff86611eeca57b', // ODBIOR_T_powrot
     label: 'Odbiór · powrót',
     unit: '°C',
     kind: 'temperature',
@@ -250,6 +249,22 @@ export const POINTS: readonly PointDef[] = [
     available: true,
   },
   {
+    id: 'ODBIOR_DT',
+    uuid: '210f774a-017e-63ef-ffff86611eeca57b', // ODBIOR_dT
+    label: 'Odbiór · ΔT',
+    unit: 'K',
+    kind: 'delta',
+    group: 'meter',
+    precision: 2,
+    available: true,
+  },
+  {
+    // PRZEPLYWU ODBIORU NIE MA W MINISERVERZE. W pokoju „Cieplomierz_odbior"
+    // sa tylko dwie temperatury i ΔT — zadnej kontrolki przeplywu ani energii.
+    // Nie zgadujemy UUID-a i nie podstawiamy przeplywu zrodla: punkt zostaje
+    // zadeklarowany i NIEDOSTEPNY, zeby na schemacie bylo widac, czego brakuje
+    // po stronie Loxone. Do zrobienia w Loxone Config: dolozyc kanal Modbus
+    // przeplywu drugiego licznika.
     id: 'ODBIOR_FLOW',
     uuid: null,
     label: 'Odbiór · przepływ',
@@ -257,7 +272,7 @@ export const POINTS: readonly PointDef[] = [
     kind: 'flow',
     group: 'meter',
     precision: 3,
-    available: true,
+    available: false,
   },
   {
     // Ponizej 3 K licznik nie sumuje energii i zglasza kod bledu 4.
