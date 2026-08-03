@@ -101,8 +101,11 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
 
 ## Do zrobienia
 
-- **Hasło.** Adres na Railway jest publiczny (`AUTH_ENABLED` + `AUTH_PASSWORD_HASH`,
-  hash z `npm run haslo`).
+- **Hasło na Railway.** Brama i ekran startowy są gotowe (gałąź `ekran-startowy`),
+  hash leży w lokalnym `.env`. Adres publiczny zostaje otwarty, dopóki te same
+  dwie zmienne (`AUTH_ENABLED`, `AUTH_PASSWORD_HASH`) nie zostaną ustawione
+  w panelu Railway — plik `.env` tam nie dochodzi. Dodać też
+  `AUTH_COOKIE_SECURE=true`, bo Railway podaje HTTPS.
 - Osobny token Mapbox: tylko do czytania, ograniczony do adresu.
 - Kopie zapasowe z wolumenu Railway.
 - `METER_POWER` nie istnieje w Miniserverze — mocy chwilowej nie ma czym podać.

@@ -1036,6 +1036,170 @@ code {
 }
 
 /* =========================================================================
+   EKRAN STARTOWY — wejście do aplikacji
+   =========================================================================
+   Dwie kolumny: opis projektu i brama z hasłem. Opis jest szerszy, bo to on
+   jest tu treścią; brama ma stałą szerokość, bo pole hasła nie robi się
+   lepsze od rozciągania.
+
+   Poświata z `body::after` przechodzi pod tym ekranem — dlatego karta bramy
+   jest szkłem, tak jak panele w aplikacji, a nie pełną płaszczyzną. */
+
+.start {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.start__tresc {
+  width: 100%;
+  max-width: 1100px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+}
+
+.start__logo {
+  display: block;
+  height: 30px;
+  width: auto;
+  margin-bottom: 1.25rem;
+}
+
+/* Logotyp jest jednobarwny i prawie czarny, więc nocą odwracamy go — ta sama
+   zasada co przy znaku w nagłówku aplikacji. Przy jednej barwie `invert`
+   wystarcza i nie trzeba drugiego pliku. */
+:root[data-theme='dark'] .start__logo {
+  filter: invert(1);
+}
+
+.start__nadpis {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.start__haslo {
+  margin: 0.6rem 0 0;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  color: var(--ink);
+}
+
+.start__akapit {
+  margin: 1.25rem 0 0;
+  max-width: 40rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* Trzy fakty w rzędzie. Liczba w kroju maszynowym, bo to liczba — ta sama
+   zasada co w całej aplikacji. */
+.start__fakty {
+  margin: 2rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1.25rem;
+}
+
+.start__fakt {
+  border-top: 1px solid var(--hairline);
+  padding-top: 0.7rem;
+}
+
+.start__fakt dt {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--akcent);
+}
+
+.start__fakt dd {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.start__uwaga {
+  margin: 1.75rem 0 0;
+  max-width: 34rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+
+.start__uwaga strong {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.start__brama {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.start__karta {
+  display: grid;
+  gap: 0.9rem;
+  padding: clamp(1.5rem, 3vw, 2rem);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  -webkit-backdrop-filter: var(--szklo-rozmycie);
+  backdrop-filter: var(--szklo-rozmycie);
+  border: var(--szklo-krawedz);
+  box-shadow: var(--shadow);
+}
+
+.start__karta-tytul {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.start__stopka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.start__logo-klienta {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+.start__wersja {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+
+/* Wąskie ekrany: brama schodzi pod opis. Idzie POD, nie nad — kto wchodzi
+   pierwszy raz, ma najpierw przeczytać, czym to jest; kto wchodzi codziennie,
+   i tak ma hasło w menedżerze i jeden ruch kciukiem. */
+@media (max-width: 860px) {
+  .start__tresc {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .start {
+    place-items: start center;
+  }
+}
+
+/* =========================================================================
    PASEK SKALI Z PASMEM PRZEMIANY (nagłówek widoku Magazyn)
    ========================================================================= */
 
