@@ -10,7 +10,25 @@
   /* --- Motyw jasny (domyślny) --- */
   /* Od v0.6 tło jest CIEPŁE (krem zamiast neutralnej szarości) — na nim leży
      pomarańczowa poświata (patrz blok POŚWIATA na końcu arkusza). */
-  --bg: #f7f1ea;
+  /* ---------------------------------------------------------------------
+     TŁO ZALEŻNE OD NOŚNIKA.
+     ---------------------------------------------------------------------
+     Poświata i kolor strony powstały w v0.6, gdy stanowisko miało jeden
+     zbiornik i jeden nośnik — ciepło było wtedy jedyną możliwością, więc krem
+     i pomarańcz wpisane na stałe niczemu nie przeczyły. Po dołożeniu chłodu
+     przełączał się tylko AKCENT, a tło zostawało ciepłe: z czterech warstw
+     tła za nośnikiem szła jedna, i to najsłabsza (20% krycia w narożniku).
+     Efekt był praktycznie niewidoczny.
+
+     Teraz wszystkie cztery warstwy mają własne zmienne. Nazwy mówią, którą
+     część ekranu malują, a nie jakiego są koloru — inaczej po zmianie na
+     chłód znowu zostałyby „pomarańczowe" nazwy z niebieską zawartością. */
+  --tlo-strony: #f7f1ea;
+  --tlo-blask-lewy: var(--akcent);
+  --tlo-blask-prawy: var(--ladunek-jasny);
+  --tlo-blask-gorny: #f2ddc4;
+
+  --bg: var(--tlo-strony);
   --surface: #ffffff;
   --surface-sunken: #f7f7f5;
   --ink: #0d0d0d;
@@ -96,7 +114,8 @@
  * na ciemnym tle świecą i przestają znaczyć to, co miały znaczyć.
  */
 :root[data-theme='dark'] {
-  --bg: #14140f;
+  --tlo-strony: #14140f;
+  --tlo-blask-gorny: #3a2f22;
   --surface: #1e1e19;
   --surface-sunken: #26261f;
   --ink: #f4f4ee;
@@ -1736,6 +1755,22 @@ code {
   --akcent-tlo: var(--chlod-tlo);
   --zasilanie: var(--chlod);
   --powrot: var(--cieplo);
+
+  /* Tło schodzi z kremu na chłodną szarość, a oba ciepłe blaski na stalowe.
+     Blask lewy idzie za akcentem sam, więc go tu nie ma. */
+  --tlo-strony: #eef1f3;
+  --tlo-blask-prawy: var(--chlod-jasny);
+  --tlo-blask-gorny: #dde4e9;
+}
+
+/* Chłód NOCĄ — potrzebna osobna reguła, nie wystarczy złożenie dwóch powyżej.
+   `[data-theme='dark']` i `[data-kierunek='chlod']` mają tę samą wagę (0,2,0),
+   więc o `--tlo-strony` decydowałaby kolejność w arkuszu: blok chłodu stoi
+   niżej, wygrałby i nocą wstawiłby JASNĄ szarość. Dwa atrybuty w jednym
+   selektorze dają wagę 0,3,0 i rozstrzygają to jednoznacznie. */
+:root[data-theme='dark'][data-kierunek='chlod'] {
+  --tlo-strony: #101416;
+  --tlo-blask-gorny: #1d2b33;
 }
 
 /* --- Tryb ciemny dla wektorów projektanta ----------------------------------
@@ -2859,9 +2894,9 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--akcent) 20%, transparent), transparent 70%),
-    radial-gradient(50% 60% at 94% 92%, color-mix(in srgb, var(--ladunek-jasny) 30%, transparent), transparent 70%),
-    radial-gradient(70% 55% at 50% -5%, color-mix(in srgb, #f2ddc4 55%, transparent), transparent 75%);
+    radial-gradient(55% 65% at 8% 96%, color-mix(in srgb, var(--tlo-blask-lewy) 20%, transparent), transparent 70%),
+    radial-gradient(50% 60% at 94% 92%, color-mix(in srgb, var(--tlo-blask-prawy) 30%, transparent), transparent 70%),
+    radial-gradient(70% 55% at 50% -5%, color-mix(in srgb, var(--tlo-blask-gorny) 55%, transparent), transparent 75%);
   animation: poswiata 9s ease-in-out infinite alternate;
 }
 
