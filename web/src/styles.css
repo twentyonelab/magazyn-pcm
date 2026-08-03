@@ -621,12 +621,35 @@ code {
   overflow: hidden;
 }
 
-/* Rysunek i scena trzymają się z dala od belek, żeby nie chować się pod nimi.
-   Mapa zostaje pełnowymiarowa — jej treścią jest teren, a nie krawędzie. */
-.main--obraz .canvas__scroll,
-.main--obraz .scena3d {
+/* Widok Magazyn i scena 3D odsuwają się od belek CAŁYM SWOIM POLEM, nie samym
+   rysunkiem w środku.
+
+   Pierwsza wersja odsuwała tylko `.canvas__scroll`, czyli pole rysunku — a nad
+   nim stoi jeszcze belka stanu naładowania, która została poza odsunięciem
+   i wjechała pod nagłówek. Odsunięcie należy do korzenia widoku, bo to on
+   decyduje, gdzie zaczyna się treść.
+
+   (Reguła celowała też w `.scena3d`, której nie ma — scena 3D to
+   `.canvas--3d`. Martwy selektor nic nie psuł, ale i nic nie robił.)
+
+   Mapa zostaje pełnowymiarowa: jej treścią jest teren, więc niech idzie pod
+   belki. Podpisy Mapboxa mają własne odsunięcie niżej. */
+.main--obraz .magazyn-widok {
   padding-top: var(--pas-gora);
   padding-bottom: var(--pas-dol);
+}
+
+/* Scena 3D dostaje MARGINES, nie wypełnienie.
+   Jej przyciski powiększania są pozycjonowane absolutnie względem tego samego
+   elementu, a pozycjonowanie absolutne liczy się od krawędzi pola wypełnienia
+   — czyli wypełnienie ich NIE przesuwa i schowały się pod nagłówkiem. Margines
+   przesuwa całe pole, więc wszystko w środku, także elementy absolutne, trafia
+   tam, gdzie ma być. W widoku Magazyn wypełnienie wystarcza, bo przyciski leżą
+   w zagnieżdżonym `.canvas`, a nie wprost w korzeniu widoku. */
+.main--obraz .canvas--3d {
+  height: calc(100% - var(--pas-gora) - var(--pas-dol));
+  margin-top: var(--pas-gora);
+  margin-bottom: var(--pas-dol);
 }
 
 /* Podpisy i logo Mapboxa muszą zostać widoczne — licencja tego wymaga,
