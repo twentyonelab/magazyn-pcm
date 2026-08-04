@@ -1092,21 +1092,53 @@ code {
   filter: invert(1);
 }
 
-.start__nadpis {
-  margin: 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
 .start__haslo {
-  margin: 0.6rem 0 0;
+  margin: 0;
   font-size: clamp(2.1rem, 5vw, 3.4rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.04;
   color: var(--ink);
+}
+
+/* KARUZELA NOŚNIKA — „Ciepło" przestawia się na „Chłód".
+
+   SIATKA, NIE POZYCJONOWANIE ABSOLUTNE. Oba słowa leżą w tej samej komórce
+   (`grid-area: 1 / 1`), więc komórka bierze szerokość SZERSZEGO z nich i reszta
+   zdania nie przeskakuje w boki przy zmianie. Przy pozycjonowaniu absolutnym
+   trzeba by tę szerokość zmierzyć w JavaScripcie i pilnować jej przy każdej
+   zmianie kroju albo wielkości pisma.
+
+   ŻADNEGO `overflow: hidden`. Klasyczna karuzela przewijana w pionie musiałaby
+   obcinać, a „Ciepło" ma ogonek litery „p" pod linią pisma — przy tej wielkości
+   obcięcie byłoby widoczne od razu. Dlatego przejście to przenikanie z lekkim
+   dryfem, bez klatki obcinającej. */
+.start__karuzela {
+  display: inline-grid;
+  /* Wyrównanie do linii pisma, żeby słowo stało w wierszu, a nie na nim. */
+  vertical-align: baseline;
+}
+
+.start__nosnik {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(-0.18em);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s ease;
+}
+
+.start__nosnik.is-teraz {
+  opacity: 1;
+  transform: none;
+}
+
+/* Przy wyłączonych animacjach karuzela stoi (patrz Logowanie.tsx) — tu jeszcze
+   zdejmujemy samo przenikanie, żeby pierwsze słowo pojawiło się od razu. */
+@media (prefers-reduced-motion: reduce) {
+  .start__nosnik {
+    transition: none;
+  }
 }
 
 .start__akapit {
@@ -1117,46 +1149,10 @@ code {
   color: var(--ink-soft);
 }
 
-/* Trzy fakty w rzędzie. Liczba w kroju maszynowym, bo to liczba — ta sama
-   zasada co w całej aplikacji. */
-.start__fakty {
-  margin: 2rem 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 1.25rem;
-}
-
-.start__fakt {
-  border-top: 1px solid var(--hairline);
-  padding-top: 0.7rem;
-}
-
-.start__fakt dt {
-  font-size: 1.6rem;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--akcent);
-}
-
-.start__fakt dd {
-  margin: 0.4rem 0 0;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: var(--ink-soft);
-}
-
-.start__uwaga {
-  margin: 1.75rem 0 0;
-  max-width: 34rem;
-  font-size: 0.78rem;
-  line-height: 1.55;
-  color: var(--ink-faint);
-}
-
-.start__uwaga strong {
-  color: var(--ink-soft);
-  font-weight: 600;
-}
+/* Pasek trzech faktów (12 sond / 5 s / 2 materiały), nadpis z nazwami
+   instytucji i uwaga o punktach pokazowych zostały zdjęte 2026-08-04 —
+   razem z regułami, które je opisywały. Ekran wejściowy ma powiedzieć, czym
+   to jest, a nie wyliczyć wszystko, co wiadomo. */
 
 .start__brama {
   display: grid;
