@@ -218,8 +218,11 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
             tMax: profile.scaleMax,
             solidus: KONFIGURACJA[profile.id].solidus,
             liquidus: KONFIGURACJA[profile.id].liquidus,
-            cieploPrzemiany: KONFIGURACJA[profile.id].cieploPrzemiany,
-            cp: KONFIGURACJA[profile.id].cp,
+            // Z PROFILU, nie z configu belki — patrz komentarz
+            // w `belka/konfiguracja.ts`: dwa zapisy tej samej wielkości
+            // dawały dwa różne procenty naładowania na jednym ekranie.
+            cieploPrzemiany: profile.latentHeat,
+            cp: profile.cp,
           },
           KONFIGURACJA[profile.id].kierunek,
         )

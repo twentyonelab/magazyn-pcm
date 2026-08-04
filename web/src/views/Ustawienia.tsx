@@ -116,7 +116,13 @@ export function Ustawienia({ data }: { data: LiveData }) {
                   <th>parafina</th>
                   <th className="num">skala barwna</th>
                   <th className="num">pasmo przemiany</th>
+                  {/* Dwie osobne kolumny, bo to dwie różne wielkości z karty
+                      materiału: sama przemiana i przemiana razem z ciepłem
+                      jawnym w oknie pracy. Jedna kolumna podpisana „ciepło
+                      utajone", a niosąca pojemność całkowitą, wprowadzała
+                      w błąd i przez to weszła do modelu entalpii. */}
                   <th className="num">ciepło utajone</th>
+                  <th className="num">pojemność z karty</th>
                   <th className="num">T maks.</th>
                 </tr>
               </thead>
@@ -138,6 +144,13 @@ export function Ustawienia({ data }: { data: LiveData }) {
                       {profile.phaseBandMin}–{profile.phaseBandMax} °C
                     </td>
                     <td className="num mono">{profile.latentHeat} kJ/kg</td>
+                    <td className="num mono">
+                      {profile.capacityKJkg} kJ/kg
+                      <span className="muted">
+                        {' '}
+                        ({profile.capacityFromC}–{profile.capacityToC} °C)
+                      </span>
+                    </td>
                     <td className="num mono">{profile.tMax} °C</td>
                   </tr>
                 ))}

@@ -54,6 +54,21 @@ liczby — tylko z niewłaściwego obiegu. Zła dana udająca dobrą jest niewid
 na ekranie. Zawsze sprawdzaj, czy wartość jest **sensowna dla stanu instalacji**,
 a nie tylko czy jest.
 
+**„Heat storage capacity" z karty Rubitherm NIE JEST ciepłem utajonym.** Ta
+pozycja to — karta mówi to wprost — *combination of latent and sensible heat*
+w podanym przedziale temperatur (8HC: 190 kJ/kg w 1–15 °C, 57HC: 240 kJ/kg
+w 49–64 °C). Model entalpii w `soc.ts` dokłada ciepło jawne osobno, z `cp`, więc
+wstawienie tam pojemności całkowitej liczy je **dwa razy**. Utajone trzeba
+wyliczyć: pojemność − `cp` × szerokość przedziału → 162 i 210 kJ/kg.
+
+**Naładowanie ma JEDNO źródło i to nie jest oczywiste z kodu.** Ta sama liczba
+pokazuje się w trzech miejscach (pinezka na mapie, belka nad schematem, pasek
+pod zbiornikiem). Do 2026-08-04 config belki miał własne `cieploPrzemiany`
+i `cp`, a profil z serwera własne — przy tej samej średniej 8,5 °C wychodziło
+29 % i 31 %. Parametry entalpii idą teraz **wyłącznie** z `MaterialProfile`,
+a procent liczy **wyłącznie** `procentSoc` (zaokrąglenie w dół; własny
+`Math.round` w jednym miejscu dawał różnicę o punkt).
+
 **`web/src/schema/schema.svg` jest generowany.** Powstaje z wektora projektanta
 przez `narzedzia/wepnij-kontrakt.mjs`, który nakłada na niego kontrakt aplikacji
 (atrybuty `data-*`). Ręczna edycja ginie przy następnym uruchomieniu narzędzia.

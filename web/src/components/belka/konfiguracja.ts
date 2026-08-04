@@ -32,13 +32,30 @@ interface KoloryChipu {
 
 export interface KonfiguracjaMaterialu {
   kierunek: Kierunek;
-  /** Początek i koniec przemiany — granice strefy środkowej na pasku. */
+  /**
+   * Początek i koniec przemiany — granice strefy środkowej na pasku.
+   *
+   * DUBLUJĄ `phaseBandMin`/`phaseBandMax` z profilu materiału i dziś obie pary
+   * mają te same wartości (8HC 7–9, 57HC 53–58, zgodnie z kartami Rubitherm).
+   * To jednak ten sam rodzaj pułapki co ciepło przemiany niżej: dwa zapisy
+   * jednej liczby rozjadą się przy pierwszej poprawce zrobionej w jednym
+   * miejscu. Do przeniesienia na profil przy najbliższej okazji.
+   */
   solidus: number;
   liquidus: number;
-  /** Ciepło przemiany użyte w modelu entalpii, kJ/kg. */
-  cieploPrzemiany: number;
-  /** Ciepło właściwe, kJ/(kg·K). */
-  cp: number;
+
+  /*
+   * CIEPŁA PRZEMIANY I CIEPŁA WŁAŚCIWEGO TU NIE MA — usunięte 2026-08-04.
+   *
+   * Stały tu `cieploPrzemiany` (150 dla 8HC, 170 dla 57HC) i `cp`, a drugi
+   * zapis tych samych wielkości siedział w profilu materiału z serwera.
+   * Skutek: pinezka na mapie liczyła naładowanie z profilu, a belka i pasek
+   * pod zbiornikiem z tego pliku — przy tej samej średniej 8,5 °C wychodziło
+   * 29 % i 31 %. Dwie liczby opisujące to samo na jednym ekranie.
+   *
+   * Oba parametry idą teraz WYŁĄCZNIE z `MaterialProfile` (`/api/materials`),
+   * wyliczone z kart Rubitherm — patrz `server/src/materials.config.ts`.
+   */
   /** Pojemność zbiornika w kWh — mianownik dla linii „Energia: x / y kWh". */
   pojemnoscKWh: number;
   /** Kolor krzywej entalpii i punktu pracy. */
@@ -62,9 +79,12 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     kierunek: 'cieplo',
     solidus: 53,
     liquidus: 58,
-    cieploPrzemiany: 170,
-    cp: 2,
-    // 200 l × ~0,85 kg/l × 240 kJ/kg = 40 800 kJ = 11,3 kWh
+    // 200 l × ~0,85 kg/l × 240 kJ/kg = 40 800 kJ = 11,3 kWh.
+    // 240 kJ/kg to POJEMNOŚĆ Z KARTY (latent + jawne, 49–64 °C), a nie samo
+    // ciepło utajone — i tu jest to właściwa liczba, bo mianownik ma opisywać
+    // energię użytkową zbiornika w oknie pracy, nie samą przemianę.
+    // Gęstość 0,85 kg/l to średnia z karty: 0,9 (ciało stałe, 20 °C) i 0,8
+    // (ciecz, 60 °C).
     pojemnoscKWh: 11.3,
     kolorKrzywej: PALETA.cieplo.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
@@ -85,8 +105,9 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     kierunek: 'chlod',
     solidus: 7,
     liquidus: 9,
-    cieploPrzemiany: 150,
-    cp: 2,
+    // 200 l × 0,88 kg/l × 190 kJ/kg = 33 440 kJ = 9,3 kWh.
+    // Gęstość ciała stałego z karty (0,88 przy 0 °C), bo dla magazynu CHŁODU
+    // stan naładowany to stan zamrożony — i wtedy w zbiorniku jest ta masa.
     pojemnoscKWh: 9.3,
     kolorKrzywej: PALETA.chlod.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,

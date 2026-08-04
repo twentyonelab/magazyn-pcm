@@ -86,7 +86,7 @@ function przesuniecieDoby(lok: Lokalizacja): number {
     solidus: profil.phaseBandMin,
     liquidus: profil.phaseBandMax,
     cieploPrzemiany: profil.latentHeat,
-    cp: 2,
+    cp: profil.cp,
   };
 
   const teraz = Date.now();

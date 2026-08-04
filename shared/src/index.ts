@@ -186,10 +186,37 @@ export interface MaterialProfile {
   /** Pasmo przemiany fazowej — najwazniejsza informacja na ekranie. */
   phaseBandMin: number;
   phaseBandMax: number;
-  /** Szczyt topnienia. */
+  /**
+   * Szczyt przemiany. Dla magazynu ciepla to szczyt TOPNIENIA, dla chlodu
+   * szczyt KRZEPNIECIA — w kartach Rubitherm oba wypadaja na tej samej
+   * wartosci (8HC: 8 °C, 57HC: 57 °C).
+   */
   peak: number;
-  /** kJ/kg */
+  /**
+   * CIEPLO UTAJONE PRZEMIANY, kJ/kg — sama przemiana, BEZ ciepla jawnego.
+   *
+   * UWAGA, TU BYL BLAD (poprawiony 2026-08-04). Stalo tu 190 dla 8HC i 240 dla
+   * 57HC, czyli liczby przepisane z wiersza „Heat storage capacity" karty
+   * materialu. Ta pozycja to jednak — karta mowi to wprost — „combination of
+   * latent AND sensible heat" w podanym przedziale temperatur. Model entalpii
+   * (`web/src/soc.ts`) dodaje cieplo jawne osobno, z `cp`, wiec wstawienie tam
+   * pojemnosci calkowitej liczylo cieplo jawne DWA RAZY.
+   *
+   * Wartosci ponizej sa wyliczone z karty: pojemnosc calkowita minus cieplo
+   * jawne na podanym przedziale (`cp` × szerokosc przedzialu).
+   */
   latentHeat: number;
+  /**
+   * POJEMNOSC CIEPLNA Z KARTY MATERIALU, kJ/kg — latent + jawne, w przedziale
+   * `capacityFromC`…`capacityToC`. Trzymamy ja osobno, bo to LICZBA Z KARTY,
+   * ktora chce sie zobaczyc na ekranie i porownac z dokumentem producenta.
+   * Do modelu entalpii nie wchodzi — patrz `latentHeat` wyzej.
+   */
+  capacityKJkg: number;
+  capacityFromC: number;
+  capacityToC: number;
+  /** Cieplo wlasciwe, kJ/(kg·K). Karta Rubitherm podaje 2 dla obu materialow. */
+  cp: number;
   /** Maksymalna temperatura pracy materialu. */
   tMax: number;
 }

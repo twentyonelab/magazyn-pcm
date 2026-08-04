@@ -154,8 +154,13 @@ export function zdrowiePokazowe(startMs: number): Health {
 export const MATERIALY_POKAZOWE: MaterialsResponse = {
   defaultMaterial: 'RT57HC',
   profiles: {
-    RT8HC: { id: 'RT8HC', label: '8HC', scaleMin: 0, scaleMax: 20, phaseBandMin: 7, phaseBandMax: 9, peak: 8, latentHeat: 190, tMax: 40 },
-    RT57HC: { id: 'RT57HC', label: '57HC', scaleMin: 40, scaleMax: 75, phaseBandMin: 55, phaseBandMax: 58, peak: 57, latentHeat: 240, tMax: 90 },
+    // Liczby jak w `server/src/materials.config.ts` — z kart Rubitherm.
+    // `latentHeat` to CIEPŁO UTAJONE (pojemność z karty minus ciepło jawne
+    // w podanym przedziale), `capacityKJkg` to pozycja „Heat storage capacity"
+    // wprost z dokumentu. Pasmo 57HC to 53–58: suma topnienia (55–58)
+    // i krzepnięcia (53–57), tak jak w konfiguracji serwera.
+    RT8HC: { id: 'RT8HC', label: '8HC', scaleMin: 0, scaleMax: 20, phaseBandMin: 7, phaseBandMax: 9, peak: 8, latentHeat: 162, capacityKJkg: 190, capacityFromC: 1, capacityToC: 15, cp: 2, tMax: 40 },
+    RT57HC: { id: 'RT57HC', label: '57HC', scaleMin: 40, scaleMax: 75, phaseBandMin: 53, phaseBandMax: 58, peak: 57, latentHeat: 210, capacityKJkg: 240, capacityFromC: 49, capacityToC: 64, cp: 2, tMax: 90 },
   },
   volumesL: { buffer: 80, storage: 200 },
   flowFullSpeed: 0.8,

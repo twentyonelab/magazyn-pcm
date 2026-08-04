@@ -134,13 +134,17 @@ export function PasekPrzemiany({
   const cfg = KONFIGURACJA[profile.id];
   const skala = utworzSkale(szerokosc, profile.scaleMin, profile.scaleMax);
 
+  // Ciepło przemiany i ciepło właściwe idą z PROFILU MATERIAŁU, nie z configu
+  // belki — jedno źródło dla belki, paska pod zbiornikiem i pinezki na mapie.
+  // Wcześniej config belki miał własne liczby i te trzy miejsca pokazywały
+  // różne procenty tego samego naładowania.
   const parametry: ParametryEntalpii = {
     tMin: profile.scaleMin,
     tMax: profile.scaleMax,
     solidus: cfg.solidus,
     liquidus: cfg.liquidus,
-    cieploPrzemiany: cfg.cieploPrzemiany,
-    cp: cfg.cp,
+    cieploPrzemiany: profile.latentHeat,
+    cp: profile.cp,
   };
 
   /*
@@ -437,7 +441,18 @@ export function PasekPrzemiany({
           </div>
 
           <div className="belka__kafle">
+            {/* DWIE RÓŻNE LICZBY I OBIE Z KARTY MATERIAŁU.
+                „Ciepło utajone" to sama przemiana — ta wartość wchodzi do
+                modelu entalpii. „Pojemność" to pozycja „Heat storage capacity"
+                z karty Rubitherm, czyli utajone RAZEM z jawnym w podanym
+                przedziale temperatur; podpisana zakresem, bo bez niego jest
+                nieporównywalna. Wcześniej stała tu jedna liczba (190 kJ/kg)
+                podpisana jako ciepło utajone, a jest pojemnością całkowitą. */}
             <Kafel label="ciepło utajone" wartosc={`${profile.latentHeat} kJ/kg`} />
+            <Kafel
+              label={`pojemność ${profile.capacityFromC}–${profile.capacityToC} °C`}
+              wartosc={`${profile.capacityKJkg} kJ/kg`}
+            />
             <Kafel label="temperatura maks." wartosc={`${profile.tMax} °C`} />
             {/* SZCZYT TOPNIENIA CZY KRZEPNIĘCIA — zależy od nośnika i nie jest
                 drobiazgiem językowym. W magazynie CIEPŁA materiał ładuje się

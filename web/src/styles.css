@@ -599,7 +599,13 @@ code {
   cursor: pointer;
 }
 
-.nav__item:hover:not(.is-soon) {
+/* AKTYWNA ZAKŁADKA JEST TU WYŁĄCZONA i to poprawka usterki, nie ozdoba.
+   Reguła bez `:not(.is-active)` miała wagę (0,3,0) — trzy klasy licząc
+   `.is-soon` w środku `:not` — czyli WYŻSZĄ niż `.nav__item.is-active` (0,2,0).
+   Po najechaniu na zakładkę, na której właśnie stoisz, `color: var(--ink)`
+   wygrywał z jasnym tekstem pastylki: napis stawał się grafitowy na grafitowym
+   tle i zakładka wyglądała na pustą czarną pigułkę. Zgłoszone 2026-08-04. */
+.nav__item:hover:not(.is-soon):not(.is-active) {
   color: var(--ink);
 }
 
@@ -610,6 +616,14 @@ code {
   background: var(--ink);
   color: var(--bg);
   font-weight: 600;
+}
+
+/* Aktywna zakładka też odpowiada na kursor — ale TŁEM, nie tekstem.
+   Bez tego jedyna pozycja w menu bez reakcji na najechanie byłaby ta, na
+   której stoisz, i wyglądałoby to jak zablokowany przycisk. Tekst zostaje
+   jasny: to on był źródłem usterki wyżej. */
+.nav__item.is-active:hover {
+  background: color-mix(in srgb, var(--ink) 82%, var(--bg));
 }
 
 .nav__item.is-soon {

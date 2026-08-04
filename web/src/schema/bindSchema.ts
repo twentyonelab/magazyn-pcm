@@ -13,6 +13,7 @@
 
 import type { MaterialProfile, PointValue, PointValues, PublicPoint } from '@magazyn-pcm/shared';
 import { NO_DATA, isStale } from '../format.js';
+import { procentSoc } from '../soc.js';
 import { NO_DATA_FILL, isInPhaseBand, temperatureFill, wybierzSkale } from '../scale.js';
 
 export interface BindOptions {
@@ -317,18 +318,25 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
 
   if (tor && wypelnienie) {
     const szerokosc = Number(tor.getAttribute('width') ?? 0);
+    // Długość słupka liczona Z POKAZYWANEGO PROCENTU, nie z surowego SOC —
+    // tak samo jak energia w kWh na belce. Inaczej pasek stałby na 30,5 %,
+    // a napis obok mówiłby 30 %, i dałoby się to zauważyć linijką.
     const udzial =
       opts.naladowanie === null || opts.naladowanie === undefined
         ? null
-        : Math.min(1, Math.max(0, opts.naladowanie));
+        : procentSoc(Math.min(1, Math.max(0, opts.naladowanie))) / 100;
     wypelnienie.setAttribute('width', udzial === null ? '0' : (szerokosc * udzial).toFixed(2));
     wypelnienie.classList.toggle('is-no-data', udzial === null);
   }
   if (napis) {
+    // `procentSoc`, a NIE własne zaokrąglenie. Stało tu `Math.round` i pasek
+    // pokazywał 31 % tam, gdzie belka nad schematem pokazywała 30 % — z tej
+    // samej wartości 0,305. Zaokrąglanie w dół jest zasadą tego przyrządu
+    // (nie zawyżamy stanu magazynu) i musi być jedno dla wszystkich miejsc.
     napis.textContent =
       opts.naladowanie === null || opts.naladowanie === undefined
         ? NO_DATA
-        : `${Math.round(Math.min(1, Math.max(0, opts.naladowanie)) * 100)}%`;
+        : `${procentSoc(Math.min(1, Math.max(0, opts.naladowanie)))}%`;
   }
 
   // --- Stany binarne -------------------------------------------------------

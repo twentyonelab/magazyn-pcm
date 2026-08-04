@@ -21,11 +21,11 @@
 import type { MaterialProfile, PointValue, PublicPoint } from '@magazyn-pcm/shared';
 import { procentSoc, socZTemperatury, type Kierunek } from './soc.js';
 
-/**
- * Cieplo wlasciwe uzywane w modelu entalpii, kJ/(kg·K).
- * Ta sama wartosc co w konfiguracji belki — profil materialu jej nie niesie.
+/*
+ * CIEPLA WLASCIWEGO NIE MA TU JUZ JAKO STALEJ — od 2026-08-04 niesie je profil
+ * materialu (`MaterialProfile.cp`, wartosc z karty Rubitherm). Stala kopia
+ * w tym pliku byla trzecim zapisem tej samej liczby.
  */
-const CP_KJ_KG_K = 2;
 
 /**
  * Średnia z sond magazynu albo null, gdy żadna nie ma odczytu.
@@ -84,7 +84,7 @@ export function naladowanieProcent(
       solidus: profile.phaseBandMin,
       liquidus: profile.phaseBandMax,
       cieploPrzemiany: profile.latentHeat,
-      cp: CP_KJ_KG_K,
+      cp: profile.cp,
     },
     kierunek,
   );
