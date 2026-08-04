@@ -416,19 +416,58 @@ export function WykresMagazynu({ profil }: Props) {
   /**
    * Rozwarstwienie: dla każdej chwili min, max i średnia po WIDOCZNYCH sondach.
    *
-   * Zestawianie po indeksie jest tu poprawne WYŁĄCZNIE dlatego, że `serie`
-   * powstają na wspólnej osi czasu (patrz komentarz przy `serie` wyżej).
-   * Bez tego indeks `i` znaczyłby w każdej sondzie inną chwilę.
+   * KAŻDA SONDA JEST NAJPIERW DOGĘSZCZANA NA CAŁĄ OŚ interpolacją liniową
+   * między jej własnymi próbkami — i to jest poprawka usterki zgłoszonej
+   * 2026-08-04 („coś nie tak z rozwarstwieniem, przedtem było lepiej").
+   *
+   * Serwer zapisuje punkt tylko wtedy, gdy wartość się ZMIENIŁA, więc każda
+   * sonda ma próbki w innych kubełkach. Po przejściu na wspólną oś czasu
+   * kolumna brała to, co akurat w niej było — zmierzone na godzinie danych
+   * przy rozdzielczości 6 s: ze 166 kolumn aż 111 miało JEDNĄ sondę, a komplet
+   * sześciu tylko 2. Min i max z jednej sondy to ta sama liczba, więc pasmo
+   * zwężało się do zera i zębkowało, a średnia skakała między pojedynczymi
+   * sondami — na ekranie wyglądało to jak gruba, poszarpana kreska.
+   *
+   * Interpolacja między własnymi próbkami sondy to dokładnie ten sam domysł,
+   * który robi forma „linie", przeskakując przerwę — wartość między dwoma
+   * zapisami naprawdę leżała między nimi, bo zapis dzieje się przy zmianie.
+   * Poza pierwszą i ostatnią próbką sondy nie zmyślamy nic: kolumna wchodzi
+   * do wyniku TYLKO Z PEŁNYM KOMPLETEM sond, inaczej pasmo „od najzimniejszej
+   * do najcieplejszej" liczyłoby się z różnych podzbiorów w różnych chwilach
+   * i znów kłamało o szerokości rozrzutu.
    */
   const rozwarstwienie = useMemo(() => {
     if (serie.length === 0) return null;
     const os = serie[0]!.punkty;
+
+    const naOsi = serie.map((s) => {
+      const wartosci: Array<number | null> = new Array<number | null>(os.length).fill(null);
+      let poprzedni = -1;
+      for (let i = 0; i < os.length; i += 1) {
+        const v = s.punkty[i]!.v;
+        if (v === null) continue;
+        wartosci[i] = v;
+        if (poprzedni >= 0 && poprzedni < i - 1) {
+          const a = s.punkty[poprzedni]!;
+          const b = s.punkty[i]!;
+          for (let k = poprzedni + 1; k < i; k += 1) {
+            const u = (os[k]!.ms - a.ms) / (b.ms - a.ms);
+            wartosci[k] = (a.v as number) + ((b.v as number) - (a.v as number)) * u;
+          }
+        }
+        poprzedni = i;
+      }
+      return wartosci;
+    });
+
     const kolumny: Array<{ ms: number; min: number; max: number; sr: number }> = [];
     for (let i = 0; i < os.length; i += 1) {
-      const wartosci = serie
-        .map((s) => s.punkty[i]?.v)
-        .filter((v): v is number => v !== null && v !== undefined);
-      if (wartosci.length === 0) continue;
+      const wartosci: number[] = [];
+      for (const sonda of naOsi) {
+        const v = sonda[i];
+        if (v !== null && v !== undefined) wartosci.push(v);
+      }
+      if (wartosci.length !== serie.length) continue;
       kolumny.push({
         ms: os[i]!.ms,
         min: Math.min(...wartosci),
