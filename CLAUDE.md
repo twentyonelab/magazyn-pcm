@@ -111,9 +111,21 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
 - Osobny token Mapbox: tylko do czytania, ograniczony do adresu (teraz również
   do `entalvia.eu` i `app.entalvia.eu`).
 - Kopie zapasowe z wolumenu Railway.
-- `METER_POWER` nie istnieje w Miniserverze — mocy chwilowej nie ma czym podać.
-- Ciepłomierz **odbioru** ma w Loxone tylko dwie temperatury i ΔT. Brakuje
-  przepływu i energii — do dołożenia jako kanały Modbus w Loxone Config.
+- **Lokalizacja Miniservera do zapisania.** 2026-08-04 w projekcie pojawił się
+  pokój „Otoczenie" z czterema kontrolkami usługi pogodowej Loxone (temperatura,
+  wilgotność, ciśnienie, pył); ich UUID-y są już w `points.config.ts`. Wszystkie
+  odpowiadają HTTP 200 i **zerem**, bo `msInfo.latitude`/`longitude` w zapisanym
+  projekcie nadal wynoszą 0 — usługa nie ma dla czego liczyć pogody. Zostaje
+  ustawić lokalizację (Gliwice, Kaszubska 26) i **zapisać** konfigurację; w
+  kodzie nic się wtedy nie zmienia, źródło przełączy się samo. `weather.ts`
+  odrzuca zestaw zer jawnie: sprawdzenie „czy punkt odpowiada" nie jest
+  sprawdzeniem „czy mierzy".
+- **Ciepłomierz odbioru jest już kompletny** (2026-08-04): doszły kanały
+  `ODBIOR_Przeplyw`, `ODBIOR_Moc`, dwie energie i kod błędu. Doszła też
+  `ZRODLO_Moc`, czyli `METER_POWER` przestał być pusty. Otwarte zostaje jedno:
+  **oba liczniki energii odbioru zwracają −0,640**, a ujemna energia zsumowana
+  to objaw odwrotnego montażu (AXIOMA 0002), nie wynik pomiaru. Nie licz na
+  tych punktach bilansu, dopóki znak się nie wyprostuje.
 - Ciepłomierz AXIOMA: błąd 0002 (montaż odwrotny). Milczące kanały Modbus już
   nie milczą — 2026-08-04 okazało się, że to były **uprawnienia konta
   `pcm-odczyt` do pomieszczeń** w Loxone, nie zasilanie licznika. Objaw był

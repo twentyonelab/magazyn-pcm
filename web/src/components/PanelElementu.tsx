@@ -42,11 +42,17 @@ const ELEMENTS: Record<string, ElementInfo> = {
   },
   buffer: {
     title: 'Bufor',
-    subtitle: 'Zbiornik buforowy między pompą ciepła a magazynem',
-    pointIds: ['BUFFER_TOP', 'BUFFER_BOTTOM'],
+    subtitle: 'Zbiornik buforowy między pompą ciepła a magazynem · bez pomiaru',
+    /*
+     * BUFOR NIE JEST MONITOROWANY i panel mówi to wprost, zamiast pokazywać
+     * dwa puste wiersze „Bufor · góra / dół". Stały tu wcześniej punkty
+     * BUFFER_TOP i BUFFER_BOTTOM z wiecznym „—”: element, który wygląda jak
+     * zepsuty czujnik, choć czujnika nigdy nie było. Usunięte 2026-08-04.
+     */
+    pointIds: [],
     notes: [
+      'Bufor jest elementem hydraulicznym instalacji, nie punktem pomiarowym: nie ma w nim żadnej sondy i monitorowanie go nie jest planowane.',
       'Objętość jest wartością konfiguracyjną — rysunek instalacji wymienia zasobnik 200 l, opis mówi o buforze 80 l (otwarte pytanie nr 2 ze specyfikacji).',
-      'Sondy bufora nie są jeszcze podłączone do Miniservera.',
     ],
   },
   meter: {

@@ -199,12 +199,16 @@ function trescDymka(
           : '') +
         '</div>';
 
-  return (
-    zdjecie +
-    naglowek +
-    ladunek +
-    '<p class="dymek__akcja">Klik przybliża, drugi klik otwiera magazyn</p>'
-  );
+  /*
+   * INSTRUKCJI OBSŁUGI W KARCIE NIE MA — usunięta 2026-08-04 na prośbę.
+   *
+   * Stał tu wiersz „Klik przybliża, drugi klik otwiera magazyn". Zachowanie
+   * zostaje bez zmian, tylko przestaje być wypisane na rysunku: karta ma mówić
+   * o instalacji, a nie o sobie. Opis dla czytników ekranu zostaje w atrybucie
+   * `aria-label` znacznika, gdzie jest potrzebny i gdzie nikomu nie zasłania
+   * treści.
+   */
+  return zdjecie + naglowek + ladunek;
 }
 
 interface Props {
@@ -226,6 +230,25 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const dymekLiveRef = useRef<mapboxgl.Popup | null>(null);
   /** Wypełnienie zbiornika stanowiska — podnoszone bez przebudowy mapy. */
   const wypelnienieLiveRef = useRef<HTMLElement | null>(null);
+  /*
+   * ZNACZNIK STANOWISKA W CZĘŚCIACH — i to jest poprawka usterki, nie ozdoba.
+   *
+   * Znaczniki powstają RAZ, w efekcie montującym mapę. W pierwszej klatce nie
+   * ma jeszcze ani `/api/materials`, ani rozpoznanego zbiornika, więc rodzaj
+   * magazynu spada wtedy na wartość zapasową `STANOWISKO.typ`, czyli CIEPŁO.
+   * Barwa obrysu i podpisu wchodziła wtedy na stałe jako pomarańcz i już nigdy
+   * się nie zmieniała: odświeżał się tylko słupek wypełnienia i treść karty.
+   * Stąd zgłoszenie „instalacja w Gliwicach świeci pomarańczowo, aż odświeżę
+   * stronę" — a po odświeżeniu czasem trafiało się w kolejność, w której dane
+   * były już na miejscu.
+   *
+   * Trzymamy więc uchwyty do obrysu i podpisu i przemalowujemy je dokładnie
+   * wtedy, gdy rodzaj magazynu się rozstrzygnie. Bez przebudowy mapy, więc
+   * kadr, obrót i otwarta karta zostają na miejscu.
+   */
+  const pinezkaLiveRef = useRef<HTMLElement | null>(null);
+  const koloLiveRef = useRef<HTMLElement | null>(null);
+  const podpisLiveRef = useRef<HTMLElement | null>(null);
   /**
    * Naładowanie stanowiska widziane przez kod budujący znaczniki.
    * Efekt tworzący mapę nie może zależeć od `procent`, bo przy każdym odczycie
@@ -463,7 +486,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
           : paleta.jasny;
 
       const el = document.createElement('div');
-      el.className = `pinezka is-${punkt.stan} is-${punkt.typ}`;
+      // Rodzaj w klasie idzie z `kierunekPunktu`, nie z `punkt.typ`: dla
+      // stanowiska decyduje rozpoznany materiał, a nie wartość zapasowa.
+      el.className = `pinezka is-${punkt.stan} is-${kierunekPunktu}`;
       // Podpis to NAZWA INSTALACJI, nie miasto: etykiety miast rysuje już sam
       // Mapbox i drugi taki napis obok pinezki czytał się jak jego powtórzenie.
       el.innerHTML =
@@ -484,6 +509,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       if (live) {
         dymekLiveRef.current = dymek;
         wypelnienieLiveRef.current = el.querySelector('.pinezka__wypelnienie');
+        pinezkaLiveRef.current = el;
+        koloLiveRef.current = el.querySelector('.pinezka__kolo');
+        podpisLiveRef.current = el.querySelector('.pinezka__podpis');
       }
 
       const marker = new mapboxgl.Marker({
@@ -549,6 +577,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
 
     return () => {
       dymekLiveRef.current = null;
+      pinezkaLiveRef.current = null;
+      koloLiveRef.current = null;
+      podpisLiveRef.current = null;
+      wypelnienieLiveRef.current = null;
       map.remove();
     };
     // Mapa budowana RAZ. Motyw i sposób kolorowania wchodzą osobnymi efektami.
@@ -595,23 +627,39 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     el?.classList.toggle('is-plynie', zywe);
   }, [zywe]);
 
-  // Naładowanie stanowiska odświeża się z danymi: treść dymka i wysokość
-  // wypełnienia zbiornika. Podmieniamy tylko te dwie rzeczy, żeby nie
+  // Stanowisko odświeża się z danymi: treść karty, wysokość i barwa
+  // wypełnienia oraz — i to jest ta poprawka — RODZAJ MAGAZYNU, czyli barwa
+  // obrysu, podpisu i klasa znacznika. Podmieniamy tylko te rzeczy, żeby nie
   // przebudowywać całej mapy przy każdym odczycie sond.
+  //
+  // `kierunekStanowiska` MUSI być w zależnościach. Bez niego przemalowanie
+  // trafiało się przypadkiem, przy najbliższej zmianie średniej z sond — a
+  // w plateau przemiany temperatura stoi godzinami, więc „przypadek" nie
+  // przychodził wcale.
   useEffect(() => {
     dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska));
+
+    const paleta = PALETA[kierunekStanowiska];
+
+    if (pinezkaLiveRef.current) {
+      pinezkaLiveRef.current.classList.toggle('is-cieplo', kierunekStanowiska === 'cieplo');
+      pinezkaLiveRef.current.classList.toggle('is-chlod', kierunekStanowiska === 'chlod');
+    }
+    if (koloLiveRef.current) koloLiveRef.current.style.borderColor = paleta.glowny;
+    if (podpisLiveRef.current) podpisLiveRef.current.style.color = paleta.glowny;
+
     if (wypelnienieLiveRef.current) {
       wypelnienieLiveRef.current.style.height = `${procent ?? 0}%`;
       // Barwa idzie za temperaturą, wysokość za naładowaniem — dwa kanały,
-      // dwie liczby, jedno miejsce aktualizacji.
-      if (pozycjaRef.current !== null) {
-        wypelnienieLiveRef.current.style.background = barwaNosnika(
-          kierunekStanowiska,
-          pozycjaRef.current,
-        );
-      }
+      // dwie liczby, jedno miejsce aktualizacji. Bez położenia na skali
+      // (brak profilu materiału) zostaje płaski, jasny odcień rodzaju —
+      // ten sam wybór co przy budowie znacznika.
+      wypelnienieLiveRef.current.style.background =
+        pozycjaRef.current === null
+          ? paleta.jasny
+          : barwaNosnika(kierunekStanowiska, pozycjaRef.current);
     }
-  }, [sredniaC, procent]);
+  }, [sredniaC, procent, kierunekStanowiska]);
 
   return (
     <section className="mapa">

@@ -219,12 +219,13 @@ export function wartosciPunktu(lok: Lokalizacja, ms: number): PointValues {
   values.ODBIOR_T_ZASILANIE = swiezy(Number(odbiorZasilanie.toFixed(1)));
   values.ODBIOR_T_POWROT = swiezy(Number(odbiorPowrot.toFixed(1)));
   values.ODBIOR_DT = swiezy(Number((odbiorZasilanie - odbiorPowrot).toFixed(2)));
-  // Przepływu odbioru nie ma w Miniserverze (brak kanału Modbus), więc pokaz
-  // też go nie podaje — inaczej obiecywałby liczbę, której nigdzie nie ma.
-  values.ODBIOR_FLOW = { v: null, ts: null, stale: true };
-
-  values.BUFFER_TOP = swiezy(Number((temperaturaSondyPunktu(lok, 'A3', ms - 1_200_000) - 1.4 * rozpietosc).toFixed(1)));
-  values.BUFFER_BOTTOM = swiezy(Number((temperaturaSondyPunktu(lok, 'A1', ms - 1_200_000) - 2.2 * rozpietosc).toFixed(1)));
+  // Obieg odbioru ma od 2026-08-04 wlasny przeplyw i moc w Miniserverze,
+  // wiec punkt pokazowy tez je podaje. Bufora nie — nie jest monitorowany.
+  const odbiorPrzeplyw = odbiorPracuje ? 0.42 : 0;
+  values.ODBIOR_FLOW = swiezy(Number(odbiorPrzeplyw.toFixed(3)));
+  values.ODBIOR_POWER = swiezy(
+    Number((odbiorPrzeplyw * (odbiorZasilanie - odbiorPowrot) * 1.163).toFixed(2)),
+  );
 
   values.HP_STATE = swiezy(faza === 'ladowanie' ? 1 : 0);
   values.PUMP_STATE = swiezy(pracuje ? 1 : 0);

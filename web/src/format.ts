@@ -189,7 +189,6 @@ export function materialLabel(
 /** Grupy punktow po polsku — do naglowkow w tabeli. */
 export const GROUP_LABEL: Record<string, string> = {
   pcm: 'Magazyn PCM',
-  buffer: 'Bufor',
   heatpump: 'Pompa ciepła',
   meter: 'Ciepłomierz',
   ambient: 'Otoczenie',

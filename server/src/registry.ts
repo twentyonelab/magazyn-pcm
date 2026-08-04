@@ -26,7 +26,7 @@ const pointSchema = z.object({
   label: z.string().min(1),
   unit: z.string(),
   kind: z.enum(['temperature', 'flow', 'energy', 'power', 'volume', 'delta', 'state']),
-  group: z.enum(['pcm', 'buffer', 'heatpump', 'meter', 'ambient', 'actuator']),
+  group: z.enum(['pcm', 'heatpump', 'meter', 'ambient', 'actuator']),
   precision: z.number().int().min(0).max(6),
   geometry: geometrySchema.optional(),
   available: z.boolean(),

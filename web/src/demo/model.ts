@@ -226,12 +226,14 @@ export function temperaturyOdbioru(ms: number): { zasilanie: number; powrot: num
 }
 
 /**
- * Przepływ obiegu odbioru. Na prawdziwym stanowisku kanału Modbus tego
- * licznika NIE MA (patrz points.config.ts), więc pokaz też go nie podaje —
- * inaczej demo obiecywałoby liczbę, której nigdzie nie zobaczysz.
+ * Przepływ obiegu odbioru — od 2026-08-04 kanał Modbus tego licznika ISTNIEJE
+ * (`ODBIOR_Przeplyw`), więc pokaz może go podawać. Mniejszy niż w źródle, bo
+ * odbiór idzie przez wymiennik wody użytkowej, nie przez pompę ciepła.
  */
 export function przeplywOdbioru(ms: number): number {
-  return fazaPracy(ms) === 'rozladowanie' ? 0.42 : 0;
+  const faza = fazaPracy(ms);
+  if (faza !== 'rozladowanie') return 0;
+  return 0.42 + szum(ms, 17) * 0.015;
 }
 
 /**

@@ -155,18 +155,21 @@ export const POINTS: readonly PointDef[] = [
     available: true,
   },
   {
-    // MOCY NIE MA W MINISERVERZE. Po przebudowie konfiguracji w pokoju
-    // „Cieplomierz_zrodlo" jest siedem kontrolek i zadna z nich nie podaje
-    // mocy chwilowej. Nie zgadujemy UUID-a — punkt zostaje zadeklarowany,
-    // ale niedostepny, zeby bylo widac, czego brakuje po stronie Loxone.
+    // MOC JUZ JEST. Do 2026-08-03 w pokoju „Cieplomierz_zrodlo" nie bylo
+    // kontrolki mocy chwilowej i ten punkt stal niedostepny. 2026-08-04
+    // w strukturze pojawil sie `ZRODLO_Moc` (%.2f kW) — wpisany nizej.
+    //
+    // To nie jest kosmetyka: znak mocy rozstrzyga w widoku Magazyn, czy
+    // magazyn sie laduje, czy rozladowuje (patrz `kierunekZmiany`). Dopoki
+    // punkt milczal, kierunek byl wnioskowany z trendu sredniej temperatury.
     id: 'METER_POWER',
-    uuid: null,
-    label: 'Ciepłomierz · moc',
+    uuid: '21146dd1-02c5-ff6a-ffff86611eeca57b', // ZRODLO_Moc
+    label: 'Źródło · moc',
     unit: 'kW',
     kind: 'power',
     group: 'meter',
     precision: 2,
-    available: false,
+    available: true,
   },
   {
     // Dwa osobne liczniki energii, bo licznik rozdziela grzanie i chlodzenie.
@@ -219,9 +222,10 @@ export const POINTS: readonly PointDef[] = [
   // -------------------------------------------------------------------------
   // CIEPLOMIERZ ODBIORU — drugi licznik, obieg po lewej stronie schematu.
   //
-  // Pokoj „Cieplomierz_odbior" w Loxone Config ma TRZY kontrolki (stan na
-  // 2026-08-03, `npm run uuid`): ODBIOR_T_zasilanie, ODBIOR_T_powrot,
-  // ODBIOR_dT. PRZEPLYWU I ENERGII TAM NIE MA — patrz ODBIOR_FLOW nizej.
+  // 2026-08-04: pokoj „Cieplomierz_odbior" ma teraz KOMPLET kanalow Modbus —
+  // przeplyw, moc, dwie energie i kod bledu doszly po naszej stronie jako
+  // zwykle punkty. Wczesniej byly tam tylko dwie temperatury i ΔT, i wlasnie
+  // to zamyka pozycje „brakuje przeplywu i energii" z listy do zrobienia.
   //
   // UWAGA NA PREFIKS UUID-a: kontrolki tego licznika maja 210f77xx, czyli
   // dokladnie te, ktore do 2026-08-03 byly wpisane jako cieplomierz ZRODLA.
@@ -259,20 +263,68 @@ export const POINTS: readonly PointDef[] = [
     available: true,
   },
   {
-    // PRZEPLYWU ODBIORU NIE MA W MINISERVERZE. W pokoju „Cieplomierz_odbior"
-    // sa tylko dwie temperatury i ΔT — zadnej kontrolki przeplywu ani energii.
-    // Nie zgadujemy UUID-a i nie podstawiamy przeplywu zrodla: punkt zostaje
-    // zadeklarowany i NIEDOSTEPNY, zeby na schemacie bylo widac, czego brakuje
-    // po stronie Loxone. Do zrobienia w Loxone Config: dolozyc kanal Modbus
-    // przeplywu drugiego licznika.
+    // PODLACZONY 2026-08-04. Kanal `ODBIOR_Przeplyw` (%.3f m³/h) pojawil sie
+    // w Miniserverze i od tej pory obieg odbioru ma wlasny pomiar przeplywu.
+    //
+    // TO ZMIENIA SCHEMAT: odcinki `odbior-gora` i `odbior-powrot` przestaly
+    // brac przeplyw od ciepłomierza ZRODLA (patrz `data-flow-source`
+    // w narzedzia/wepnij-kontrakt.mjs). Wczesniej caly rysunek plynal jednym
+    // pomiarem, czyli lewa strona pokazywala ruch, ktorego nikt nie mierzyl.
     id: 'ODBIOR_FLOW',
-    uuid: null,
+    uuid: '210f76e2-02a8-42e3-ffff86611eeca57b', // ODBIOR_Przeplyw
     label: 'Odbiór · przepływ',
     unit: 'm³/h',
     kind: 'flow',
     group: 'meter',
     precision: 3,
-    available: false,
+    available: true,
+  },
+  {
+    id: 'ODBIOR_POWER',
+    uuid: '210f769d-0255-3151-ffff86611eeca57b', // ODBIOR_Moc
+    label: 'Odbiór · moc',
+    unit: 'kW',
+    kind: 'power',
+    group: 'meter',
+    precision: 2,
+    available: true,
+  },
+  {
+    // Jednostka NIEZADEKLAROWANA, dokladnie jak przy liczniku zrodla: Loxone
+    // podaje format „%.3f" bez jednostki, wiec nie wiemy, czy to kWh, czy MWh.
+    //
+    // UWAGA NA WARTOSCI UJEMNE: 2026-08-04 oba liczniki energii tego przyrzadu
+    // zwracaly −0,640. Ujemna energia zsumowana to objaw ODWROTNEGO MONTAZU
+    // (blad AXIOMA 0002), a nie wynik pomiaru. Punkt jest podlaczony, zeby to
+    // bylo widac w Diagnostyce — nie zeby na tym cokolwiek liczyc.
+    id: 'ODBIOR_ENERGY_HEAT',
+    uuid: '210f77a3-034c-7345-ffff86611eeca57b', // ODBIOR_Energia_Grzania
+    label: 'Odbiór · energia grzania',
+    unit: '',
+    kind: 'energy',
+    group: 'meter',
+    precision: 3,
+    available: true,
+  },
+  {
+    id: 'ODBIOR_ENERGY_COOL',
+    uuid: '210f77af-0286-7d8f-ffff86611eeca57b', // ODBIOR_Energia_Chlodzenia
+    label: 'Odbiór · energia chłodzenia',
+    unit: '',
+    kind: 'energy',
+    group: 'meter',
+    precision: 3,
+    available: true,
+  },
+  {
+    id: 'ODBIOR_ERROR',
+    uuid: '210f77bf-031e-8553-ffff86611eeca57b', // ODBIOR_Blad
+    label: 'Odbiór · kod błędu',
+    unit: '',
+    kind: 'state',
+    group: 'meter',
+    precision: 0,
+    available: true,
   },
   {
     // Ponizej 3 K licznik nie sumuje energii i zglasza kod bledu 4.
@@ -299,28 +351,15 @@ export const POINTS: readonly PointDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // Bufor
+  // BUFOR NIE JEST MONITOROWANY — i nie ma tu po nim zadnego punktu.
+  //
+  // Stały tu kiedys `BUFFER_TOP` i `BUFFER_BOTTOM`, oba z `uuid: null`
+  // i `available: false`. Nie ma sond w buforze, nie bylo ich w planie
+  // i nie ma po co trzymac dwoch wiecznie pustych wierszy w Diagnostyce ani
+  // grupy „Bufor", w ktorej nigdy nic nie stanie. Sam bufor zostaje na
+  // schemacie jako bryla instalacji — to element hydrauliczny, nie pomiar.
+  // Usuniete 2026-08-04 na wyrazna prosbe.
   // -------------------------------------------------------------------------
-  {
-    id: 'BUFFER_TOP',
-    uuid: null,
-    label: 'Bufor · góra',
-    unit: '°C',
-    kind: 'temperature',
-    group: 'buffer',
-    precision: 1,
-    available: false,
-  },
-  {
-    id: 'BUFFER_BOTTOM',
-    uuid: null,
-    label: 'Bufor · dół',
-    unit: '°C',
-    kind: 'temperature',
-    group: 'buffer',
-    precision: 1,
-    available: false,
-  },
 
   // -------------------------------------------------------------------------
   // Stany binarne
@@ -359,39 +398,67 @@ export const POINTS: readonly PointDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // Pogoda ze STEROWNIKA — miejsca przygotowane, jeszcze niepodlaczone.
+  // Pogoda ze STEROWNIKA — pokoj „Otoczenie", podlaczony 2026-08-04.
   //
-  // Miniserver ma modul pogody, ale 2026-07-31 nie oddaje z niego danych:
-  // nie ma ustawionej lokalizacji, a stan pogody idzie po WebSockecie, nie po
-  // HTTP (szczegoly w server/src/weather.ts). Do tego czasu aplikacja pokazuje
-  // pogode z Open-Meteo i wprost pisze, ze to nie sterownik.
+  // W strukturze Miniservera pojawil sie pokoj „Otoczenie" z czterema
+  // kontrolkami uslugi pogodowej Loxone: Temperatura, Wilgotnosc wzgledna,
+  // Cisnienie powietrza i Zanieczyszczenie pylem zawieszonym. UUID-y ponizej
+  // sa ich prawdziwymi identyfikatorami (prefiks 210b49cf — to identyfikatory
+  // serwera pogody, nie zwyklych kontrolek).
   //
-  // ZEBY PRZELACZYC NA LOXONE, po stronie Loxone Config trzeba:
-  //   1. ustawic lokalizacje projektu (Gliwice) i wlaczyc usluge pogodowa;
-  //   2. wystawic wartosci jako kontrolki InfoOnlyAnalog o nazwach POGODA_*
-  //      — dokladnie tak, jak zrobiono z cieplomierzem (ZRODLO_*);
-  //   3. uruchomic `npm run uuid -- --zapisz` i ustawic `available: true`.
-  // Zrodlo przelaczy sie samo, bo Loxone ma pierwszenstwo.
+  // ALE USLUGA JESZCZE NIC NIE LICZY. Sprawdzone tego samego dnia na zywym
+  // sterowniku: wszystkie cztery odpowiadaja HTTP 200 i wartoscia ZERO, bo
+  // `msInfo.latitude` i `msInfo.longitude` w projekcie nadal wynosza 0 —
+  // czyli lokalizacja jest ustawiona w Loxone Config, ale nie doszla do
+  // zapisanego projektu (albo usluga pogodowa nie jest aktywna w chmurze
+  // Loxone). Punkty sa wiec PODLACZONE i widac je w Diagnostyce takie, jakie
+  // sa; `server/src/weather.ts` osobno pilnuje, zeby te zera nie weszly na
+  // kafelek pogody jako „0 °C na zewnatrz".
+  //
+  // WIATRU I NAPROMIENIENIA W TYM POKOJU NIE MA — zostaja niedostepne.
   // -------------------------------------------------------------------------
   {
     id: 'WEATHER_TEMP',
-    uuid: null,
+    uuid: '210b49cf-0286-88ec-ffff86611eeca57b', // Otoczenie · Temperatura
     label: 'Pogoda · temperatura zewnętrzna',
     unit: '°C',
     kind: 'temperature',
     group: 'ambient',
     precision: 1,
-    available: false,
+    available: true,
   },
   {
     id: 'WEATHER_HUMIDITY',
-    uuid: null,
+    uuid: '210b49cf-0286-88ef-ffff86611eeca57b', // Otoczenie · Wilgotność względna
     label: 'Pogoda · wilgotność względna',
     unit: '%',
     kind: 'state',
     group: 'ambient',
     precision: 0,
-    available: false,
+    available: true,
+  },
+  {
+    id: 'WEATHER_PRESSURE',
+    uuid: '210b49cf-0286-88fe-ffff86611eeca57b', // Otoczenie · Ciśnienie powietrza
+    label: 'Pogoda · ciśnienie powietrza',
+    unit: 'hPa',
+    kind: 'state',
+    group: 'ambient',
+    precision: 0,
+    available: true,
+  },
+  {
+    // Pyl zawieszony nie ma zwiazku z bilansem ciepla i jest tu wylacznie
+    // dlatego, ze sterownik go podaje — a Diagnostyka ma pokazywac to, co
+    // sterownik naprawde oddaje, nie wybor redakcyjny.
+    id: 'WEATHER_PM',
+    uuid: '210b49cf-0287-8904-ffff86611eeca57b', // Otoczenie · Pył zawieszony
+    label: 'Pogoda · pył zawieszony',
+    unit: 'μg/m³',
+    kind: 'state',
+    group: 'ambient',
+    precision: 1,
+    available: true,
   },
   {
     id: 'WEATHER_WIND',

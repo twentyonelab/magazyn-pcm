@@ -17,6 +17,7 @@ import type { HistoryAvailable, PublicPoint, SessionEvent } from '@magazyn-pcm/s
 import { fetchHistory, fetchSessions, type HistoryParams } from '../api.js';
 import { SERIES_COLORS, Wykres, type ChartSeries } from '../components/Wykres.js';
 import { WykresMagazynu } from '../components/WykresMagazynu.js';
+import { WykresPrzeplywow } from '../components/WykresPrzeplywow.js';
 import { AkcjeWykresu } from '../components/AkcjeWykresu.js';
 import type { LiveData } from '../useLiveData.js';
 import { GROUP_LABEL, NO_DATA } from '../format.js';
@@ -215,6 +216,15 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
       */}
       <WykresMagazynu profil={profil} />
 
+      {/*
+        Przepływy ZARAZ POD temperaturami, w tej samej formie i na tej samej
+        osi czasu. Temperatura mówi, co jest w zbiorniku; przepływ mówi, czy
+        w tej chwili coś się dzieje — i jedno bez drugiego nie odpowiada na
+        pytanie „dlaczego wykres stoi". Osobna karta, a nie druga oś Y:
+        metry sześcienne na godzinę i stopnie nie mają wspólnej skali.
+      */}
+      <WykresPrzeplywow points={data.points} />
+
       {/* ------------------------- Formularz ------------------------- */}
       <section className="card">
         <div className="card__head">
@@ -303,12 +313,9 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
       </section>
 
       {/* ------------------------- Wynik ------------------------- */}
-      {state.kind === 'idle' ? (
-        <div className="note">
-          Wybierz punkty i zakres, potem pobierz dane. Historia zapisuje się od pierwszego
-          uruchomienia serwera — także wtedy, gdy nikt na nią nie patrzył.
-        </div>
-      ) : null}
+      {/* Stan „nic jeszcze nie pobrano" nie ma tu żadnego napisu — usunięte
+          2026-08-04. Formularz wyżej sam mówi, co zrobić, a dwa wykresy nad nim
+          są już wypełnione danymi, więc pusty ekran i tak nie występuje. */}
 
       {state.kind === 'unavailable' ? (
         <div className="note">

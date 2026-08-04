@@ -338,13 +338,13 @@
   </g>
   <!-- KONTRAKT: warstwa przeplywu — osie rur przepisane z rysunku. -->
   <g id="warstwa-przeplywu" fill="none">
-    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="odbior-gora" data-flow-source="METER_FLOW" d="M167.53,244.91v-118.42c0-6.48,5.26-11.74,11.74-11.74h504.43c6.22,0,11.3,5.1,10.47,12.27v169.19"/>
-    <path class="tube__flow tube__flow--return tube__flow--wspak" data-flow="odbior-powrot" data-flow-source="METER_FLOW" d="M671.99,296.22v-134.54c0-6.24-5.11-11.35-11.35-11.35h-129.45c-6.24,0-11.35,5.11-11.35,11.35v262.91c0,6.28-5.09,11.37-11.37,11.37h-36.02"/>
+    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="odbior-gora" data-flow-source="ODBIOR_FLOW" d="M167.53,244.91v-118.42c0-6.48,5.26-11.74,11.74-11.74h504.43c6.22,0,11.3,5.1,10.47,12.27v169.19"/>
+    <path class="tube__flow tube__flow--return tube__flow--wspak" data-flow="odbior-powrot" data-flow-source="ODBIOR_FLOW" d="M671.99,296.22v-134.54c0-6.24-5.11-11.35-11.35-11.35h-129.45c-6.24,0-11.35,5.11-11.35,11.35v262.91c0,6.28-5.09,11.37-11.37,11.37h-36.02"/>
     <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="zrodlo-zasilanie" data-flow-source="METER_FLOW" d="M749.26,296.22V126.1c0-6.24,5.1-11.34,11.34-11.34h530.95c6.24,0,11.34,5.1,11.34,11.34v243.12"/>
     <path class="tube__flow tube__flow--return" data-flow="bufor-zasilanie" data-flow-source="METER_FLOW" d="M772.26,296.22v-134.55c0-6.24,5.1-11.34,11.34-11.34h146.91c6.24,0,11.34,5.1,11.34,11.34v209.7"/>
     <path class="tube__flow tube__flow--return" data-flow="bufor-pompa" data-flow-source="METER_FLOW" d="M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55"/>
-    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="woda-filtr" data-flow-source="METER_FLOW" d="M161.98,435.96h-38.32"/>
-    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="filtr-podgrzewacz" data-flow-source="METER_FLOW" d="M325.49,435.96h-44.51"/>
+    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="woda-filtr" d="M161.98,435.96h-38.32"/>
+    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="filtr-podgrzewacz" d="M325.49,435.96h-44.51"/>
     <path class="tube__flow tube__flow--return" data-flow="naczynie" data-flow-source="METER_FLOW" d="M1165.78,200.87v168.35"/>
   </g>
   <g id="tank">

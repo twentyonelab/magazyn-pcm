@@ -1385,20 +1385,30 @@ code {
 }
 
 /* ROZRZUT SOND — pas od najzimniejszej do najcieplejszej, wychodzący ponad
-   pasek i pod pasek. Wystaje po 4 px z każdej strony i jest bledszy niż sama
-   podziałka: ma dopowiadać „sondy leżą w tym przedziale", a nie zasłaniać
-   barwy, nad którą stoi. Wcześniej siedział w środku paska i przy rozrzucie
-   1,5 K był nie do zauważenia. */
+   pasek i pod pasek: ma dopowiadać „sondy leżą w tym przedziale", a nie
+   zasłaniać barwy, nad którą stoi.
+
+   ZASIĘG W PIONIE RÓWNY GRANICOM PRZEMIANY (±7 px, patrz `.belka__granica`).
+   O to była prośba i tak to się czyta: dwie rzeczy, które porównuje się
+   wzrokiem, muszą sięgać tak samo wysoko, inaczej porównanie wymaga
+   przeliczania.
+
+   Element jest RODZEŃSTWEM `.belka__pasek`, nie jego dzieckiem — i to nie
+   drobiazg układu. Pasek ma `overflow: hidden` przez zaokrąglone narożniki
+   gradientu, więc w jego środku żadna nadwyżka nie wychodzi: pas kończył się
+   równo z podziałką niezależnie od podanej wysokości. Dlatego kolejne próby
+   podnoszenia `top`/`bottom` nic nie dawały. */
 .belka__zakres {
   position: absolute;
-  /* Wystaje po 9 px z każdej strony 12-pikselowego paska, czyli ma 30 px
-     wysokości — na tyle, żeby przy rozrzucie 1,5 K (a taki jest w plateau)
-     dało się go zauważyć bez wpatrywania. Pierwsze podejście dawało 4 px
-     i zgłoszone zostało jako niewidoczne. */
-  top: -9px;
-  bottom: -9px;
+  top: -7px;
+  bottom: -7px;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  /* Mocniej niż poprzednie 10 %: przy rozrzucie 1,5 K — a taki jest w plateau
+     przemiany — pas jest wąski i najsłabsze wypełnienie ginęło na gradiencie.
+     Obrys domyka kształt, żeby dały się odczytać jego krawędzie, czyli
+     konkretne min i max, a nie tylko sama plama. */
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent);
   pointer-events: none;
 }
 
@@ -2127,15 +2137,16 @@ code {
   font-family: var(--font);
 }
 
-/* PRZEPŁYW RYSUJE „ODDECH" (web/src/schema/oddech.ts), nie ten arkusz.
-   Ścieżki `.tube__flow` przestały być animowaną kreską i pełnią teraz dwie
-   role: niosą STAN (`is-flowing` / `is-still` z pomiaru w bindSchema) i rysują
-   cienkie białe światło, które daje rurze objętość — jak w specyfikacji
-   Oddechu. Sam ruch to impulsy dorysowane nad nimi z jednej pętli rAF.
+/* PRZEPŁYW RYSUJE „STRUMIEŃ" (web/src/schema/strumien.ts), nie ten arkusz.
+   Ścieżki `.tube__flow` nie są animowaną kreską i pełnią dwie role: niosą STAN
+   (`is-flowing` / `is-still` / `is-reverse` z pomiaru w bindSchema) i rysują
+   cienkie białe światło, które daje rurze objętość. Sam ruch to dwie ścieżki
+   dorysowane nad nimi z jednej pętli rAF.
 
-   Dlaczego animacja zeszła z CSS: `@keyframes` biegnie osobno na każdej rurze,
-   więc po powrocie z innej zakładki impulsy rozjeżdżały się między rurami.
-   Wspólna faza czasu wymaga jednego zegara dla całego schematu. */
+   Dlaczego animacja nie stoi w CSS: `@keyframes` biegnie osobno na każdej
+   rurze, więc po powrocie z innej zakładki fazy rozjeżdżały się między rurami.
+   Wspólna faza czasu wymaga jednego zegara dla całego schematu, a prędkość
+   musi dawać się zmieniać w locie i wygładzać między odczytami. */
 .schema .tube__flow {
   fill: none;
   stroke: #fff;
@@ -2147,16 +2158,32 @@ code {
 
 .schema .tube__flow.is-flowing {
   opacity: 0.5;
+  /* Światło gaśnie i wraca w tym samym czasie co warstwy strumienia, żeby
+     zatrzymanie obiegu było jednym zdarzeniem wizualnym, a nie dwoma. */
+  transition: opacity 0.6s ease;
 }
 
-/* ZEROWY PRZEPŁYW TO BRAK RUCHU — światło gaśnie razem z impulsami. */
+/* ZEROWY PRZEPŁYW TO BRAK RUCHU — światło gaśnie razem ze strumieniem. */
 .schema .tube__flow.is-still {
   opacity: 0;
+  transition: opacity 0.6s ease;
 }
 
-/* BARWY STRUMIENIA. Z palety Oddechu, wpuszczone przez zmienne, bo o tym,
-   czy obieg jest ciepły czy chłodny, decyduje nośnik magazynu — a to wie
-   `[data-kierunek]` na korzeniu dokumentu, nie ten selektor. */
+/* PRZEPŁYW ZWROTNY — stan awaryjny, nie kierunek.
+   Odcinek dostaje własne oznaczenie: kreskowana rura w barwie ostrzeżenia,
+   bez ruchu. Animacja „do tyłu" czytałaby się jako błąd rysowania. */
+.schema .tube__flow.is-reverse {
+  opacity: 0.9;
+  stroke: var(--bad, #d64545);
+  stroke-width: 3;
+  stroke-dasharray: 5 5;
+}
+
+/* BARWY STRUMIENIA — z tokenów motywu, nigdy z kodu animacji.
+   O tym, czy obieg jest ciepły czy chłodny, decyduje nośnik magazynu, a to
+   wie `[data-kierunek]` na korzeniu dokumentu (patrz niżej), nie ten selektor.
+   Dzięki temu zmiana motywu i zmiana stanu rury działają bez dotykania
+   `strumien.ts`. */
 :root {
   --strumien-cieply-core: #df6f3b;
   --strumien-cieply-glow: #f5b184;
@@ -2165,28 +2192,21 @@ code {
 }
 
 /* Przegląd i magazyn ciepła: zasilanie ciepłe, powrót chłodny. */
-.schema .oddech--supply.oddech--core {
+.schema .strumien--supply.strumien--core {
   stroke: var(--strumien-zasilanie-core, var(--strumien-cieply-core));
 }
-.schema .oddech--supply.oddech--glow {
+.schema .strumien--supply.strumien--glow {
   stroke: var(--strumien-zasilanie-glow, var(--strumien-cieply-glow));
 }
-.schema .oddech--return.oddech--core {
+.schema .strumien--return.strumien--core {
   stroke: var(--strumien-powrot-core, var(--strumien-chlodny-core));
 }
-.schema .oddech--return.oddech--glow {
+.schema .strumien--return.strumien--glow {
   stroke: var(--strumien-powrot-glow, var(--strumien-chlodny-glow));
 }
 
-.schema .oddech {
+.schema .strumien {
   pointer-events: none;
-}
-
-@keyframes flow {
-  to {
-    /* Dokładnie jeden okres wzoru kreskowania (3 + 14), inaczej pętla skacze. */
-    stroke-dashoffset: -17;
-  }
 }
 
 /* Magazyn ciepła: krem i pomarańcz.
@@ -2957,10 +2977,11 @@ code {
   color: #b7b5b0;
 }
 
-/* Wylaczenie animacji przeplywu w opcjach aplikacji. */
-.no-flow-anim .pipe.is-flowing {
-  animation: none;
-}
+/* WYŁĄCZENIE ANIMACJI PRZEPŁYWU W OPCJACH nie jest regułą w tym arkuszu.
+   Warstwa strumienia po prostu NIE POWSTAJE (patrz efekt w views/Magazyn.tsx):
+   ukrycie jej stylem zostawiałoby działającą pętlę rAF i kilkanaście zapisów
+   atrybutu na klatkę, a ten przełącznik istnieje właśnie dla słabszego sprzętu.
+   Klasa `.no-flow-anim` zostaje na kontenerze jako informacja o stanie. */
 
 /* =========================================================================
    FORMULARZE I PRZYCISKI

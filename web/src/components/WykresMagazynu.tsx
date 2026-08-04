@@ -39,6 +39,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { HistorySeries, MaterialProfile } from '@magazyn-pcm/shared';
 import { fetchHistory } from '../api.js';
 import { SERIES_COLORS } from './Wykres.js';
+import {
+  GODZINA_MS,
+  H,
+  M,
+  PLOT_H,
+  PLOT_W,
+  W,
+  ZAKRESY,
+  ZAKRES_DOMYSLNY,
+  czas,
+  ticksY,
+} from './wykres/os.js';
 
 /** Sondy magazynu w kolejności OD GÓRY ZBIORNIKA W DÓŁ — tak leżą naprawdę. */
 const SONDY_OD_GORY = ['A3', 'B3', 'A2', 'B2', 'A1', 'B1'] as const;
@@ -107,31 +119,14 @@ const FORMY: Array<{ id: Forma; etykieta: string; opis: string }> = [
   },
 ];
 
-const GODZINA_MS = 3600 * 1000;
-
-/**
- * Zakresy do wyboru.
+/*
+ * ZAKRESY CZASU, PŁÓTNO I OSIE STOJĄ W `wykres/os.ts`.
  *
- * Skok jest mniej więcej czterokrotny — przy gęstszej drabince sąsiednie
- * zakresy wyglądałyby tak samo i przełącznik nic by nie dawał. Doba jest
- * wartością startową i stąd `domyslny`.
+ * Karta przepływów niżej rysuje się na tych samych stałych — inaczej dwa
+ * wykresy jeden nad drugim miałyby osie czasu przesunięte względem siebie
+ * o kilka pikseli i czytałoby się to jako błąd rysowania, nie jako dwie
+ * niezależne karty.
  */
-const ZAKRESY: Array<{ id: string; etykieta: string; godzin: number; domyslny?: boolean }> = [
-  { id: '1h', etykieta: 'godzina', godzin: 1 },
-  { id: '6h', etykieta: '6 godzin', godzin: 6 },
-  { id: '24h', etykieta: 'doba', godzin: 24, domyslny: true },
-  { id: '7d', etykieta: 'tydzień', godzin: 24 * 7 },
-  { id: '30d', etykieta: 'miesiąc', godzin: 24 * 30 },
-];
-
-const ZAKRES_DOMYSLNY = ZAKRESY.find((z) => z.domyslny) ?? ZAKRESY[1]!;
-
-// Płótno jest szerokie i niskie: doba danych czyta się wzdłuż, nie w pionie.
-const W = 1400;
-const H = 520;
-const M = { top: 26, right: 96, bottom: 40, left: 62 };
-const PLOT_W = W - M.left - M.right;
-const PLOT_H = H - M.top - M.bottom;
 
 /** Maksymalna liczba kolumn mapy cieplnej — wyżej rysowanie zaczyna zamulać. */
 const MAKS_KOLUMN = 260;
@@ -144,38 +139,6 @@ type Stan =
 
 interface Props {
   profil: MaterialProfile | null;
-}
-
-/**
- * Podpis chwili na osi.
- *
- * Przy zakresach dłuższych niż dwie doby sama godzina przestaje cokolwiek
- * znaczyć — osiem podpisów „14:20" jeden za drugim nie mówi, o który dzień
- * chodzi. Powyżej tej granicy pokazujemy datę.
- */
-function czas(ms: number, zakresMs: number): string {
-  const d = new Date(ms);
-  if (zakresMs > 48 * 3600 * 1000) {
-    return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
-  }
-  return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-}
-
-function ticksY(min: number, max: number, ile = 6): number[] {
-  const span = max - min;
-  if (span <= 0) return [min];
-  const surowy = span / ile;
-  const rzad = 10 ** Math.floor(Math.log10(surowy));
-  const krok = [1, 2, 2.5, 5, 10].map((m) => m * rzad).find((s) => span / s <= ile) ?? rzad * 10;
-  // Zabezpieczenie przed pętlą bez końca: przy zerowym albo nieliczbowym kroku
-  // \`v += krok\` nigdy nie przekroczy granicy i przeglądarka zamarza. Dziś nie
-  // powinno się zdarzyć (zakres dostaje minimalny oddech wyżej), ale koszt tej
-  // linijki jest żaden, a koszt zawieszonej karty duży.
-  if (!Number.isFinite(krok) || krok <= 0) return [min];
-  const start = Math.ceil(min / krok) * krok;
-  const out: number[] = [];
-  for (let v = start; v <= max + 1e-9; v += krok) out.push(Number(v.toFixed(6)));
-  return out;
 }
 
 /**

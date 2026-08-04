@@ -22,8 +22,9 @@ export interface BindOptions {
   staleAfterMs: number;
   now: number;
   /**
-   * Przepływ, przy którym animacja osiąga pełną prędkość (m³/h).
-   * Pochodzi z konfiguracji widoku, nie z rysunku.
+   * PRZEPŁYW ODNIESIENIA obiegu (m³/h) — przy nim strumień osiąga pełną
+   * prędkość. Pochodzi z konfiguracji (`/api/materials`), nie z rysunku
+   * i nie z kodu animacji.
    */
   flowFullSpeed: number;
   /** Czy kanał do serwera żyje — decyduje, kto ocenia przestarzałość. */
@@ -55,7 +56,48 @@ const STATE_CLASSES = [
   'is-phase',
   'is-flowing',
   'is-still',
+  'is-reverse',
 ];
+
+/* --------------------------------------------------------------------------
+ * PRĘDKOŚĆ STRUMIENIA — jedno miejsce, w którym m³/h zamienia się na px/s.
+ *
+ * Animacja (`schema/strumien.ts`) nie wie, co to przepływomierz: dostaje
+ * gotową prędkość w pikselach na sekundę przez atrybut `data-flow-speed`.
+ * Tutaj natomiast wiadomo wszystko — pomiar, przepływ odniesienia obiegu
+ * i tryb pokazowy — więc tu jest właściwe miejsce na tę zamianę.
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Próg martwy. Poniżej niego animacja stoi.
+ *
+ * Ciepłomierz podaje przepływ z trzema miejscami po przecinku i przy stojącej
+ * pompie ostatnia cyfra drga. 0,02 m³/h to około 4 % przepływu roboczego
+ * (0,5 m³/h) — dość, żeby szum nie ruszał rysunku, i za mało, żeby ukryć
+ * jakikolwiek prawdziwy przepływ.
+ */
+const PROG_MARTWY_M3H = 0.02;
+
+/** Granice prędkości w px/s. Powyżej 52 px/s mózg liczy kreski, zamiast czytać. */
+const V_MIN = 18;
+const V_MAX = 52;
+
+/** Prędkość w trybie pokazowym — stała, niezależna od jakiegokolwiek odczytu. */
+const V_DEMO = 46;
+
+/**
+ * Prędkość strumienia dla zmierzonego przepływu.
+ *
+ * MAPOWANIE JEST PIERWIASTKOWE, NIE LINIOWE — i to nie jest kosmetyka.
+ * Przy liniowym przeliczeniu małe przepływy wyglądają jak zero (bo prędkość
+ * schodzi do zera razem z liczbą), a duże jak chaos. Pierwiastek podnosi dolny
+ * koniec skali, więc „ledwo płynie" jest wyraźnie różne od „nie płynie".
+ */
+function predkoscStrumienia(flowM3h: number, flowNomM3h: number): number {
+  const nom = flowNomM3h > 0 ? flowNomM3h : 1;
+  const udzial = Math.min(flowM3h / nom, 1);
+  return V_MIN + (V_MAX - V_MIN) * Math.sqrt(udzial);
+}
 
 function setState(element: Element, ...classes: string[]): void {
   for (const name of STATE_CLASSES) element.classList.remove(name);
@@ -189,27 +231,64 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
   }
 
   // --- Animacja przepływu --------------------------------------------------
+  //
+  // DWA TRYBY PRACY.
+  //
+  //   DEMO  Wszystkie odcinki płyną stałą prędkością bazową, niezależnie od
+  //         czegokolwiek. Tryb prezentacyjny: schemat ma wyglądać żywo także
+  //         wtedy, gdy instalacja stoi. Włączany świadomie przyciskiem, który
+  //         mówi o sobie wprost.
+  //
+  //   NA ŻYWO  Każdy odcinek idzie za SWOIM przepływomierzem. Odcinek, który
+  //         przepływomierza nie ma, NIE ANIMUJE SIĘ WCALE — nie zgadujemy
+  //         przepływu i nie pożyczamy go z innego obiegu.
   for (const element of root.querySelectorAll<SVGElement>('[data-flow]')) {
     const sourceId = element.dataset.flowSource;
-    const value = sourceId ? values[sourceId] : undefined;
+
+    if (opts.przeplywDemo !== null && opts.przeplywDemo !== undefined) {
+      element.dataset.flowSpeed = String(V_DEMO);
+      setState(element, 'is-flowing');
+      continue;
+    }
+
     const point = sourceId ? points.get(sourceId) : undefined;
+    const value = sourceId ? values[sourceId] : undefined;
     const status = statusOf(point, value, staleAfterMs, now, channelAlive);
 
-    const zmierzony = status === 'ok' && value?.v !== null ? (value?.v ?? 0) : 0;
-    const flow = opts.przeplywDemo ?? zmierzony;
-
-    if (flow <= 0) {
-      // ZEROWY PRZEPŁYW TO BRAK RUCHU, nie ruch wolny. Wolno sunąca kreska
-      // sugerowałaby, że coś płynie — a nic nie płynie.
-      element.style.removeProperty('--flow-duration');
+    // Brak przypisanego przepływomierza albo brak z niego pomiaru: zdejmujemy
+    // atrybut, więc animacja pomija ten odcinek. Rura bazowa zostaje.
+    if (!sourceId || status === 'not-connected' || status === 'no-data' || value?.v == null) {
+      delete element.dataset.flowSpeed;
       setState(element, 'is-still');
       continue;
     }
 
-    const ratio = Math.min(flow / opts.flowFullSpeed, 1);
-    // Od 4 s (ledwo płynie) do 0,6 s (pełny przepływ) na cykl kreski.
-    const duration = 4 - ratio * 3.4;
-    element.style.setProperty('--flow-duration', `${duration.toFixed(2)}s`);
+    const flow = value.v;
+
+    /*
+     * PRZEPŁYW ZWROTNY TO AWARIA, NIE KIERUNEK.
+     *
+     * Ujemna wartość z przepływomierza znaczy albo odwrotny montaż przyrządu
+     * (AXIOMA zgłasza wtedy błąd 0002), albo cofkę w obiegu. Zatrzymujemy
+     * animację i znaczymy odcinek. Puszczenie strumienia „do tyłu" czytałoby
+     * się jako błąd rysowania, a nie jako informacja o instalacji.
+     */
+    if (flow < 0) {
+      element.dataset.flowSpeed = '0';
+      setState(element, 'is-reverse');
+      continue;
+    }
+
+    if (flow < PROG_MARTWY_M3H) {
+      // ZEROWY PRZEPŁYW TO BRAK RUCHU, nie ruch wolny. Wolno sunąca kreska
+      // sugerowałaby, że coś płynie — a nic nie płynie. Wygaszenie warstw
+      // strumienia rozłoży w czasie sama animacja.
+      element.dataset.flowSpeed = '0';
+      setState(element, 'is-still');
+      continue;
+    }
+
+    element.dataset.flowSpeed = predkoscStrumienia(flow, opts.flowFullSpeed).toFixed(1);
     setState(element, 'is-flowing');
   }
 

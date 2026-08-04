@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { MaterialProfile } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { bindSchema } from '../schema/bindSchema.js';
-import { wlaczOddech, type Oddech } from '../schema/oddech.js';
+import { wlaczStrumien, type Strumien } from '../schema/strumien.js';
 import type { LiveData } from '../useLiveData.js';
 import {
   FALLBACK_STALE_AFTER_MS,
@@ -150,20 +150,34 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
   }, [host]);
 
   /**
-   * ODDECH — animacja przepływu. Jedna pętla dla całego schematu, budowana po
-   * wstrzyknięciu rysunku i zatrzymywana przy odejściu z widoku. Uchwyt trzymamy
-   * w referencji, żeby dało się odczytać z konsoli liczbę klatek ().
+   * STRUMIEŃ — animacja przepływu. JEDNA pętla `requestAnimationFrame` na cały
+   * schemat, budowana po wstrzyknięciu rysunku i zatrzymywana przy odejściu
+   * z widoku.
+   *
+   * Wyłączenie animacji w opcjach NIE UKRYWA warstwy stylem, tylko w ogóle jej
+   * nie tworzy: ukryta warstwa dalej kosztowałaby pętlę i kilkanaście zapisów
+   * atrybutu na klatkę, a ten przełącznik istnieje właśnie dla słabszego
+   * sprzętu.
+   *
+   * Uchwyt trzymamy w referencji, żeby dało się odczytać liczbę klatek
+   * z konsoli — pomiar wydajności bez dokładania czegokolwiek do interfejsu:
+   *   document.querySelector('.canvas__stage').__fps?.()
+   * (patrz efekt niżej, który podwiesza tę funkcję na kontenerze).
    */
-  const oddechRef = useRef<Oddech | null>(null);
+  const strumienRef = useRef<Strumien | null>(null);
   useEffect(() => {
-    if (!host) return;
-    const oddech = wlaczOddech(host);
-    oddechRef.current = oddech;
+    if (!host || !settings.animacjePrzeplywu) return;
+    const strumien = wlaczStrumien(host);
+    strumienRef.current = strumien;
+    // Zejście do konsoli — jedyny sposób zmierzenia fps bez wpychania licznika
+    // na ekran badawczy, na którym każdy dodatkowy napis zabiera uwagę.
+    (host as unknown as { __fps?: () => number | null }).__fps = () => strumien?.fps() ?? null;
     return () => {
-      oddech?.zatrzymaj();
-      oddechRef.current = null;
+      strumien?.zatrzymaj();
+      strumienRef.current = null;
+      delete (host as unknown as { __fps?: () => number | null }).__fps;
     };
-  }, [host]);
+  }, [host, settings.animacjePrzeplywu]);
 
   // --- Aktualizacja rysunku przy każdej zmianie danych ---------------------
   useEffect(() => {

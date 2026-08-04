@@ -302,23 +302,32 @@ export function PasekPrzemiany({
                 }}
               />
             ) : null}
-
-            {/* Rozjazd sond — pas od najzimniejszej do najcieplejszej.
-                WYCHODZI PONAD PASEK I POD PASEK, bledszy niż sam pasek: ma być
-                widoczny obok podziałki, nie zamiast niej. Dlatego siedzi tutaj,
-                a nie w `.belka__pasek` — tamten ma `overflow: hidden` (przez
-                zaokrąglone narożniki gradientu) i obciąłby nadwyżkę. */}
-            {zakresC && szerokosc > 0 ? (
-              <span
-                className="belka__zakres"
-                style={{
-                  left: skala.xOf(zakresC.min),
-                  width: Math.max(skala.xOf(zakresC.max) - skala.xOf(zakresC.min), 2),
-                }}
-                title={`Rozrzut sond: ${liczba(zakresC.min)}–${liczba(zakresC.max)} °C`}
-              />
-            ) : null}
           </span>
+
+          {/* ROZJAZD SOND — pas od najzimniejszej do najcieplejszej.
+              ==================================================================
+              SIEDZI TU, RODZEŃSTWEM PASKA, A NIE W JEGO ŚRODKU. Komentarz przy
+              poprzedniej wersji mówił dokładnie to samo, ale kod stał jednak
+              wewnątrz `.belka__pasek` — a ten ma `overflow: hidden` przez
+              zaokrąglone narożniki gradientu. Nadwyżka nad paskiem i pod nim
+              była więc obcinana, pas kończył się równo z podziałką i dlatego
+              zgłoszenie „dalej nie widzę rozszerzenia" wracało po każdej
+              poprawce wysokości: żadna wysokość nie mogła pomóc.
+
+              Zasięg w pionie jest teraz TAKI SAM jak przerywanych kresek progu
+              przemiany (`.belka__granica`, ±7 px) — o to była prośba: rozrzut
+              sond ma sięgać tam, gdzie granice pasma, żeby dało się je czytać
+              jednym spojrzeniem. */}
+          {zakresC && szerokosc > 0 ? (
+            <span
+              className="belka__zakres"
+              style={{
+                left: skala.xOf(zakresC.min),
+                width: Math.max(skala.xOf(zakresC.max) - skala.xOf(zakresC.min), 2),
+              }}
+              title={`Rozrzut sond: ${liczba(zakresC.min)}–${liczba(zakresC.max)} °C`}
+            />
+          ) : null}
 
           {/* GRANICE PRZEMIANY — przerywane kreski wychodzące nad i pod pasek,
               tak jak prowadnice na krzywej entalpii po rozwinięciu belki. Pasmo

@@ -434,6 +434,17 @@ podmien(
 //
 // `--supply` / `--return` mowi tylko, ktora kreska nalezy do zasilania,
 // a ktora do powrotu (barwa), i jest niezalezne od kierunku ruchu.
+//
+// KAZDY ODCINEK MA WLASNY PRZEPLYWOMIERZ (pole `zrodlo`), a nie jeden wspolny.
+// Do 2026-08-04 wszystkie osiem bralo przeplyw z `METER_FLOW`, czyli
+// z ciepłomierza ZRODLA — wiec lewa strona schematu (obieg odbioru) pokazywala
+// ruch, ktorego nikt nie mierzyl. Odkad w Miniserverze jest kanal
+// `ODBIOR_Przeplyw`, obieg odbioru idzie za swoim licznikiem.
+//
+// `zrodlo: null` znaczy „ten odcinek nie ma przeplywomierza". W trybie na zywo
+// animacja go wtedy NIE RUSZA (patrz bindSchema): woda wodociagowa nie jest
+// nigdzie mierzona, a zgadniety ruch na schemacie badawczym jest gorszy od
+// nieruchomej rury. W trybie pokazowym plyna wszystkie odcinki.
 const RURY = [
   {
     // Sciezka zapisana OD urzadzenia (x=167) DO zbiornika (x=694), a strzalka
@@ -442,6 +453,7 @@ const RURY = [
     nazwa: 'odbior-gora',
     rola: 'supply',
     wspak: true,
+    zrodlo: 'ODBIOR_FLOW',
     d: 'M167.53,244.91v-118.42c0-6.48,5.26-11.74,11.74-11.74h504.43c6.22,0,11.3,5.1,10.47,12.27v169.19',
   },
   {
@@ -449,6 +461,7 @@ const RURY = [
     nazwa: 'odbior-powrot',
     rola: 'return',
     wspak: true,
+    zrodlo: 'ODBIOR_FLOW',
     d: 'M671.99,296.22v-134.54c0-6.24-5.11-11.35-11.35-11.35h-129.45c-6.24,0-11.35,5.11-11.35,11.35v262.91c0,6.28-5.09,11.37-11.37,11.37h-36.02',
   },
   {
@@ -456,6 +469,7 @@ const RURY = [
     nazwa: 'zrodlo-zasilanie',
     rola: 'supply',
     wspak: true,
+    zrodlo: 'METER_FLOW',
     d: 'M749.26,296.22V126.1c0-6.24,5.1-11.34,11.34-11.34h530.95c6.24,0,11.34,5.1,11.34,11.34v243.12',
   },
   {
@@ -464,6 +478,7 @@ const RURY = [
     nazwa: 'bufor-zasilanie',
     rola: 'return',
     wspak: false,
+    zrodlo: 'METER_FLOW',
     d: 'M772.26,296.22v-134.55c0-6.24,5.1-11.34,11.34-11.34h146.91c6.24,0,11.34,5.1,11.34,11.34v209.7',
   },
   {
@@ -472,6 +487,7 @@ const RURY = [
     nazwa: 'bufor-pompa',
     rola: 'return',
     wspak: false,
+    zrodlo: 'METER_FLOW',
     d: 'M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55',
   },
   // --- Odcinki dopisane 2026-08-04 (zgloszone jako brakujace) --------------
@@ -481,25 +497,31 @@ const RURY = [
   {
     // Woda wodociagowa -> filtr odkamieniajacy. Krotki odcinek pod kartami,
     // zapisany od filtra w lewo, a woda idzie w prawo — stad wspak.
+    // BEZ PRZEPLYWOMIERZA: na wodzie wodociagowej nie ma zadnego licznika.
     nazwa: 'woda-filtr',
     rola: 'supply',
     wspak: true,
+    zrodlo: null,
     d: 'M161.98,435.96h-38.32',
   },
   {
     // Filtr -> podgrzewacz wody wodociagowej. Zapis od podgrzewacza w lewo.
+    // Tez bez przeplywomierza — ten sam obieg wody uzytkowej.
     nazwa: 'filtr-podgrzewacz',
     rola: 'supply',
     wspak: true,
+    zrodlo: null,
     d: 'M325.49,435.96h-44.51',
   },
   {
     // Odgalezienie do naczynia przeponowego: z poziomej rury obiegu zrodla
     // (y=200,87) w dol, do naczynia (y=369,22). Naczynie wisi na tej rurze,
-    // wiec dalsza droga do pompy to juz odcinek `bufor-pompa`.
+    // wiec dalsza droga do pompy to juz odcinek `bufor-pompa`. Nalezy do
+    // obiegu zrodla, wiec dziedziczy jego przeplywomierz.
     nazwa: 'naczynie',
     rola: 'return',
     wspak: false,
+    zrodlo: 'METER_FLOW',
     d: 'M1165.78,200.87v168.35',
   },
 ];
@@ -511,7 +533,8 @@ const PRZEPLYW =
     (r) =>
       `    <path class="tube__flow tube__flow--${r.rola}${r.wspak ? ' tube__flow--wspak' : ''}"` +
       ` data-flow="${r.nazwa}"` +
-      ` data-flow-source="METER_FLOW" d="${r.d}"/>`,
+      (r.zrodlo ? ` data-flow-source="${r.zrodlo}"` : '') +
+      ` d="${r.d}"/>`,
   ).join('\n') +
   '\n  </g>\n';
 

@@ -23,13 +23,13 @@ export type PointKind =
   | 'delta'
   | 'state';
 
-export type PointGroup =
-  | 'pcm'
-  | 'buffer'
-  | 'heatpump'
-  | 'meter'
-  | 'ambient'
-  | 'actuator';
+/**
+ * Grupa punktu. Grupy „buffer" tu NIE MA i to jest celowe: bufor jest bryla
+ * hydrauliczna bez ani jednej sondy, a wiecznie pusta grupa w tabeli
+ * diagnostycznej wyglada jak awaria pomiaru, ktorego nigdy nie bylo.
+ * Usuniete 2026-08-04.
+ */
+export type PointGroup = 'pcm' | 'heatpump' | 'meter' | 'ambient' | 'actuator';
 
 /**
  * Pozycja sondy w zbiorniku: dwie przekatne x trzy poziomy.

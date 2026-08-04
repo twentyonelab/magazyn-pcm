@@ -24,6 +24,7 @@ import {
   moc,
   napromienienie,
   przeplyw,
+  przeplywOdbioru,
   temperaturaSondy,
   temperaturaZewnetrzna,
   temperaturyObiegu,
@@ -67,14 +68,14 @@ export const PUNKTY_POKAZOWE: PublicPoint[] = [
   { id: 'METER_T1', label: 'Źródło · zasilanie', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
   { id: 'METER_T2', label: 'Źródło · powrót', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
   { id: 'METER_DT', label: 'Źródło · ΔT', unit: 'K', kind: 'delta', group: 'meter', precision: 2, available: true },
-  // Cieplomierz ODBIORU — lewa strona schematu. Trzy punkty, dokladnie te,
-  // ktore istnieja w Miniserverze: dwie temperatury i ΔT. Przeplywu odbioru
-  // nie ma tam kanalu, wiec nie ma go i tutaj.
+  // Cieplomierz ODBIORU — lewa strona schematu. Od 2026-08-04 ma w Miniserverze
+  // takze wlasny przeplyw i moc, wiec pokaz podaje je tak samo jak zrodlo.
+  // Bufora tu nie ma: nie jest monitorowany (patrz points.config.ts).
   { id: 'ODBIOR_T_ZASILANIE', label: 'Odbiór · zasilanie', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
   { id: 'ODBIOR_T_POWROT', label: 'Odbiór · powrót', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
   { id: 'ODBIOR_DT', label: 'Odbiór · ΔT', unit: 'K', kind: 'delta', group: 'meter', precision: 2, available: true },
-  { id: 'BUFFER_TOP', label: 'Bufor · góra', unit: '°C', kind: 'temperature', group: 'buffer', precision: 1, available: true },
-  { id: 'BUFFER_BOTTOM', label: 'Bufor · dół', unit: '°C', kind: 'temperature', group: 'buffer', precision: 1, available: true },
+  { id: 'ODBIOR_FLOW', label: 'Odbiór · przepływ', unit: 'm³/h', kind: 'flow', group: 'meter', precision: 3, available: true },
+  { id: 'ODBIOR_POWER', label: 'Odbiór · moc', unit: 'kW', kind: 'power', group: 'meter', precision: 2, available: true },
   { id: 'HP_STATE', label: 'Pompa ciepła · praca', unit: '', kind: 'state', group: 'heatpump', precision: 0, available: true },
   { id: 'PUMP_STATE', label: 'Pompa obiegowa · praca', unit: '', kind: 'state', group: 'actuator', precision: 0, available: true },
   { id: 'WEATHER_TEMP', label: 'Pogoda · temperatura zewnętrzna', unit: '°C', kind: 'temperature', group: 'ambient', precision: 1, available: true },
@@ -107,10 +108,11 @@ export function wartosciPokazowe(ms: number): PointValues {
   values.ODBIOR_T_ZASILANIE = swiezy(Number(odbior.zasilanie.toFixed(1)));
   values.ODBIOR_T_POWROT = swiezy(Number(odbior.powrot.toFixed(1)));
   values.ODBIOR_DT = swiezy(Number((odbior.zasilanie - odbior.powrot).toFixed(2)));
-
-  // Bufor idzie za magazynem z opóźnieniem — stąd odczyt sprzed dwudziestu minut.
-  values.BUFFER_TOP = swiezy(Number((temperaturaSondy('A3', ms - 1_200_000) - 1.4).toFixed(1)));
-  values.BUFFER_BOTTOM = swiezy(Number((temperaturaSondy('A1', ms - 1_200_000) - 2.2).toFixed(1)));
+  const odbiorPrzeplyw = przeplywOdbioru(ms);
+  values.ODBIOR_FLOW = swiezy(Number(odbiorPrzeplyw.toFixed(3)));
+  values.ODBIOR_POWER = swiezy(
+    Number((odbiorPrzeplyw * (odbior.zasilanie - odbior.powrot) * 1.163).toFixed(2)),
+  );
 
   values.HP_STATE = swiezy(faza === 'ladowanie' ? 1 : 0);
   values.PUMP_STATE = swiezy(pracuje ? 1 : 0);
@@ -259,10 +261,12 @@ function wartoscHistoryczna(id: string, ms: number): number | null {
       const o = temperaturyOdbioru(ms);
       return Number((o.zasilanie - o.powrot).toFixed(2));
     }
-    case 'BUFFER_TOP':
-      return Number((temperaturaSondy('A3', ms - 1_200_000) - 1.4).toFixed(1));
-    case 'BUFFER_BOTTOM':
-      return Number((temperaturaSondy('A1', ms - 1_200_000) - 2.2).toFixed(1));
+    case 'ODBIOR_FLOW':
+      return Number(przeplywOdbioru(ms).toFixed(3));
+    case 'ODBIOR_POWER': {
+      const o = temperaturyOdbioru(ms);
+      return Number((przeplywOdbioru(ms) * (o.zasilanie - o.powrot) * 1.163).toFixed(2));
+    }
     case 'WEATHER_TEMP':
       return Number(temperaturaZewnetrzna(ms).toFixed(1));
     case 'WEATHER_RADIATION':

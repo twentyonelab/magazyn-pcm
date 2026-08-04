@@ -1,19 +1,23 @@
 /**
  * Pogoda dla stanowiska badawczego (Gliwice, ul. Kaszubska 26).
  *
- * DLACZEGO NIE PROSTO Z LOXONE — sprawdzone 2026-07-31 na Miniserverze21:
- *   - w strukturze projektu jest `weatherServer` z UUID-ami stanow `actual`
- *     i `forecast`, ale odczyt `actual` po HTTP zwraca "0", a `forecast`
- *     odpowiada bledem 404;
- *   - Miniserver nie ma ustawionej lokalizacji (szerokosc i dlugosc = 0),
- *     wiec usluga pogodowa nie ma dla czego liczyc pogody;
- *   - stan pogody w Loxone to zlozona struktura wysylana po WebSockecie,
- *     a nasz klient rozmawia ze sterownikiem po HTTP.
+ * STAN NA 2026-08-04 — pogoda ze sterownika jest WPIETA, ale jeszcze pusta.
+ * W projekcie pojawil sie pokoj „Otoczenie" z czterema kontrolkami uslugi
+ * pogodowej Loxone (temperatura, wilgotnosc, cisnienie, pyl) i ich UUID-y
+ * siedza w `points.config.ts`. Wszystkie odpowiadaja HTTP 200 i wartoscia
+ * ZERO, bo `msInfo.latitude` i `msInfo.longitude` w zapisanym projekcie nadal
+ * wynosza 0 — usluga pogodowa nie ma dla czego liczyc pogody.
  *
- * Zeby pogoda przyszla Z LOXONE, potrzebne sa zmiany PO STRONIE STEROWNIKA
- * (lokalizacja, aktywna usluga pogodowa, wystawienie wartosci jako kontrolki
- * POGODA_*). Do tego czasu podpisanie czegokolwiek jako "pogoda z Loxone"
- * byloby klamstwem na ekranie badawczym.
+ * DLATEGO ZERA SA TU ODRZUCANE JAWNIE (patrz `wygladaNaBrakLokalizacji`).
+ * Sam fakt, ze punkt odpowiada, nie znaczy, ze mierzy: „0 °C na zewnatrz
+ * w sierpniu" to zla dana udajaca dobra, czyli dokladnie ten rodzaj bledu,
+ * ktorego na ekranie badawczym nie wolno przepuscic. Surowe zera widac
+ * natomiast w Diagnostyce, w grupie Otoczenie — tam maja byc widoczne,
+ * bo one wlasnie mowia, czego brakuje w sterowniku.
+ *
+ * ZEBY POGODA ZACZELA IsC Z LOXONE, po stronie sterownika zostaje jedno:
+ * ustawic lokalizacje projektu (Gliwice, ul. Kaszubska 26) i zapisac
+ * konfiguracje. Zrodlo przelaczy sie samo, bez zmiany w kodzie.
  *
  * Dlatego modul ma DWA ZRODLA i zawsze mowi, z ktorego korzysta:
  *   1. `loxone`     — punkty POGODA_* z rejestru, gdy maja UUID-y i dane.
@@ -93,7 +97,31 @@ const PUNKTY = {
   humidity: 'WEATHER_HUMIDITY',
   wind: 'WEATHER_WIND',
   radiation: 'WEATHER_RADIATION',
+  pressure: 'WEATHER_PRESSURE',
 } as const;
+
+/**
+ * Czy odczyt z Loxone to podpis „usluga pogodowa nic nie liczy".
+ *
+ * Sterownik bez ustawionej lokalizacji oddaje na WSZYSTKICH polach dokladnie
+ * zero — nie null, nie blad, tylko zero. Zadne z tych zer nie jest fizycznie
+ * mozliwe razem z pozostalymi: cisnienie 0 hPa to proznia, a wilgotnosc 0 %
+ * przy 0 °C to powietrze idealnie suche. Wystapienie tego zestawu naraz
+ * rozstrzyga wiec sprawe bez zgadywania.
+ *
+ * Uwaga na przyszlosc: sprawdzamy KOMBINACJE, nie samo `tempC === 0`. Zero
+ * stopni na zewnatrz jest w Gliwicach zima zupelnie normalne i pojedynczy
+ * warunek wyrzucalby wtedy poprawny odczyt.
+ */
+function wygladaNaBrakLokalizacji(
+  tempC: number,
+  humidity: number | null,
+  pressure: number | null,
+): boolean {
+  if (tempC !== 0) return false;
+  if (pressure !== null && pressure === 0) return true;
+  return humidity === 0;
+}
 
 export interface WeatherDeps {
   registry: PointRegistry;
@@ -156,12 +184,20 @@ export class WeatherService {
     const tempC = odczyt(PUNKTY.temp);
     if (tempC === null) return null;
 
+    const humidity = odczyt(PUNKTY.humidity);
+    const pressure = odczyt(PUNKTY.pressure);
+
+    // Usluga pogodowa bez lokalizacji oddaje zera na wszystkich polach.
+    // Odrzucamy je tutaj, a nie na ekranie, zeby zadna warstwa wyzej nie
+    // musiala wiedziec, ze taki stan istnieje.
+    if (wygladaNaBrakLokalizacji(tempC, humidity, pressure)) return null;
+
     return {
       source: 'loxone',
       ts: cache.get(PUNKTY.temp).ts ?? new Date().toISOString(),
       place: STANOWISKO.opis,
       tempC,
-      humidity: odczyt(PUNKTY.humidity),
+      humidity,
       windKmh: odczyt(PUNKTY.wind),
       radiationWm2: odczyt(PUNKTY.radiation),
       cloudCover: null,

@@ -92,6 +92,28 @@ export function Diagnostyka({ data }: { data: LiveData }) {
   // Punkty w kolejnosci grup, zeby tabela dala sie czytac.
   const grouped = groupPoints(points);
 
+  /*
+   * USLUGA POGODOWA LOXONE ODPOWIADA, ALE NIC NIE LICZY.
+   *
+   * Punkty POGODA_* z pokoju „Otoczenie" sa podlaczone i zwracaja HTTP 200,
+   * wiec w tabeli wygladaja jak dzialajace czujniki — z wartoscia zero
+   * i stanem „aktualne". To najgorszy rodzaj wpisu na ekranie diagnostycznym:
+   * zla dana udajaca dobra. Wykrywamy wiec zestaw zer i mowimy wprost, co on
+   * znaczy, zamiast liczyc na to, ze ktos sam skojarzy.
+   *
+   * Warunek jest KOMBINACJA, nie samym „temperatura = 0": zero stopni na
+   * zewnatrz jest zima normalne, a cisnienie 0 hPa nie jest nigdy. Ta sama
+   * zasada dziala po stronie serwera (server/src/weather.ts), ktory z tego
+   * powodu nie wypuszcza zer na kafelek pogody.
+   */
+  const pogodaZLoxone = points.filter(
+    (p) => p.group === 'ambient' && p.id.startsWith('WEATHER_') && p.available,
+  );
+  const pogodaStoiNaZerach =
+    pogodaZLoxone.length > 0 &&
+    pogodaZLoxone.every((p) => values[p.id]?.v === 0) &&
+    pogodaZLoxone.some((p) => p.id === 'WEATHER_PRESSURE');
+
   return (
     <div className="stack">
       <section className="tiles">
@@ -176,6 +198,18 @@ export function Diagnostyka({ data }: { data: LiveData }) {
         </div>
       ) : null}
 
+      {linkLive && pogodaStoiNaZerach ? (
+        <div className="note">
+          <strong>Pogoda ze sterownika odpowiada, ale nic nie mierzy.</strong> Wszystkie cztery
+          punkty z pokoju „Otoczenie" zwracają dokładnie zero — także ciśnienie, które nie może
+          wynosić 0 hPa. Usługa pogodowa Loxone nie ma dla czego liczyć pogody, bo{' '}
+          <strong>lokalizacja projektu nie jest zapisana w Miniserverze</strong> (szerokość
+          i długość geograficzna = 0). Ustaw lokalizację w Loxone Config, zapisz konfigurację —
+          i to wszystko, aplikacja przełączy źródło sama. Do tego czasu kafelek pogody na
+          schemacie bierze dane z Open-Meteo i tak się podpisuje.
+        </div>
+      ) : null}
+
       {data.error && link !== 'live' ? <div className="note is-bad">{data.error}</div> : null}
 
       <section className="card">
@@ -232,7 +266,7 @@ export function Diagnostyka({ data }: { data: LiveData }) {
   );
 }
 
-const GROUP_ORDER = ['pcm', 'meter', 'buffer', 'heatpump', 'actuator', 'ambient'];
+const GROUP_ORDER = ['pcm', 'meter', 'ambient', 'heatpump', 'actuator'];
 
 function groupPoints(points: PublicPoint[]): Array<{ group: string; groupPoints: PublicPoint[] }> {
   const buckets = new Map<string, PublicPoint[]>();
