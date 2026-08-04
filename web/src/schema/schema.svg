@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
-  viewBox="42 50 1451 606" preserveAspectRatio="xMidYMid meet"
+  viewBox="-50 50 1543 606" preserveAspectRatio="xMidYMid meet"
   class="schema schema-rura" role="img" aria-label="Schemat instalacji magazynu ciepła PCM">
   <!--
     SCHEMAT INSTALACJI — PLIK PROJEKTANTA (Illustrator), wersja v5.
@@ -343,6 +343,9 @@
     <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="zrodlo-zasilanie" data-flow-source="METER_FLOW" d="M749.26,296.22V126.1c0-6.24,5.1-11.34,11.34-11.34h530.95c6.24,0,11.34,5.1,11.34,11.34v243.12"/>
     <path class="tube__flow tube__flow--return" data-flow="bufor-zasilanie" data-flow-source="METER_FLOW" d="M772.26,296.22v-134.55c0-6.24,5.1-11.34,11.34-11.34h146.91c6.24,0,11.34,5.1,11.34,11.34v209.7"/>
     <path class="tube__flow tube__flow--return" data-flow="bufor-pompa" data-flow-source="METER_FLOW" d="M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55"/>
+    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="woda-filtr" data-flow-source="METER_FLOW" d="M161.98,435.96h-38.32"/>
+    <path class="tube__flow tube__flow--supply tube__flow--wspak" data-flow="filtr-podgrzewacz" data-flow-source="METER_FLOW" d="M325.49,435.96h-44.51"/>
+    <path class="tube__flow tube__flow--return" data-flow="naczynie" data-flow-source="METER_FLOW" d="M1165.78,200.87v168.35"/>
   </g>
   <g id="tank">
     <rect class="st2" x="657.18" y="300.93" width="129" height="255" data-object="storage" data-label="Magazyn PCM" data-h="8" data-vessel="true"/>

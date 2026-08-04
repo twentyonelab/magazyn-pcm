@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { MaterialProfile } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { bindSchema } from '../schema/bindSchema.js';
+import { wlaczOddech, type Oddech } from '../schema/oddech.js';
 import type { LiveData } from '../useLiveData.js';
 import {
   FALLBACK_STALE_AFTER_MS,
@@ -146,6 +147,22 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
   useEffect(() => {
     if (!host || host.childElementCount > 0) return;
     host.innerHTML = schemaMarkup;
+  }, [host]);
+
+  /**
+   * ODDECH — animacja przepływu. Jedna pętla dla całego schematu, budowana po
+   * wstrzyknięciu rysunku i zatrzymywana przy odejściu z widoku. Uchwyt trzymamy
+   * w referencji, żeby dało się odczytać z konsoli liczbę klatek ().
+   */
+  const oddechRef = useRef<Oddech | null>(null);
+  useEffect(() => {
+    if (!host) return;
+    const oddech = wlaczOddech(host);
+    oddechRef.current = oddech;
+    return () => {
+      oddech?.zatrzymaj();
+      oddechRef.current = null;
+    };
   }, [host]);
 
   // --- Aktualizacja rysunku przy każdej zmianie danych ---------------------
@@ -291,6 +308,12 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
         fromSession={session?.material ?? null}
         detected={detectedBank}
         preview={settings.parafinaPodgladu}
+        /* Dopóki serwer nie podał stanu, NIE WIEMY, jaka parafina jest
+           w zbiorniku — a belka pokazywała wtedy materiał podglądu (57HC)
+           z odblokowanym przełącznikiem. Na stanowisku, gdzie zbiornik jest
+           rozpoznawany automatycznie, wyglądało to jak zła wartość do
+           poprawienia ręcznie. */
+        nierozpoznany={!session && !detectedBank && !health}
         onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
         volumesL={materials?.volumesL}
         averageC={averageC}

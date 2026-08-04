@@ -1149,6 +1149,50 @@ code {
   gap: 1.25rem;
 }
 
+/* STRONA O PRODUKCIE (entalvia.eu) — jedna kolumna, bo prawa należała do pola
+   hasła, a tu hasła nie ma: do bramy prowadzi przycisk w górnej belce.
+   BRAMA (app.entalvia.eu) zostaje przy układzie dwukolumnowym: opis po lewej,
+   pole hasła po prawej. */
+.start--produkt .start__tresc {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 46rem;
+}
+
+/* Górna belka strony o produkcie — logotyp po lewej, wejście po prawej.
+   Stoi w narożnikach okna, nie w kolumnie treści: ma być pierwszą rzeczą,
+   którą widać, i nie może wędrować razem z tekstem. */
+.start__belka {
+  position: absolute;
+  top: clamp(1rem, 3vw, 2rem);
+  left: clamp(1rem, 4vw, 3rem);
+  right: clamp(1rem, 4vw, 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.start__wejscie {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  background: var(--akcent);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.start__wejscie:hover {
+  background: var(--akcent-mocny);
+}
+
+.start__stopka--produkt {
+  margin-top: 2rem;
+}
+
 .start__karta {
   display: grid;
   gap: 0.9rem;
@@ -1347,10 +1391,14 @@ code {
    1,5 K był nie do zauważenia. */
 .belka__zakres {
   position: absolute;
-  top: -4px;
-  bottom: -4px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  /* Wystaje po 9 px z każdej strony 12-pikselowego paska, czyli ma 30 px
+     wysokości — na tyle, żeby przy rozrzucie 1,5 K (a taki jest w plateau)
+     dało się go zauważyć bez wpatrywania. Pierwsze podejście dawało 4 px
+     i zgłoszone zostało jako niewidoczne. */
+  top: -9px;
+  bottom: -9px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
   pointer-events: none;
 }
 
@@ -1672,6 +1720,13 @@ code {
    schemat dostaje całą resztę i sam się do niej dopasowuje. */
 .magazyn-widok {
   grid-template-rows: auto minmax(0, 1fr);
+  /* JEDNA KRAWEDZ DLA WSZYSTKICH MODULOW NAD RYSUNKIEM.
+     Belka naladowania jest ograniczona do 1400 px i wysrodkowana, a kafelek
+     pogody i kolumna narzedzi stały przy marginesie okna — na szerokim ekranie
+     ich krawedzie rozjezdzaly sie z belka o kilkadziesiat pikseli. Ta zmienna
+     liczy TE SAMA krawedz, ktorej uzywa belka, wiec wszystkie trzy stoja
+     w jednej linii niezaleznie od szerokosci okna. */
+  --margines-modulu: max(clamp(1rem, 4vw, 3rem), calc((100% - 1400px) / 2));
   /* Układ odniesienia dla przełącznika rzutu, który wychodzi z siatki. */
   position: relative;
 }
@@ -1695,9 +1750,39 @@ code {
 
    Pionowo i na szerokość przycisków (34 px), bo kolumna jest wąska —
    poziomy przełącznik 86 px wystawałby z niej na trzy czwarte. */
+/* BLENDA NAD SCENĄ 3D. Barwa z tła strony, czyli ta sama ciepła (albo stalowa
+   przy chłodzie) płachta co nad schematem — dlatego `--tlo-strony`, a nie biel:
+   biel na ciemnym motywie byłaby jasnym prostokątem w środku ekranu.
+   Krycie 0,5, żeby scena była widoczna, ale nie dała się czytać jak wynik.
+   Nie łapie kliknięć: obracanie i przybliżanie działa dalej. */
+.stage3d__blenda {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: var(--tlo-strony);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.stage3d__napis {
+  font-size: clamp(1.6rem, 5vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--ink);
+  /* Sam napis ma być czytelny, więc odrabia krycie blendy. */
+  opacity: 0.85;
+}
+
 .canvas__tools .wymiar {
   display: grid;
-  width: 34px;
+  /* 38, nie 34: przy szerokości przycisków narzędzi napisy „2D"/„3D" dotykały
+     krawędzi pastylki. Kolumna narzędzi jest wyrównana do PRAWEJ, więc te
+     cztery piksele wychodzą w lewo, w puste miejsce nad rysunkiem. */
+  width: 38px;
+  justify-self: end;
   padding: 2px;
   margin-top: 0.3rem;
   border-radius: 10px;
@@ -1706,8 +1791,11 @@ code {
 
 .canvas__tools .wymiar__item {
   min-width: 0;
-  padding: 3px 0;
-  font-size: 0.72rem;
+  padding: 4px 0;
+  font-size: 0.7rem;
+  /* Rozstrzelenie zdejmuje się w pastylce: przy dwóch znakach dodawało
+     odstęp PO drugim znaku i napis wyglądał na przesunięty w lewo. */
+  letter-spacing: 0;
   border-radius: 8px;
 }
 
@@ -1747,7 +1835,7 @@ code {
 /* Narzędzia powiększenia trzymamy przy prawej krawędzi okna, ale z zapasem —
    przy pełnej szerokości „right: 1.25rem" wypadałoby poza pole widzenia. */
 .magazyn-widok .canvas__tools {
-  right: clamp(1rem, 4vw, 3rem);
+  right: var(--margines-modulu, clamp(1rem, 4vw, 3rem));
   top: 0;
 }
 
@@ -2039,45 +2127,59 @@ code {
   font-family: var(--font);
 }
 
-/* Warstwa przepływu: niewidoczna, dopóki nic nie płynie. Gdy płynie, wzdłuż
-   rury suną kreski w kolorze obiegu: pomarańcz = zasilanie, błękit = powrót.
-   Prędkość ustawia bindSchema przez --flow-duration — z pomiaru, nie na oko. */
+/* PRZEPŁYW RYSUJE „ODDECH" (web/src/schema/oddech.ts), nie ten arkusz.
+   Ścieżki `.tube__flow` przestały być animowaną kreską i pełnią teraz dwie
+   role: niosą STAN (`is-flowing` / `is-still` z pomiaru w bindSchema) i rysują
+   cienkie białe światło, które daje rurze objętość — jak w specyfikacji
+   Oddechu. Sam ruch to impulsy dorysowane nad nimi z jednej pętli rAF.
+
+   Dlaczego animacja zeszła z CSS: `@keyframes` biegnie osobno na każdej rurze,
+   więc po powrocie z innej zakładki impulsy rozjeżdżały się między rurami.
+   Wspólna faza czasu wymaga jednego zegara dla całego schematu. */
 .schema .tube__flow {
   fill: none;
-  /* Rury projektanta mają ~9 px — kreska mieści się w ich wnętrzu. */
-  stroke-width: 3;
+  stroke: #fff;
+  stroke-width: 2.4;
   stroke-linecap: round;
   opacity: 0;
-}
-
-.schema .tube__flow--supply {
-  stroke: var(--zasilanie);
-}
-
-.schema .tube__flow--return {
-  stroke: var(--powrot);
+  pointer-events: none;
 }
 
 .schema .tube__flow.is-flowing {
-  opacity: 1;
-  stroke-dasharray: 3 14;
-  animation: flow var(--flow-duration, 2s) linear infinite;
+  opacity: 0.5;
 }
 
-/* KIERUNEK KRESKI MUSI ZGADZAĆ SIĘ ZE STRZAŁKAMI NAD ZBIORNIKIEM.
-   Ścieżki przepływu są przepisane z rur projektanta, więc biegną w kierunku
-   RYSOWANIA, a nie płynięcia — dla trzech z pięciu rur to kierunki przeciwne.
-   Zamiast przepisywać `d` od końca (co przy następnej wersji rysunku trzeba by
-   robić od nowa) odwracamy samą animację. Które rury, rozstrzygają strzałki
-   przy górnej krawędzi magazynu — patrz wepnij-kontrakt.mjs. */
-.schema .tube__flow--wspak.is-flowing {
-  animation-direction: reverse;
-}
-
-/* ZEROWY PRZEPŁYW TO BRAK RUCHU — warstwa znika. */
+/* ZEROWY PRZEPŁYW TO BRAK RUCHU — światło gaśnie razem z impulsami. */
 .schema .tube__flow.is-still {
   opacity: 0;
-  animation: none;
+}
+
+/* BARWY STRUMIENIA. Z palety Oddechu, wpuszczone przez zmienne, bo o tym,
+   czy obieg jest ciepły czy chłodny, decyduje nośnik magazynu — a to wie
+   `[data-kierunek]` na korzeniu dokumentu, nie ten selektor. */
+:root {
+  --strumien-cieply-core: #df6f3b;
+  --strumien-cieply-glow: #f5b184;
+  --strumien-chlodny-core: #6f93b0;
+  --strumien-chlodny-glow: #a8c8de;
+}
+
+/* Przegląd i magazyn ciepła: zasilanie ciepłe, powrót chłodny. */
+.schema .oddech--supply.oddech--core {
+  stroke: var(--strumien-zasilanie-core, var(--strumien-cieply-core));
+}
+.schema .oddech--supply.oddech--glow {
+  stroke: var(--strumien-zasilanie-glow, var(--strumien-cieply-glow));
+}
+.schema .oddech--return.oddech--core {
+  stroke: var(--strumien-powrot-core, var(--strumien-chlodny-core));
+}
+.schema .oddech--return.oddech--glow {
+  stroke: var(--strumien-powrot-glow, var(--strumien-chlodny-glow));
+}
+
+.schema .oddech {
+  pointer-events: none;
 }
 
 @keyframes flow {
@@ -2140,6 +2242,14 @@ code {
      więc jaśniejszy. Oba z tej samej rodziny co reszta interfejsu chłodu. */
   --zasilanie: #3a6072;
   --powrot: var(--chlod-jasny);
+
+  /* STRUMIEŃ ODDECHU też cały w błękicie: przez obie rury płynie woda lodowa,
+     jedna zimniejsza, druga mniej zimna. Zasilanie dostaje ciemniejszy rdzeń,
+     powrót jaśniejszy — różnica w obrębie jednej barwy, nie między barwami. */
+  --strumien-zasilanie-core: #4a7ea8;
+  --strumien-zasilanie-glow: #8fb9d8;
+  --strumien-powrot-core: #7fa3bd;
+  --strumien-powrot-glow: #bcd6e6;
 
   /* Pasmo przemiany na wykresach — lekko niebieskie. */
   --pasmo-tlo: rgba(77, 122, 145, 0.1);
@@ -2283,7 +2393,7 @@ code {
 
 .demo-przeplyw {
   position: absolute;
-  left: clamp(1rem, 4vw, 3rem);
+  left: var(--margines-modulu, clamp(1rem, 4vw, 3rem));
   bottom: 0.5rem;
   z-index: 2;
   display: grid;
@@ -2352,7 +2462,7 @@ code {
 
 .pogoda {
   position: absolute;
-  left: clamp(1rem, 4vw, 3rem);
+  left: var(--margines-modulu, clamp(1rem, 4vw, 3rem));
   top: 0;
   z-index: 2;
   background: var(--surface);

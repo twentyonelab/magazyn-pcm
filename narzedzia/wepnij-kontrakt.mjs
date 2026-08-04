@@ -91,7 +91,14 @@ podmien(
   'korzen svg',
   '<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1565.62 691.4">',
   '<svg id="Warstwa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"\n' +
-    '  viewBox="42 50 1451 606" preserveAspectRatio="xMidYMid meet"\n' +
+    // MAGAZYN NA SRODKU KADRU, nie tresc rysunku.
+    //
+    // Kadr obejmowal cala tresc (42..1493) i przez to magazyn — czyli jedyny
+    // obiekt, po ktory sie tu przychodzi — stal 46 px w lewo od srodka ekranu.
+    // Zbiornik ma srodek w x=721,68, wiec lewa krawedz kadru musi lezec
+    // symetrycznie wobec prawej: 2*721,68 - 1493 = -49,6. Kadr rosnie tylko
+    // w lewo, o pusty pas; nic z rysunku sie nie obcina.
+    '  viewBox="-50 50 1543 606" preserveAspectRatio="xMidYMid meet"\n' +
     '  class="schema schema-rura" role="img" aria-label="Schemat instalacji magazynu ciepła PCM">\n' +
     '  <!--\n' +
     '    SCHEMAT INSTALACJI — PLIK PROJEKTANTA (Illustrator), wersja v5.\n' +
@@ -466,6 +473,34 @@ const RURY = [
     rola: 'return',
     wspak: false,
     d: 'M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55',
+  },
+  // --- Odcinki dopisane 2026-08-04 (zgloszone jako brakujace) --------------
+  //
+  // Trzy rury, ktore mialy rure bazowa, ale nie mialy warstwy przeplywu, wiec
+  // stały martwe, gdy reszta schematu plynela.
+  {
+    // Woda wodociagowa -> filtr odkamieniajacy. Krotki odcinek pod kartami,
+    // zapisany od filtra w lewo, a woda idzie w prawo — stad wspak.
+    nazwa: 'woda-filtr',
+    rola: 'supply',
+    wspak: true,
+    d: 'M161.98,435.96h-38.32',
+  },
+  {
+    // Filtr -> podgrzewacz wody wodociagowej. Zapis od podgrzewacza w lewo.
+    nazwa: 'filtr-podgrzewacz',
+    rola: 'supply',
+    wspak: true,
+    d: 'M325.49,435.96h-44.51',
+  },
+  {
+    // Odgalezienie do naczynia przeponowego: z poziomej rury obiegu zrodla
+    // (y=200,87) w dol, do naczynia (y=369,22). Naczynie wisi na tej rurze,
+    // wiec dalsza droga do pompy to juz odcinek `bufor-pompa`.
+    nazwa: 'naczynie',
+    rola: 'return',
+    wspak: false,
+    d: 'M1165.78,200.87v168.35',
   },
 ];
 

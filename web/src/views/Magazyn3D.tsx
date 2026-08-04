@@ -796,6 +796,18 @@ export function Magazyn3D({
       {/* Bez podpisu pod scena: opis ukladu nalezy do dokumentacji i do
           komentarza na gorze tego pliku, nie na ekran. */}
       <div className="stage3d" ref={hostRef} />
+
+      {/*
+        BLENDA „W BUDOWIE" — jednolita płachta w barwie tła strony, na wpół
+        krycia, na całej scenie.
+        Scena stoi i działa pod spodem (widać ją przez blendę), ale nie jest
+        gotowa do pokazywania jako wynik: proporcje bryły i rozmieszczenie
+        urządzeń wymagają jeszcze przejścia z projektantem. Zasłona mówi to
+        wprost, zamiast pozwalać czytać z niej wnioski.
+      */}
+      <div className="stage3d__blenda" aria-hidden="true">
+        <span className="stage3d__napis">w budowie</span>
+      </div>
     </section>
   );
 }

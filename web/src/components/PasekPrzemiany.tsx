@@ -59,6 +59,12 @@ export interface Props {
    * źródła (temperatura → bilans energii z ciepłomierza) nie dotyka tego pliku.
    */
   soc?: OdczytSoc | null;
+  /**
+   * Zbiornik jeszcze NIE ROZPOZNANY (brak sesji, brak rozpoznania, brak stanu
+   * z serwera). Wtedy nazwa materiału jest zgadnięta i nie wolno jej podawać
+   * jak faktu ani pozwalać na przełączanie.
+   */
+  nierozpoznany?: boolean;
   /** Kierunek zmiany do chipu stanu albo null, gdy nie wiadomo. */
   kierunekZmiany?: 'ladowanie' | 'rozladowanie' | null;
 }
@@ -74,6 +80,7 @@ export function PasekPrzemiany({
   averageC = null,
   zakresC = null,
   soc = null,
+  nierozpoznany = false,
   kierunekZmiany = null,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -155,8 +162,14 @@ export function PasekPrzemiany({
   const stan = maDane ? stanZTemperatury(averageC, cfg) : null;
   const poza = maDane ? skala.pozaSkala(averageC) : null;
 
-  const zrodlo = fromSession ? 'z sesji' : detected ? 'z sond' : 'podgląd';
-  const zablokowane = fromSession !== null || detected !== null;
+  const zrodlo = nierozpoznany
+    ? 'rozpoznaję…'
+    : fromSession
+      ? 'z sesji'
+      : detected
+        ? 'z sond'
+        : 'podgląd';
+  const zablokowane = nierozpoznany || fromSession !== null || detected !== null;
   const profile2 = Object.values(materials.profiles) as MaterialProfile[];
 
   const opisKierunku = cfg.kierunek === 'chlod' ? 'chłód' : 'ciepło';
