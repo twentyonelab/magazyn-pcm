@@ -111,5 +111,9 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
 - `METER_POWER` nie istnieje w Miniserverze — mocy chwilowej nie ma czym podać.
 - Ciepłomierz **odbioru** ma w Loxone tylko dwie temperatury i ΔT. Brakuje
   przepływu i energii — do dołożenia jako kanały Modbus w Loxone Config.
-- Ciepłomierz AXIOMA: błąd 0002 (montaż odwrotny) i milczące kanały Modbus —
-  sprawdzić zasilanie 24 VDC, bo na baterii licznik wystawia Modbusa 80 s/godz.
+- Ciepłomierz AXIOMA: błąd 0002 (montaż odwrotny). Milczące kanały Modbus już
+  nie milczą — 2026-08-04 okazało się, że to były **uprawnienia konta
+  `pcm-odczyt` do pomieszczeń** w Loxone, nie zasilanie licznika. Objaw był
+  mylący: Miniserver zwracał 403 dla pojedynczych punktów, a aplikacja
+  pokazywała je jako „przestarzałe", bo 403 nie jest błędem logowania.
+  Przy milczącym punkcie sprawdzaj najpierw dostęp konta do pomieszczenia.

@@ -13,8 +13,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { HistoryAvailable, MaterialProfile, PublicPoint } from '@magazyn-pcm/shared';
-import { fetchHistory, historyCsvUrl, type HistoryParams } from '../api.js';
+import { fetchHistory, type HistoryParams } from '../api.js';
 import { SERIES_COLORS, Wykres, type ChartSeries } from '../components/Wykres.js';
+import { AkcjeWykresu } from './AkcjeWykresu.js';
 import type { LiveData } from '../useLiveData.js';
 import { FALLBACK_STALE_AFTER_MS, NO_DATA, POINT_STATE_LABEL, formatAge, formatValue, pointState } from '../format.js';
 import { isInPhaseBand } from '../scale.js';
@@ -242,9 +243,7 @@ export function PanelSondy({ point, data, profile, onClose, onOpenInPrzebiegi }:
               >
                 otwórz w Przebiegach
               </button>
-              <a className="chip" href={historyCsvUrl(state.params)} download>
-                pobierz CSV
-              </a>
+              <AkcjeWykresu params={state.params} nazwa={point.id} />
             </div>
           </>
         )

@@ -32,6 +32,7 @@ import { setSetting, useSettings } from '../settings.js';
 import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
 import { PanelElementu } from '../components/PanelElementu.js';
 import { PanelSondy } from '../components/PanelSondy.js';
+import { PrzelacznikRzutu } from '../components/PrzelacznikRzutu.js';
 import { Pogoda } from '../components/Pogoda.js';
 
 const ZOOM_STEP = 0.15;
@@ -298,36 +299,6 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
         kierunekZmiany={kierunekZmiany}
       />
 
-      {/*
-        PRZEŁĄCZNIK RZUTU — 2D / 3D.
-        Stoi w lewym dolnym narożniku (pozycja w arkuszu, nie tutaj): dotyczy
-        całego rysunku, ale jest przestawnikiem widoku, nie odczytem, więc nie
-        zabiera miejsca nad schematem. Gdy scena 3D jest wyłączona w opcjach,
-        przełącznika nie ma wcale: martwy przycisk gorszy niż brak przycisku.
-      */}
-      {onWymiar ? (
-        <div className="wymiar" role="group" aria-label="Rzut schematu">
-          <button
-            type="button"
-            className={`wymiar__item${wymiar === '2d' ? ' is-active' : ''}`}
-            onClick={() => onWymiar('2d')}
-            aria-pressed={wymiar === '2d'}
-            title="Płaski schemat instalacji"
-          >
-            2D
-          </button>
-          <button
-            type="button"
-            className={`wymiar__item${wymiar === '3d' ? ' is-active' : ''}`}
-            onClick={() => onWymiar('3d')}
-            aria-pressed={wymiar === '3d'}
-            title="Scena trójwymiarowa — zbiornik i rozkład sond"
-          >
-            3D
-          </button>
-        </div>
-      ) : null}
-
       {wymiar === '3d' ? (
         scena3d
       ) : (
@@ -391,6 +362,10 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
           >
             ⤢
           </button>
+
+          {/* Przełącznik rzutu POD narzędziami rysunku: wszystko, co
+              przestawia sam rysunek, stoi w jednej kolumnie. */}
+          <PrzelacznikRzutu wymiar={wymiar} onWymiar={onWymiar} />
         </div>
 
         <div className="canvas__scroll">

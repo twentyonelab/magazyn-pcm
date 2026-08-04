@@ -409,33 +409,62 @@ podmien(
 // w znak. Dzieki temu animowana kreska biegnie dokladnie osia rury i nie ma
 // czego dostrajac po kolejnej wersji rysunku — wystarczy przepisac na nowo.
 //
-// Kierunek zapisu jest kierunkiem rysowania projektanta i nie zawsze zgadza
-// sie z kierunkiem przeplywu; `--supply` / `--return` mowi tylko, ktora
-// kreska nalezy do zasilania, a ktora do powrotu.
+// KIERUNEK PRZEPLYWU ROZSTRZYGAJA STRZALKI Z RYSUNKU, nie kierunek zapisu.
+//
+// Projektant narysowal przy gornej krawedzi magazynu cztery strzalki i one sa
+// tu zrodlem prawdy. Ich wspolrzedne z pliku (v5), sparowane z rurami po
+// najblizszym x:
+//
+//   strzalka x=663.3  W DOL   ->  rura x=671.99  odbior-powrot   (wchodzi)
+//   strzalka x=703.8  W GORE  ->  rura x=694     odbior-gora     (wychodzi)
+//   strzalka x=740.7  W DOL   ->  rura x=749.26  zrodlo-zasilanie(wchodzi)
+//   strzalka x=784.2  W GORE  ->  rura x=772.26  bufor-zasilanie (wychodzi)
+//
+// `wspak: true` znaczy „plyn idzie od KONCA sciezki do jej POCZATKU". Trzy
+// rury z pieciu maja tak wlasnie, bo Illustrator zapisal je od strony
+// urzadzenia, a nie od strony zbiornika. Odwracamy animacje, nie zapis `d` —
+// przepisany od tylu `d` trzeba by robic od nowa przy kazdej wersji rysunku.
+//
+// `--supply` / `--return` mowi tylko, ktora kreska nalezy do zasilania,
+// a ktora do powrotu (barwa), i jest niezalezne od kierunku ruchu.
 const RURY = [
   {
+    // Sciezka zapisana OD urzadzenia (x=167) DO zbiornika (x=694), a strzalka
+    // mowi, ze przy zbiorniku plyn idzie w gore, czyli WYCHODZI — a wiec ruch
+    // jest od zbiornika do urzadzenia, czyli wspak wobec zapisu.
     nazwa: 'odbior-gora',
     rola: 'supply',
+    wspak: true,
     d: 'M167.53,244.91v-118.42c0-6.48,5.26-11.74,11.74-11.74h504.43c6.22,0,11.3,5.1,10.47,12.27v169.19',
   },
   {
+    // Zapisana OD zbiornika, a strzalka pokazuje wejscie do zbiornika.
     nazwa: 'odbior-powrot',
     rola: 'return',
+    wspak: true,
     d: 'M671.99,296.22v-134.54c0-6.24-5.11-11.35-11.35-11.35h-129.45c-6.24,0-11.35,5.11-11.35,11.35v262.91c0,6.28-5.09,11.37-11.37,11.37h-36.02',
   },
   {
+    // To samo: zapis od zbiornika, przeplyw do zbiornika.
     nazwa: 'zrodlo-zasilanie',
     rola: 'supply',
+    wspak: true,
     d: 'M749.26,296.22V126.1c0-6.24,5.1-11.34,11.34-11.34h530.95c6.24,0,11.34,5.1,11.34,11.34v243.12',
   },
   {
+    // Jedyna rura przy zbiorniku, w ktorej zapis i przeplyw sa zgodne:
+    // strzalka w gore, czyli plyn wychodzi ze zbiornika w strone bufora.
     nazwa: 'bufor-zasilanie',
     rola: 'return',
+    wspak: false,
     d: 'M772.26,296.22v-134.55c0-6.24,5.1-11.34,11.34-11.34h146.91c6.24,0,11.34,5.1,11.34,11.34v209.7',
   },
   {
+    // Odcinek bufor -> pompa ciepla, poza zasiegiem strzalek. Zapis idzie od
+    // bufora do pompy i to jest kierunek obiegu zrodla, wiec bez odwracania.
     nazwa: 'bufor-pompa',
     rola: 'return',
+    wspak: false,
     d: 'M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55',
   },
 ];
@@ -445,7 +474,8 @@ const PRZEPLYW =
   '  <g id="warstwa-przeplywu" fill="none">\n' +
   RURY.map(
     (r) =>
-      `    <path class="tube__flow tube__flow--${r.rola}" data-flow="${r.nazwa}"` +
+      `    <path class="tube__flow tube__flow--${r.rola}${r.wspak ? ' tube__flow--wspak' : ''}"` +
+      ` data-flow="${r.nazwa}"` +
       ` data-flow-source="METER_FLOW" d="${r.d}"/>`,
   ).join('\n') +
   '\n  </g>\n';

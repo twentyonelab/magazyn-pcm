@@ -21,6 +21,7 @@ import { WERSJA } from './wersja.js';
 import { TRYB_POKAZOWY } from './demo/stale.js';
 import { ustawAktywnyPunkt } from './demo/aktywnyPunkt.js';
 import { useDanePunktu } from './demo/useDanePunktu.js';
+import { PrzelacznikRzutu } from './components/PrzelacznikRzutu.js';
 import { type Lokalizacja } from './map/lokalizacje.js';
 import type { Kierunek } from './soc.js';
 import { BladWidoku } from './components/BladWidoku.js';
@@ -401,7 +402,17 @@ export function App() {
               onWymiar={settings.widok3d ? setWymiar : null}
               scena3d={
                 <Suspense fallback={<div className="note">Wczytuję scenę trójwymiarową…</div>}>
-                  <Magazyn3D data={data} />
+                  {/* Przełącznik rzutu wędruje do kolumny narzędzi sceny —
+                      w 3D narzędzia stoją w innym miejscu niż w 2D. */}
+                  <Magazyn3D
+                    data={data}
+                    przelacznikRzutu={
+                      <PrzelacznikRzutu
+                        wymiar={wymiarCzynny}
+                        onWymiar={settings.widok3d ? setWymiar : null}
+                      />
+                    }
+                  />
                 </Suspense>
               }
             />

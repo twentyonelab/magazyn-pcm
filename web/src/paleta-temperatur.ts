@@ -52,10 +52,25 @@ const LOKALNA_CHLOD = {
   hex: ['#16406E', '#2E6BA8', '#5A97CC', '#93BDDC', '#C8DAE7'],
 };
 
+/*
+ * KOLEJNOŚĆ ODWRÓCONA WOBEC SPECYFIKACJI — świadomie.
+ *
+ * Specyfikacja podawała ciepło jako `#9A4517 → … → #F5DCC0`, czyli mocny
+ * pomarańcz przy 50 °C i bladość przy 62 °C. Na pasku wychodziło z tego
+ * coś odwrotnego do intuicji: magazyn NAŁADOWANY (gorący) był blady,
+ * a rozładowany krzyczał. Przy chłodzie ta sama specyfikacja daje ciemny
+ * błękit na zimnym końcu, czyli tam intensywność rośnie z naładowaniem —
+ * więc to ciepło było niespójne, nie chłód.
+ *
+ * Zgłoszone przez projektanta 2026-08-04 („intensywny pomarańcz jest na
+ * początku, a ten blady na końcu jak jest naładowany"). Zasada, która z tego
+ * zostaje: INTENSYWNOŚĆ ROŚNIE Z ENERGIĄ NOŚNIKA — w cieple z temperaturą,
+ * w chłodzie odwrotnie do temperatury.
+ */
 const LOKALNA_CIEPLO = {
   min: 50,
   max: 62,
-  hex: ['#9A4517', '#C4652A', '#E28A45', '#EFB57E', '#F5DCC0'],
+  hex: ['#F5DCC0', '#EFB57E', '#E28A45', '#C4652A', '#9A4517'],
 };
 
 /** Progi z zasady 4 i z rozstrzygnięcia o środku zakresu. */

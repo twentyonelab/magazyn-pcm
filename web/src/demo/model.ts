@@ -195,6 +195,46 @@ export function temperaturyObiegu(ms: number): { t1: number; t2: number } {
 }
 
 /**
+ * OBIEG ODBIORU — druga para temperatur, lewa strona schematu.
+ *
+ * To osobny obieg niż źródło i pracuje w PRZECIWNEJ fazie: źródło ładuje
+ * magazyn (pompa ciepła grzeje), odbiór go rozładowuje (ktoś ciepło zabiera).
+ * Dlatego przy ładowaniu ta para stoi zwarta na temperaturze zbiornika —
+ * dokładnie tak, jak wygląda prawdziwe stanowisko, gdy odbioru nie ma
+ * (2026-08-04: 24,8 i 24,9 °C, ΔT −0,1 K).
+ *
+ * Kierunek różnicy wynika ze strzałek na rysunku: przez rurę przy x=694 płyn
+ * WYCHODZI ze zbiornika, przez tę przy x=672 WRACA. Wychodzący jest więc
+ * cieplejszy (zabiera ciepło), wracający chłodniejszy — o tyle, ile odbiorca
+ * zdążył pobrać.
+ */
+export function temperaturyOdbioru(ms: number): { zasilanie: number; powrot: number } {
+  const faza = fazaPracy(ms);
+  const srednia = (temperaturaSondy('A3', ms) + temperaturaSondy('A1', ms)) / 2;
+
+  if (faza === 'rozladowanie') {
+    // Odbiorca pobiera ciepło: wychodzi ciepłe, wraca o ~3,4 K chłodniejsze.
+    return { zasilanie: srednia - 0.3, powrot: srednia - 3.7 };
+  }
+  if (faza === 'ladowanie') {
+    // Obieg odbioru stoi, więc obie sondy widzą to samo — z drobnym dryfem
+    // pomiaru, żeby nie wyszły dwie identyczne liczby (te nie zdarzają się
+    // na prawdziwych sondach i wyglądają jak wpisana stała).
+    return { zasilanie: srednia + 0.15, powrot: srednia + 0.05 };
+  }
+  return { zasilanie: srednia + 0.05, powrot: srednia - 0.05 };
+}
+
+/**
+ * Przepływ obiegu odbioru. Na prawdziwym stanowisku kanału Modbus tego
+ * licznika NIE MA (patrz points.config.ts), więc pokaz też go nie podaje —
+ * inaczej demo obiecywałoby liczbę, której nigdzie nie zobaczysz.
+ */
+export function przeplywOdbioru(ms: number): number {
+  return fazaPracy(ms) === 'rozladowanie' ? 0.42 : 0;
+}
+
+/**
  * Moc cieplna w kW, ze wzoru Q = V · ΔT · 1,163.
  *
  * Znak idzie za kierunkiem: ładowanie dodatnie, rozładowanie ujemne — tak

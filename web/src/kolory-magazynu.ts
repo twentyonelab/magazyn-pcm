@@ -45,6 +45,41 @@ export const PALETA: Record<Kierunek, PaletaMagazynu> = {
   },
 };
 
+/**
+ * BARWA NOŚNIKA DLA POŁOŻENIA NA SKALI (0..1) — do znaczników na mapie.
+ *
+ * Pinezka musi robić dwie rzeczy naraz: pasować do kolorystyki widoku
+ * (pomarańcze przy cieple, stal przy chłodzie) i mówić, jak gorąco jest
+ * w środku. Paleta temperatur A2 jest pastelowa i celowo obca wobec barw
+ * interfejsu — na mapie odstawała, bo mapa jest szara, a pinezki są jedynym
+ * kolorem na niej. Dlatego tutaj skala idzie po WŁASNEJ rodzinie nośnika:
+ * od jasnego przez podstawowy do ciemnego.
+ *
+ * Kierunek intensywności jest ten sam co na pasku: mocniejsza barwa znaczy
+ * więcej zgromadzonej energii. Przy cieple rośnie z temperaturą, przy chłodzie
+ * maleje — dlatego wywołujący podaje POŁOŻENIE NA SKALI MATERIAŁU, a nie
+ * same stopnie.
+ */
+export function barwaNosnika(kierunek: Kierunek, pozycja: number): string {
+  const paleta = PALETA[kierunek];
+  const t = Math.min(1, Math.max(0, pozycja));
+  // Trzy przystanki, więc dwa odcinki po 0,5.
+  const [od, doKoloru, lokalne] =
+    t < 0.5
+      ? [paleta.jasny, paleta.glowny, t / 0.5]
+      : [paleta.glowny, paleta.ciemny, (t - 0.5) / 0.5];
+
+  const rgb = (hex: string): [number, number, number] => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+  const [ar, ag, ab] = rgb(od);
+  const [br, bg, bb] = rgb(doKoloru);
+  const k = (x: number, y: number): number => Math.round(x + (y - x) * lokalne);
+  return `rgb(${k(ar, br)} ${k(ag, bg)} ${k(ab, bb)})`;
+}
+
 /** Podpis rodzaju magazynu dla człowieka. */
 export const OPIS_KIERUNKU: Record<Kierunek, string> = {
   cieplo: 'ciepło',

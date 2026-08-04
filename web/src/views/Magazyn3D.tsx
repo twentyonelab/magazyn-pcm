@@ -19,7 +19,7 @@
  * (CSS2DRenderer) — język wizualny z wizualizacji fabryki KLAB.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -160,7 +160,18 @@ interface DeviceHandle {
   led: THREE.Mesh;
 }
 
-export function Magazyn3D({ data }: { data: LiveData }) {
+export function Magazyn3D({
+  data,
+  /**
+   * Przełącznik rzutu, wstrzykiwany z powłoki. Stoi w kolumnie narzędzi TEJ
+   * scenki, a nie w widoku nadrzędnym — dwa widoki mają własne narzędzia
+   * w różnych miejscach ekranu i jedno położenie w arkuszu nie obsłuży obu.
+   */
+  przelacznikRzutu,
+}: {
+  data: LiveData;
+  przelacznikRzutu?: ReactNode;
+}) {
   const settings = useSettings();
   const hostRef = useRef<HTMLDivElement>(null);
   // Stany poczatkowe z opcji aplikacji; przyciski w widoku dzialaja dalej.
@@ -778,6 +789,8 @@ export function Magazyn3D({ data }: { data: LiveData }) {
         <button type="button" className="tool" onClick={resetCamera} title="Ustaw kamerę wyjściowo">
           ⌂
         </button>
+
+        {przelacznikRzutu}
       </div>
 
       {/* Bez podpisu pod scena: opis ukladu nalezy do dokumentacji i do

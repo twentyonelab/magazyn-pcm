@@ -32,8 +32,7 @@ import type { LiveData } from '../useLiveData.js';
 import { useAppliedTheme } from '../theme.js';
 import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
 import type { Kierunek } from '../soc.js';
-import { PALETA } from '../kolory-magazynu.js';
-import { temperatureFill } from '../scale.js';
+import { PALETA, barwaNosnika } from '../kolory-magazynu.js';
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -235,7 +234,12 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const procentRef = useRef<number | null>(null);
   /** Srednia z sond — barwa wypelnienia pinezki stanowiska. Referencja z tego
    *  samego powodu co procent: efekt tworzacy mape nie moze od niej zalezec. */
-  const sredniaRef = useRef<number | null>(null);
+  /**
+   * Polozenie sredniej na skali materialu (0..1) albo null. Referencja, bo
+   * efekt tworzacy mape nie moze zalezec od danych — inaczej kazdy odczyt
+   * sond przebudowywalby cala mape razem z kadrem i dymkami.
+   */
+  const pozycjaRef = useRef<number | null>(null);
   /**
    * Sposób kolorowania mapy. Zmiana nie przebudowuje mapy — wystarczy podać
    * Mapboxowi nową wartość `theme` przez `setConfigProperty`, a on przemaluje
@@ -289,7 +293,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     (materialAktywny ?? data.materials?.defaultMaterial) === 'RT8HC' ? 'chlod' : 'cieplo';
   const procent = naladowanieProcent(sredniaC, profile, kierunekStanowiska);
   procentRef.current = procent;
-  sredniaRef.current = sredniaC;
+  pozycjaRef.current =
+    sredniaC === null || !profile || profile.scaleMax <= profile.scaleMin
+      ? null
+      : (sredniaC - profile.scaleMin) / (profile.scaleMax - profile.scaleMin);
   kierunekRef.current = kierunekStanowiska;
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
@@ -435,22 +442,25 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         live ? (procentRef.current ?? 0) : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
       /*
-       * WYPEŁNIENIE PINEZKI KODUJE TEMPERATURĘ (paleta A2), obrys i podpis
-       * dalej kodują RODZAJ magazynu. Mapa musi odpowiadać na dwa różne
-       * pytania naraz: „co to jest" (ciepło czy chłód) i „jak gorące jest
-       * teraz" — jedna barwa nie zmieści obu.
+       * WYPEŁNIENIE PINEZKI IDZIE PO RODZINIE NOŚNIKA, nie po palecie A2.
        *
-       * WYSOKOŚĆ wypełnienia zostaje naładowaniem. To osobny kanał, dokładnie
-       * jak każe zasada 1 palety: barwa mówi o stopniach, słupek o energii.
+       * Paleta temperatur jest pastelowa i celowo obca wobec barw interfejsu —
+       * na szarej mapie, gdzie pinezki są jedynym kolorem, odstawała od resztu
+       * widoku (zgłoszone 2026-08-04). Barwa dalej mówi o temperaturze, ale
+       * odcieniami ciepła albo chłodu: jasny → podstawowy → ciemny, im więcej
+       * zgromadzonej energii, tym mocniej.
        *
-       * PUNKT POKAZOWY NIE DOSTAJE BARWY TEMPERATURY, bo nie ma temperatury —
-       * ma tylko wymyślony stopień naładowania. Pomalowanie go paletą cieplną
-       * znaczyłoby, że ktoś tam mierzy stopnie. Zostaje przy barwie rodzaju.
-       * Płasko, bez gradientu (zasada 5).
+       * WYSOKOŚĆ wypełnienia zostaje naładowaniem — osobny kanał, zgodnie
+       * z zasadą 1 palety: barwa o stopniach, słupek o energii.
+       *
+       * PUNKT POKAZOWY nie ma temperatury, tylko wymyślone naładowanie, więc
+       * dostaje jeden płaski odcień rodzaju. Malowanie go skalą temperatury
+       * znaczyłoby, że ktoś tam mierzy stopnie.
        */
-      const wypelnienie = live
-        ? temperatureFill(sredniaRef.current)
-        : paleta.jasny;
+      const wypelnienie =
+        live && pozycjaRef.current !== null
+          ? barwaNosnika(kierunekPunktu, pozycjaRef.current)
+          : paleta.jasny;
 
       const el = document.createElement('div');
       el.className = `pinezka is-${punkt.stan} is-${punkt.typ}`;
@@ -592,9 +602,14 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska));
     if (wypelnienieLiveRef.current) {
       wypelnienieLiveRef.current.style.height = `${procent ?? 0}%`;
-      // Barwa idzie za temperatura, wysokosc za naladowaniem — dwa kanaly,
+      // Barwa idzie za temperaturą, wysokość za naładowaniem — dwa kanały,
       // dwie liczby, jedno miejsce aktualizacji.
-      wypelnienieLiveRef.current.style.background = temperatureFill(sredniaC);
+      if (pozycjaRef.current !== null) {
+        wypelnienieLiveRef.current.style.background = barwaNosnika(
+          kierunekStanowiska,
+          pozycjaRef.current,
+        );
+      }
     }
   }, [sredniaC, procent]);
 

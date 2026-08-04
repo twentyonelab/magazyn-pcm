@@ -1340,12 +1340,38 @@ code {
   bottom: 0;
 }
 
-/* Rozrzut sond — półprzezroczysty pas od najzimniejszej do najcieplejszej. */
+/* ROZRZUT SOND — pas od najzimniejszej do najcieplejszej, wychodzący ponad
+   pasek i pod pasek. Wystaje po 4 px z każdej strony i jest bledszy niż sama
+   podziałka: ma dopowiadać „sondy leżą w tym przedziale", a nie zasłaniać
+   barwy, nad którą stoi. Wcześniej siedział w środku paska i przy rozrzucie
+   1,5 K był nie do zauważenia. */
 .belka__zakres {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--ink) 22%, transparent);
+  top: -4px;
+  bottom: -4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  pointer-events: none;
+}
+
+/* GRANICE PRZEMIANY — przerywane kreski nad i pod paskiem.
+   Sztrych pasma mówi „tu jest plateau", te kreski mówią DOKŁADNIE gdzie się
+   zaczyna i kończy. Kreskowanie przez gradient, nie przez `border-left:
+   dashed`: przy 1 px szerokości przeglądarki rysują kreskowaną krawędź
+   nierówno, a gradient daje ten sam wzór co prowadnice na krzywej entalpii. */
+.belka__granica {
+  position: absolute;
+  top: -7px;
+  bottom: -7px;
+  width: 1px;
+  margin-left: -0.5px;
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ink) 55%, transparent) 0 3px,
+    transparent 3px 6px
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 .belka__marker {
@@ -1650,30 +1676,41 @@ code {
   position: relative;
 }
 
-/* PRZEŁĄCZNIK RZUTU 2D/3D — lewy dolny róg, poza siatką.
-   Nad rysunkiem zabierał osobny wiersz i ciągnął wzrok na środek ekranu, choć
-   jest przestawnikiem widoku, a nie odczytem. Schodzi więc do narożnika, do
-   tego samego pasa, w którym stoi pokaz przepływu.
+/* PRZEŁĄCZNIK RZUTU 2D/3D — pod kolumną narzędzi rysunku (+, −, dopasuj).
+   Wszystko, co przestawia sam rysunek, stoi teraz w jednym miejscu.
+   Wcześniej siedział w lewym dolnym narożniku, osobno od narzędzi.
 
-   `bottom` MUSI zawierać `--pas-dol`. Element pozycjonowany absolutnie liczy się
-   od pola wypełnienia, więc dolne wypełnienie widoku go NIE odsuwa (ta sama
-   pułapka co przy scenie 3D, patrz wyżej) — bez tego przełącznik siada na belce
-   stanu. Zmierzone: pas ma 68 px, czyli więcej niż widoczna belka (35 px);
-   liczy się pas, bo to on jest zarezerwowany. */
-.magazyn-widok .wymiar {
-  position: absolute;
-  left: clamp(1rem, 4vw, 3rem);
-  bottom: calc(var(--pas-dol) + 0.5rem);
-  z-index: 3;
-  align-self: auto;
+   ELEMENT SIATKI, NIE ABSOLUTNY. Wchodzi w tę samą komórkę co schemat
+   (wiersz 2), więc nakłada się na niego bez dodawania wiersza — a mierzy się
+   od GÓRY tej komórki, dokładnie tak jak kolumna narzędzi. Dzięki temu jedno
+   położenie działa w obu rzutach: 2D i 3D mają swoje narzędzia w tym samym
+   narożniku. Pozycjonowanie absolutne wymagałoby znania wysokości belki
+   naładowania, której CSS nie zna.
+
+   SIEDZI W KOLUMNIE NARZĘDZI, nie obok niej — jest jej ostatnim dzieckiem
+   (patrz PrzelacznikRzutu.tsx). Dwa podejścia z pozycjonowaniem w arkuszu
+   odpadły: 2D i 3D mają własne kolumny narzędzi w różnych miejscach ekranu
+   (zmierzone: 373 px różnicy), więc jedno odsunięcie nie obsłużyłoby obu.
+   Skoro przełącznik jest w środku kolumny, ustawia go sama siatka.
+
+   Pionowo i na szerokość przycisków (34 px), bo kolumna jest wąska —
+   poziomy przełącznik 86 px wystawałby z niej na trzy czwarte. */
+.canvas__tools .wymiar {
+  display: grid;
+  width: 34px;
   padding: 2px;
+  margin-top: 0.3rem;
+  border-radius: 10px;
+  gap: 2px;
 }
 
-/* W scenie 3D ten sam narożnik jest wolny: objaśnienie rzutu (`.flow-note`)
-   kończy się wyżej, bo scena ma jeszcze własny dolny margines. Przełącznik nie
-   potrzebuje więc osobnego położenia — sprawdzone pomiarem, pas 35–136 px nad
-   dołem okna jest w obu rzutach pusty. Próba podniesienia go nad objaśnienie
-   kładła go DOKŁADNIE na nim. */
+.canvas__tools .wymiar__item {
+  min-width: 0;
+  padding: 3px 0;
+  font-size: 0.72rem;
+  border-radius: 8px;
+}
+
 
 .magazyn-widok .wymiar__item {
   min-width: 2.5rem;
@@ -1681,11 +1718,8 @@ code {
   font-size: 0.78rem;
 }
 
-/* Pokaz przepływu ustępuje przełącznikowi miejsca w narożniku i staje nad nim.
-   Oba są w tym samym pasie, bo oba są przestawnikami, nie odczytami. */
-.magazyn-widok .demo-przeplyw {
-  bottom: 3rem;
-}
+/* Pokaz przepływu wraca na swoje miejsce w lewym dolnym narożniku — przełącznik
+   rzutu przeniósł się do kolumny narzędzi i już go nie zasłania. */
 
 /* Belka wraca do szerokości treści i zostaje wyśrodkowana.
    `justify-self`, a nie „margin-inline: auto" — widok jest siatką, a element
@@ -2030,6 +2064,16 @@ code {
   animation: flow var(--flow-duration, 2s) linear infinite;
 }
 
+/* KIERUNEK KRESKI MUSI ZGADZAĆ SIĘ ZE STRZAŁKAMI NAD ZBIORNIKIEM.
+   Ścieżki przepływu są przepisane z rur projektanta, więc biegną w kierunku
+   RYSOWANIA, a nie płynięcia — dla trzech z pięciu rur to kierunki przeciwne.
+   Zamiast przepisywać `d` od końca (co przy następnej wersji rysunku trzeba by
+   robić od nowa) odwracamy samą animację. Które rury, rozstrzygają strzałki
+   przy górnej krawędzi magazynu — patrz wepnij-kontrakt.mjs. */
+.schema .tube__flow--wspak.is-flowing {
+  animation-direction: reverse;
+}
+
 /* ZEROWY PRZEPŁYW TO BRAK RUCHU — warstwa znika. */
 .schema .tube__flow.is-still {
   opacity: 0;
@@ -2077,17 +2121,25 @@ code {
   --tlo-blask-gorny: #3a2f22;
 }
 
-/* Magazyn chłodu: cały interfejs przechodzi w lodowy błękit, a kierunek
-   nitek się odwraca — zasilanie jest tu zimne, powrót cieplejszy. Atrybut
-   ustawia App na korzeniu dokumentu, na podstawie materiału sesji albo
-   rodzaju oglądanego punktu na mapie. */
+/* Magazyn chłodu: cały interfejs przechodzi w lodowy błękit.
+   OBA OBIEGI SĄ NIEBIESKIE — i to jest poprawka, nie oszczędność barw.
+   Wcześniej powrót malował się na pomarańcz (bo „powrót jest cieplejszy"),
+   a w magazynie chłodu przez obie rury płynie woda lodowa: jedna zimniejsza,
+   druga mniej zimna. Pomarańczowa nitka mówiła o ciepłej wodzie, której tam
+   nie ma. Różnica zostaje, tylko w obrębie błękitu — ciemniejszy odcień to
+   zimniejsze zasilanie, jaśniejszy to powrót.
+   Zgłoszone przez projektanta 2026-08-04.
+   Atrybut ustawia App na korzeniu dokumentu, na podstawie materiału sesji
+   albo rodzaju oglądanego punktu na mapie. */
 :root[data-kierunek='chlod'] {
   --akcent: var(--chlod);
   --akcent-jasny: var(--chlod-jasny);
   --akcent-tlo: var(--chlod-tlo);
   --akcent-mocny: #3a6072;
-  --zasilanie: var(--chlod);
-  --powrot: var(--cieplo);
+  /* Zasilanie — woda zimniejsza, więc głębszy błękit. Powrót — mniej zimna,
+     więc jaśniejszy. Oba z tej samej rodziny co reszta interfejsu chłodu. */
+  --zasilanie: #3a6072;
+  --powrot: var(--chlod-jasny);
 
   /* Pasmo przemiany na wykresach — lekko niebieskie. */
   --pasmo-tlo: rgba(77, 122, 145, 0.1);
@@ -2984,6 +3036,31 @@ code {
    barwę bierze zmienna ustawiana w blokach [data-kierunek]. */
 .chart__band {
   fill: var(--pasmo-tlo, rgba(13, 13, 13, 0.05));
+}
+
+/* Pobieranie pod wykresem — liczby i obraz obok siebie. `button.link` musi
+   wyglądać jak odnośnik, bo stoi w jednym rzędzie z prawdziwym odnośnikiem
+   do CSV; przycisk z domyślnym tłem robiłby z tej pary dwie różne rzeczy. */
+.akcje-wykresu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
+
+button.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.link:disabled,
+.akcje-wykresu .chip:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .chart__band-label {

@@ -14,9 +14,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { HistoryAvailable, PublicPoint, SessionEvent } from '@magazyn-pcm/shared';
-import { fetchHistory, fetchSessions, historyCsvUrl, type HistoryParams } from '../api.js';
+import { fetchHistory, fetchSessions, type HistoryParams } from '../api.js';
 import { SERIES_COLORS, Wykres, type ChartSeries } from '../components/Wykres.js';
 import { WykresMagazynu } from '../components/WykresMagazynu.js';
+import { AkcjeWykresu } from '../components/AkcjeWykresu.js';
 import type { LiveData } from '../useLiveData.js';
 import { GROUP_LABEL, NO_DATA } from '../format.js';
 import { useSettings } from '../settings.js';
@@ -321,12 +322,7 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
         <section className="card">
           <div className="card__head">
             <h2 className="card__title">przebieg</h2>
-            <p className="card__meta">
-              rozdzielczość {state.data.resolution} ·{' '}
-              <a className="link" href={historyCsvUrl(state.params)} download>
-                pobierz CSV
-              </a>
-            </p>
+            <p className="card__meta">rozdzielczość {state.data.resolution}</p>
           </div>
 
           {chart.series.every((s) => s.points.length === 0) ? (
@@ -342,6 +338,14 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
                 events={settings.zdarzeniaNaWykresie ? events : []}
                 fromMs={chart.fromMs}
                 toMs={chart.toMs}
+              />
+
+              {/* Pobieranie stoi POD wykresem, nie w nagłówku karty: dotyczy
+                  tego, co właśnie widać, a nie całego widoku. */}
+              <AkcjeWykresu
+                params={state.params}
+                nazwa={`przebiegi-${state.params.ids.join('-')}`}
+                wariant="link"
               />
 
               <div className="table-scroll">

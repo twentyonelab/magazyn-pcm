@@ -290,7 +290,11 @@ export function PasekPrzemiany({
               />
             ) : null}
 
-            {/* Rozjazd sond — wąski pas od najzimniejszej do najcieplejszej. */}
+            {/* Rozjazd sond — pas od najzimniejszej do najcieplejszej.
+                WYCHODZI PONAD PASEK I POD PASEK, bledszy niż sam pasek: ma być
+                widoczny obok podziałki, nie zamiast niej. Dlatego siedzi tutaj,
+                a nie w `.belka__pasek` — tamten ma `overflow: hidden` (przez
+                zaokrąglone narożniki gradientu) i obciąłby nadwyżkę. */}
             {zakresC && szerokosc > 0 ? (
               <span
                 className="belka__zakres"
@@ -302,6 +306,26 @@ export function PasekPrzemiany({
               />
             ) : null}
           </span>
+
+          {/* GRANICE PRZEMIANY — przerywane kreski wychodzące nad i pod pasek,
+              tak jak prowadnice na krzywej entalpii po rozwinięciu belki. Pasmo
+              samo w sobie jest tylko sztrychem, więc bez tych kresek trudno
+              odczytać, GDZIE dokładnie się zaczyna i kończy. Dwie kreski, bo
+              solidus i liquidus znaczą co innego: przy chłodzie krzepnięcie
+              zaczyna się na jednym końcu, a kończy na drugim. */}
+          {szerokosc > 0
+            ? [
+                { t: cfg.solidus, opis: 'solidus' },
+                { t: cfg.liquidus, opis: 'liquidus' },
+              ].map((g) => (
+                <span
+                  key={g.opis}
+                  className="belka__granica"
+                  style={{ left: skala.xOf(g.t) }}
+                  title={`${g.opis === 'solidus' ? 'Początek' : 'Koniec'} przemiany: ${liczba(g.t)} °C`}
+                />
+              ))
+            : null}
 
           {maDane && szerokosc > 0 ? (
             <span className="belka__marker" style={{ left: skala.xOf(averageC) }} />

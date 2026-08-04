@@ -27,6 +27,7 @@ import {
   temperaturaSondy,
   temperaturaZewnetrzna,
   temperaturyObiegu,
+  temperaturyOdbioru,
 } from './model.js';
 
 /**
@@ -59,13 +60,19 @@ export const PUNKTY_POKAZOWE: PublicPoint[] = [
     geometry: { diagonal: s.przekatna, level: s.poziom },
     available: true,
   })),
-  { id: 'METER_FLOW', label: 'Ciepłomierz · przepływ', unit: 'm³/h', kind: 'flow', group: 'meter', precision: 3, available: true },
+  { id: 'METER_FLOW', label: 'Źródło · przepływ', unit: 'm³/h', kind: 'flow', group: 'meter', precision: 3, available: true },
   { id: 'METER_POWER', label: 'Ciepłomierz · moc', unit: 'kW', kind: 'power', group: 'meter', precision: 2, available: true },
   { id: 'METER_ENERGY_HEAT', label: 'Ciepłomierz · energia grzania', unit: 'kWh', kind: 'energy', group: 'meter', precision: 2, available: true },
   { id: 'METER_ENERGY_COOL', label: 'Ciepłomierz · energia chłodzenia', unit: 'kWh', kind: 'energy', group: 'meter', precision: 2, available: true },
-  { id: 'METER_T1', label: 'Ciepłomierz · zasilanie', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
-  { id: 'METER_T2', label: 'Ciepłomierz · powrót', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
-  { id: 'METER_DT', label: 'Ciepłomierz · ΔT', unit: 'K', kind: 'delta', group: 'meter', precision: 2, available: true },
+  { id: 'METER_T1', label: 'Źródło · zasilanie', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
+  { id: 'METER_T2', label: 'Źródło · powrót', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
+  { id: 'METER_DT', label: 'Źródło · ΔT', unit: 'K', kind: 'delta', group: 'meter', precision: 2, available: true },
+  // Cieplomierz ODBIORU — lewa strona schematu. Trzy punkty, dokladnie te,
+  // ktore istnieja w Miniserverze: dwie temperatury i ΔT. Przeplywu odbioru
+  // nie ma tam kanalu, wiec nie ma go i tutaj.
+  { id: 'ODBIOR_T_ZASILANIE', label: 'Odbiór · zasilanie', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
+  { id: 'ODBIOR_T_POWROT', label: 'Odbiór · powrót', unit: '°C', kind: 'temperature', group: 'meter', precision: 1, available: true },
+  { id: 'ODBIOR_DT', label: 'Odbiór · ΔT', unit: 'K', kind: 'delta', group: 'meter', precision: 2, available: true },
   { id: 'BUFFER_TOP', label: 'Bufor · góra', unit: '°C', kind: 'temperature', group: 'buffer', precision: 1, available: true },
   { id: 'BUFFER_BOTTOM', label: 'Bufor · dół', unit: '°C', kind: 'temperature', group: 'buffer', precision: 1, available: true },
   { id: 'HP_STATE', label: 'Pompa ciepła · praca', unit: '', kind: 'state', group: 'heatpump', precision: 0, available: true },
@@ -95,6 +102,11 @@ export function wartosciPokazowe(ms: number): PointValues {
   values.METER_DT = swiezy(Number((t1 - t2).toFixed(2)));
   values.METER_ENERGY_HEAT = swiezy(Number(energia(ms, 'grzanie').toFixed(2)));
   values.METER_ENERGY_COOL = swiezy(Number(energia(ms, 'chlodzenie').toFixed(2)));
+
+  const odbior = temperaturyOdbioru(ms);
+  values.ODBIOR_T_ZASILANIE = swiezy(Number(odbior.zasilanie.toFixed(1)));
+  values.ODBIOR_T_POWROT = swiezy(Number(odbior.powrot.toFixed(1)));
+  values.ODBIOR_DT = swiezy(Number((odbior.zasilanie - odbior.powrot).toFixed(2)));
 
   // Bufor idzie za magazynem z opóźnieniem — stąd odczyt sprzed dwudziestu minut.
   values.BUFFER_TOP = swiezy(Number((temperaturaSondy('A3', ms - 1_200_000) - 1.4).toFixed(1)));
@@ -239,6 +251,14 @@ function wartoscHistoryczna(id: string, ms: number): number | null {
       return Number(t2.toFixed(1));
     case 'METER_DT':
       return Number((t1 - t2).toFixed(2));
+    case 'ODBIOR_T_ZASILANIE':
+      return Number(temperaturyOdbioru(ms).zasilanie.toFixed(1));
+    case 'ODBIOR_T_POWROT':
+      return Number(temperaturyOdbioru(ms).powrot.toFixed(1));
+    case 'ODBIOR_DT': {
+      const o = temperaturyOdbioru(ms);
+      return Number((o.zasilanie - o.powrot).toFixed(2));
+    }
     case 'BUFFER_TOP':
       return Number((temperaturaSondy('A3', ms - 1_200_000) - 1.4).toFixed(1));
     case 'BUFFER_BOTTOM':

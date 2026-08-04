@@ -198,6 +198,31 @@ export function wartosciPunktu(lok: Lokalizacja, ms: number): PointValues {
   values.METER_ENERGY_HEAT = { v: null, ts: null, stale: true };
   values.METER_ENERGY_COOL = { v: null, ts: null, stale: true };
 
+  /*
+   * CIEPŁOMIERZ ODBIORU — lewa strona schematu.
+   *
+   * Drugi obieg pracuje w PRZECIWNEJ fazie niż źródło: źródło ładuje magazyn,
+   * odbiór go rozładowuje. Przy ładowaniu odbiór stoi, więc obie jego sondy
+   * widzą temperaturę zbiornika i ΔT siada na zerze — dokładnie tak, jak
+   * wygląda prawdziwe stanowisko, gdy nikt ciepła nie pobiera.
+   *
+   * Kierunek różnicy wynika ze strzałek na rysunku: rurą przy x=694 płyn
+   * WYCHODZI ze zbiornika, przy x=672 WRACA. Wychodzący jest więc bliżej
+   * temperatury magazynu, wracający — o kilka kelwinów dalej, bo odbiorca
+   * zdążył ciepło zabrać (przy chłodzie: dogrzać).
+   */
+  const odbiorPracuje = faza === 'rozladowanie';
+  const odbiorZasilanie = srednia - 0.3 * znak * rozpietosc;
+  const odbiorPowrot = odbiorPracuje
+    ? srednia - 3.7 * znak * rozpietosc
+    : srednia - 0.4 * znak * rozpietosc;
+  values.ODBIOR_T_ZASILANIE = swiezy(Number(odbiorZasilanie.toFixed(1)));
+  values.ODBIOR_T_POWROT = swiezy(Number(odbiorPowrot.toFixed(1)));
+  values.ODBIOR_DT = swiezy(Number((odbiorZasilanie - odbiorPowrot).toFixed(2)));
+  // Przepływu odbioru nie ma w Miniserverze (brak kanału Modbus), więc pokaz
+  // też go nie podaje — inaczej obiecywałby liczbę, której nigdzie nie ma.
+  values.ODBIOR_FLOW = { v: null, ts: null, stale: true };
+
   values.BUFFER_TOP = swiezy(Number((temperaturaSondyPunktu(lok, 'A3', ms - 1_200_000) - 1.4 * rozpietosc).toFixed(1)));
   values.BUFFER_BOTTOM = swiezy(Number((temperaturaSondyPunktu(lok, 'A1', ms - 1_200_000) - 2.2 * rozpietosc).toFixed(1)));
 
