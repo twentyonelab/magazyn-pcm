@@ -144,10 +144,22 @@ function plik(nazwa: string): string {
   return `${import.meta.env.BASE_URL}${nazwa}`;
 }
 
+/*
+ * BILANS ZDJĘTY Z MENU 2026-08-04 (na razie).
+ *
+ * Widok jest świadomą zaślepką — mówi, czego brakuje, żeby policzyć bilans
+ * energii. Dopóki liczniki energii ciepłomierzy zwracają wartości ujemne
+ * (objaw odwrotnego montażu, AXIOMA 0002), nie ma z czego go policzyć,
+ * a pozycja w menu obiecuje treść, której za nią nie ma.
+ *
+ * KOD ZOSTAJE NA MIEJSCU: typ `WidokMagazynu` dalej zna 'bilans', a `App`
+ * dalej umie go wyrenderować. Przywrócenie to odkomentowanie jednej linii
+ * niżej — i to jest cała różnica między „wyłączone" a „usunięte".
+ */
 const WIDOKI_MAGAZYNU: Array<{ id: WidokMagazynu; label: string; icon?: 'trybik' }> = [
   { id: 'schemat', label: 'Schemat' },
   { id: 'przebiegi', label: 'Przebiegi' },
-  { id: 'bilans', label: 'Bilans' },
+  // { id: 'bilans', label: 'Bilans' },
   { id: 'sesje', label: 'Sesje' },
   { id: 'diagnostyka', label: 'Diagnostyka' },
   { id: 'ustawienia', label: 'Ustawienia', icon: 'trybik' },
