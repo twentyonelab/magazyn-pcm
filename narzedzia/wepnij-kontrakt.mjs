@@ -526,6 +526,39 @@ const RURY = [
   },
 ];
 
+// --- 6a. Dwie rury zabladzone za warstwe przeplywu -------------------------
+//
+// USTERKA, KTORA WYGLADALA JAK BRAK ANIMACJI, A BYLA KOLEJNOSCIA RYSOWANIA.
+//
+// Projektant zapisal wiekszosc rur (.st21) w jednym bloku na poczatku pliku,
+// ale DWIE stoja pozniej, wsrod urzadzen: odcinek bufor -> pompa ciepla
+// (`M985.11,371.26…`) i odgalezienie do naczynia przeponowego
+// (`1165.78,200.87 → 369.22`). Warstwe przeplywu wpinamy przed grupa zbiornika,
+// czyli PRZED tamtymi dwoma — a w SVG pozniejszy element rysuje sie na
+// wierzchu. Rura bazowa zamalowywala wiec strumien: animacja liczyla sie
+// poprawnie (klasa `is-flowing`, predkosc w `data-flow-speed`), tylko nie bylo
+// jej widac. Zglaszane dwa razy jako „nadal nie mam tu obiegu" — i za pierwszym
+// razem szukalem bledu w danych, bo one wygladaly dobrze.
+//
+// Przenosimy je do bloku z pozostalymi rurami. Wspolrzednych nie ruszamy,
+// wiec rysunek nie zmienia sie ani o piksel — zmienia sie tylko kolejnosc.
+const RURA_BUFOR_POMPA =
+  '<path class="st21" d="M985.11,371.26v-159.58c0-6.24,5.1-11.34,11.34-11.34h268.91c6.24,0,11.34,5.1,11.34,11.34v157.55"/>';
+const RURA_NACZYNIE = '<line class="st21" x1="1165.78" y1="200.87" x2="1165.78" y2="369.22"/>';
+const OSTATNIA_RURA_W_BLOKU =
+  '<path class="st21" d="M772.26,296.22v-134.55c0-6.24,5.1-11.34,11.34-11.34h146.91c6.24,0,11.34,5.1,11.34,11.34v209.7"/>';
+
+// Najpierw usuwamy z miejsc, w ktorych stoja, potem wstawiamy — odwrotna
+// kolejnosc kasowalaby swiezo wstawiona kopie (replace bierze pierwsze
+// trafienie).
+usunFragment('rura bufor -> pompa (przenoszona do bloku rur)', RURA_BUFOR_POMPA);
+usunFragment('odgalezienie naczynia (przenoszone do bloku rur)', RURA_NACZYNIE);
+podmien(
+  'blok rur — miejsce na dwie przeniesione',
+  OSTATNIA_RURA_W_BLOKU,
+  OSTATNIA_RURA_W_BLOKU + '\n  ' + RURA_BUFOR_POMPA + '\n  ' + RURA_NACZYNIE,
+);
+
 const PRZEPLYW =
   '  <!-- KONTRAKT: warstwa przeplywu — osie rur przepisane z rysunku. -->\n' +
   '  <g id="warstwa-przeplywu" fill="none">\n' +

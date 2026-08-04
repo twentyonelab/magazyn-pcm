@@ -1402,13 +1402,16 @@ code {
   position: absolute;
   top: -7px;
   bottom: -7px;
-  border-radius: 4px;
-  /* Mocniej niż poprzednie 10 %: przy rozrzucie 1,5 K — a taki jest w plateau
-     przemiany — pas jest wąski i najsłabsze wypełnienie ginęło na gradiencie.
-     Obrys domyka kształt, żeby dały się odczytać jego krawędzie, czyli
-     konkretne min i max, a nie tylko sama plama. */
-  background: color-mix(in srgb, var(--ink) 16%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent);
+  /* BEZ ZAOKRĄGLEŃ. Pas oznacza dwie konkretne wartości — najzimniejszą
+     i najcieplejszą sondę — a zaokrąglony narożnik rozmywa dokładnie to
+     miejsce, które trzeba odczytać. Prosta krawędź pada tam, gdzie liczba. */
+  border-radius: 0;
+  /* LEKKO CHŁODNY, nie neutralnie szary. Domieszka błękitu odsuwa pas od
+     grafitowego tuszu markera i podpisów, więc nie czyta się jak jeszcze jeden
+     element interfejsu, tylko jak nakładka na podziałkę. Barwa idzie z tokenu
+     chłodu, nie z wpisanego hexa, więc oba motywy dostają ją same. */
+  background: color-mix(in srgb, var(--chlod, #6f93b0) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chlod, #6f93b0) 45%, transparent);
   pointer-events: none;
 }
 
@@ -3644,6 +3647,25 @@ body::after {
    zewnętrznych narożnikach, a styk bez podwójnej krawędzi. */
 .belka__glowa {
   border-radius: 12px;
+}
+
+/* CZARNEJ RAMKI WOKÓŁ BELKI NIE MA — zgłoszone 2026-08-04.
+   Belka jest przyciskiem (rozwija krzywą entalpii), więc przeglądarka rysowała
+   jej własny pierścień skupienia: grubą, prawie czarną obwódkę wokół całej
+   karty. Na szklanej płaszczyźnie nad schematem czytało się to jak obramowanie
+   elementu, nie jak podświetlenie klawiaturowe.
+
+   Pierścienia nie kasujemy bez zamiany — kto chodzi po interfejsie klawiaturą,
+   musi widzieć, gdzie jest. Wchodzi więc własny, w barwie nośnika, i tylko przy
+   `:focus-visible`, czyli przy nawigacji z klawiatury; klik myszą nie zostawia
+   po sobie ramki. */
+.belka__glowa:focus {
+  outline: none;
+}
+
+.belka__glowa:focus-visible {
+  outline: 2px solid var(--akcent);
+  outline-offset: 2px;
 }
 
 .belka.is-open .belka__glowa {

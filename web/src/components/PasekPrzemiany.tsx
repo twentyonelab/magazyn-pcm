@@ -439,7 +439,16 @@ export function PasekPrzemiany({
           <div className="belka__kafle">
             <Kafel label="ciepło utajone" wartosc={`${profile.latentHeat} kJ/kg`} />
             <Kafel label="temperatura maks." wartosc={`${profile.tMax} °C`} />
-            <Kafel label="szczyt topnienia" wartosc={`${profile.peak} °C`} />
+            {/* SZCZYT TOPNIENIA CZY KRZEPNIĘCIA — zależy od nośnika i nie jest
+                drobiazgiem językowym. W magazynie CIEPŁA materiał ładuje się
+                topieniem, więc szczyt jest szczytem topnienia. W magazynie
+                CHŁODU (8HC) ładowaniem jest krzepnięcie i podpis „szczyt
+                topnienia" opisywał wtedy przemianę odwrotną do tej, którą się
+                obserwuje. Ta sama liczba z profilu, dwie różne przemiany. */}
+            <Kafel
+              label={cfg.kierunek === 'chlod' ? 'szczyt krzepnięcia' : 'szczyt topnienia'}
+              wartosc={`${profile.peak} °C`}
+            />
             <Kafel
               label="magazyn / bufor"
               wartosc={volumesL ? `${volumesL.storage} / ${volumesL.buffer} l` : '—'}

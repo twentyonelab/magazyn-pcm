@@ -38,6 +38,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { HistorySeries, MaterialProfile } from '@magazyn-pcm/shared';
 import { fetchHistory } from '../api.js';
+import { barwaTemperatury } from '../paleta-temperatur.js';
 import { SERIES_COLORS } from './Wykres.js';
 import {
   GODZINA_MS,
@@ -142,55 +143,31 @@ interface Props {
 }
 
 /**
- * SKALA BARWNA MAPY CIEPLNEJ — jedna ciągła rampa po temperaturze bezwzględnej.
+ * SKALA BARWNA MAPY CIEPLNEJ — SKALIBROWANA RAZ, W PALECIE A2.
  *
- * Wcześniej były tu TRZY REŻIMY zaczepione o profil materiału: błękity poniżej
- * pasma przemiany, piaski w pasmie, pomarańcze powyżej. Pomysł był taki, żeby
- * przemiana rysowała się jako zwarta plama — i to działało, ale za cenę dwóch
- * OSTRYCH CIĘĆ na granicach pasma. Przy 8HC pasmo ma dwa stopnie szerokości
- * (7–9 °C), więc ćwierć stopnia różnicy przeskakiwało z błękitu na piasek:
- * mapa pokazywała skok tam, gdzie w zbiorniku nic nie skakało.
+ * Mapa nie ma już własnej rampy. Barwa idzie z `paleta-temperatur.ts`, skalą
+ * GLOBALNĄ (0–70 °C) — tą samą, którą malowane są kropki sond na schemacie
+ * i podziałka na belce stanu. Jeden zapis barwy dla całej aplikacji.
  *
- * Druga wada była cichsza i gorsza: skala zależała od profilu, więc ten sam
- * kolor znaczył inną temperaturę dla 57HC i dla 8HC. Dwóch materiałów nie dało
- * się porównać — a to w tym badaniu jest jednym z głównych pytań.
+ * DLACZEGO TO ZMIENIŁEM (zgłoszone 2026-08-04: „przy 9 stopniach powinno już
+ * być niebieskawe"). Stała tu wcześniej rampa własna, z bielą wpisaną na 0 °C
+ * i szarością na 10 °C. Zbiornik 8HC pracuje między 6 a 19 °C, czyli DOKŁADNIE
+ * w tym miejscu skali, gdzie tamta rampa nie miała żadnego błękitu — cała doba
+ * chłodu wychodziła szaro-piaskowo, a przy 15 °C wjeżdżał pomarańcz. Mapa
+ * pokazywała ciepło tam, gdzie magazyn był naładowany chłodem.
  *
- * Teraz punkty oparcia są WPISANE W STOPNIE i wspólne dla wszystkich
- * materiałów. Barwa nie koduje już przemiany; przemianę pokazuje osobno obrys
- * pasma na skali i granice w podpisie. Kolor mówi „ile stopni", i tylko to.
+ * Paleta A2 ma w tym miejscu to, co trzeba: 0 °C to granatowy błękit, 8 °C
+ * jeszcze wyraźny błękit, 20 °C blady błękit, neutralność wchodzi dopiero
+ * około 30 °C, a pomarańcze powyżej 45 °C — czyli tam, gdzie pracuje 57HC.
+ * Ta sama liczba stopni ma więc jeden kolor w całej aplikacji i dwa materiały
+ * dają się porównać, co jest tu jednym z głównych pytań badawczych.
+ *
+ * Skala jest BEZWZGLĘDNA i celowo NIE jest lokalna. Kolor mówi „ile stopni",
+ * nigdy „jak blisko przemiany" — przemianę pokazuje osobno obrys na pasku
+ * i granice w podpisie.
  */
-const RAMPA: ReadonlyArray<{ t: number; rgb: [number, number, number] }> = [
-  { t: -20, rgb: [40, 74, 132] }, // głęboki granat — mróz
-  { t: -5, rgb: [120, 168, 214] }, // błękit
-  { t: 0, rgb: [246, 249, 252] }, // biel: zero jako punkt odniesienia
-  { t: 10, rgb: [198, 196, 190] }, // szarość — ani zimno, ani ciepło
-  { t: 15, rgb: [237, 168, 88] }, // pomarańcz
-  { t: 25, rgb: [219, 84, 46] }, // czerwień
-  { t: 40, rgb: [138, 26, 22] }, // bordo dopiero tutaj
-  { t: 70, rgb: [92, 12, 14] }, // najgłębsze bordo — koniec skali
-];
-
 function barwa(t: number): string {
-  const pierwszy = RAMPA[0]!;
-  const ostatni = RAMPA[RAMPA.length - 1]!;
-  const zapis = (c: readonly [number, number, number]): string => `rgb(${c[0]} ${c[1]} ${c[2]})`;
-
-  if (t <= pierwszy.t) return zapis(pierwszy.rgb);
-  if (t >= ostatni.t) return zapis(ostatni.rgb);
-
-  for (let i = 1; i < RAMPA.length; i += 1) {
-    const b = RAMPA[i]!;
-    if (t > b.t) continue;
-    const a = RAMPA[i - 1]!;
-    const u = (t - a.t) / (b.t - a.t);
-    return zapis([
-      Math.round(a.rgb[0] + (b.rgb[0] - a.rgb[0]) * u),
-      Math.round(a.rgb[1] + (b.rgb[1] - a.rgb[1]) * u),
-      Math.round(a.rgb[2] + (b.rgb[2] - a.rgb[2]) * u),
-    ]);
-  }
-
-  return zapis(ostatni.rgb);
+  return barwaTemperatury(t, 'globalna');
 }
 
 export function WykresMagazynu({ profil }: Props) {
