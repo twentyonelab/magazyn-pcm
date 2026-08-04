@@ -1766,7 +1766,14 @@ code {
 /* BLENDA NAD SCENĄ 3D. Barwa z tła strony, czyli ta sama ciepła (albo stalowa
    przy chłodzie) płachta co nad schematem — dlatego `--tlo-strony`, a nie biel:
    biel na ciemnym motywie byłaby jasnym prostokątem w środku ekranu.
-   Krycie 0,5, żeby scena była widoczna, ale nie dała się czytać jak wynik.
+
+   KRYCIE 0,7, nie 0,5 (zgłoszone 2026-08-04). Przy połowie scena była wciąż
+   dość czytelna, żeby ktoś zaczął z niej odczytywać proporcje bryły i
+   rozmieszczenie urządzeń — a właśnie te dwie rzeczy nie są jeszcze
+   rozstrzygnięte. Zasłona ma mówić „to nie jest wynik", a nie „popatrz przez
+   mgłę". Scena zostaje widoczna na tyle, żeby było jasne, że pod spodem coś
+   działa, i nie na tyle, żeby dała się czytać.
+
    Nie łapie kliknięć: obracanie i przybliżanie działa dalej. */
 .stage3d__blenda {
   position: absolute;
@@ -1775,26 +1782,41 @@ code {
   display: grid;
   place-items: center;
   background: var(--tlo-strony);
-  opacity: 0.5;
+  opacity: 0.7;
   pointer-events: none;
 }
 
+/* NAPIS „W BUDOWIE" — mały i w kroju całej aplikacji.
+   Wcześniej sięgał 3,2 rem z rozstrzeleniem 0,14 em, czyli był największym
+   napisem na ekranie i wyglądał jak nagłówek widoku, a nie jak adnotacja
+   o stanie prac. Teraz jest wielkości podpisu: informuje, nie krzyczy.
+
+   `font-family` podana JAWNIE, mimo dziedziczenia — ten napis leży nad
+   sceną Three.js, w której podpisy urządzeń idą z własnych stylów CSS2D,
+   i wpisanie kroju tutaj zamyka pytanie, czy dziedziczy właściwy.
+
+   Światło międzyliterowe zmniejszone do 0,04 em: przy tej wielkości 0,14 em
+   rozsypywałoby dwa słowa na osobne znaki. */
 .stage3d__napis {
-  font-size: clamp(1.6rem, 5vw, 3.2rem);
+  font-family: var(--font);
+  font-size: clamp(0.82rem, 1.4vw, 1.05rem);
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.04em;
   text-transform: lowercase;
   color: var(--ink);
   /* Sam napis ma być czytelny, więc odrabia krycie blendy. */
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .canvas__tools .wymiar {
   display: grid;
-  /* 38, nie 34: przy szerokości przycisków narzędzi napisy „2D"/„3D" dotykały
-     krawędzi pastylki. Kolumna narzędzi jest wyrównana do PRAWEJ, więc te
-     cztery piksele wychodzą w lewo, w puste miejsce nad rysunkiem. */
-  width: 38px;
+  /* DOKŁADNIE TYLE, CO PRZYCISKI NARZĘDZI (34 px) — i to poprawka usterki.
+     Stało tu 38 px „na oddech dla napisów 2D/3D", a kolumna jest wyrównana do
+     PRAWEJ, więc te cztery piksele wychodziły W LEWO: tło pastylki wystawało
+     zza kolumny i czytało się jak niedomknięta krawędź panelu. Zgłaszane dwa
+     razy („dalej wychodzi"). Napisy i tak się mieszczą: przy 0,68 rem „2D" ma
+     około 15 px w polu szerokości 30 px, więc do krawędzi nie dochodzi. */
+  width: 34px;
   justify-self: end;
   padding: 2px;
   margin-top: 0.3rem;
@@ -1805,7 +1827,7 @@ code {
 .canvas__tools .wymiar__item {
   min-width: 0;
   padding: 4px 0;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   /* Rozstrzelenie zdejmuje się w pastylce: przy dwóch znakach dodawało
      odstęp PO drugim znaku i napis wyglądał na przesunięty w lewo. */
   letter-spacing: 0;
