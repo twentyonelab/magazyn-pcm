@@ -235,16 +235,53 @@ export function WykresMagazynu({ profil }: Props) {
 
   const gotowe = stan.kind === 'ready' ? stan : null;
 
-  /** Serie w kolejności od góry zbiornika, tylko widoczne, z próbkami. */
+  /**
+   * Serie w kolejności od góry zbiornika, tylko widoczne — WSZYSTKIE ZŁOŻONE
+   * NA JEDNEJ, WSPÓLNEJ OSI CZASU.
+   *
+   * ============================================================================
+   * SERIE Z SERWERA NIE MAJĄ TYCH SAMYCH ZNACZNIKÓW CZASU. Stało tu wcześniej
+   * proste przepisanie punktów każdej sondy z osobna, a `rozwarstwienie`
+   * i `mapa cieplna` zestawiały je POTEM PO INDEKSIE — z komentarzem, że
+   * „próbki różnych serii mają te same znaczniki czasu". To nieprawda i dało się
+   * to zmierzyć: `/api/history` zwraca tylko te kubełki, w których dana sonda
+   * coś zmierzyła, więc dla doby wychodzi 154–158 próbek zależnie od sondy
+   * (sprawdzone 2026-08-04). Cztery kubełki różnicy to przy rozdzielczości 5 min
+   * DWADZIEŚCIA MINUT przesunięcia między wierszami mapy cieplnej.
+   *
+   * Skutek był dokładnie taki, jakiego ten projekt najbardziej nie chce: mapa
+   * pokazywała front przemiany wędrujący przez zbiornik, a część tego wędrowania
+   * była artefaktem rozjechanych osi. Wykres wyglądał poprawnie i kłamał.
+   *
+   * Teraz osią jest SUMA wszystkich znaczników czasu, a każda sonda dostaje
+   * wartość albo `null` w każdym kubełku tej osi. Dzięki temu indeks `i` znaczy
+   * tę samą chwilę w każdej serii — i dopiero wtedy zestawianie po indeksie,
+   * z którego korzystają rozwarstwienie i mapa, jest w ogóle uprawnione.
+   */
   const serie = useMemo(() => {
     if (!gotowe) return [];
     const mapa = new Map(gotowe.serie.map((s) => [s.id, s]));
-    return widoczne.map((id) => ({
-      id,
-      kolor: KOLOR[id],
-      opis: OPIS_SONDY[id],
-      punkty: (mapa.get(id)?.points ?? []).map((p) => ({ ms: Date.parse(p.ts), v: p.v })),
-    }));
+
+    // Wspólna oś: wszystkie chwile, w których KTÓRAKOLWIEK widoczna sonda
+    // ma próbkę. Sortowana, bo kolejność serii nie gwarantuje kolejności czasu.
+    const chwile = new Set<number>();
+    for (const id of widoczne) {
+      for (const p of mapa.get(id)?.points ?? []) chwile.add(Date.parse(p.ts));
+    }
+    const os = [...chwile].sort((a, b) => a - b);
+
+    return widoczne.map((id) => {
+      const wg = new Map<number, number | null>();
+      for (const p of mapa.get(id)?.points ?? []) wg.set(Date.parse(p.ts), p.v);
+      return {
+        id,
+        kolor: KOLOR[id],
+        opis: OPIS_SONDY[id],
+        // `null` znaczy „w tej chwili ta sonda nie ma pomiaru" — i tak samo
+        // traktuje to reszta pliku, więc brak próbki nie udaje wartości.
+        punkty: os.map((ms) => ({ ms, v: wg.get(ms) ?? null })),
+      };
+    });
   }, [gotowe, widoczne]);
 
   const maProbki = serie.some((s) => s.punkty.some((p) => p.v !== null));
@@ -350,8 +387,9 @@ export function WykresMagazynu({ profil }: Props) {
   /**
    * Rozwarstwienie: dla każdej chwili min, max i średnia po WIDOCZNYCH sondach.
    *
-   * Próbki różnych serii mają te same znaczniki czasu (serwer zwraca kubełki),
-   * więc zestawiamy je po indeksie osi czasu pierwszej serii.
+   * Zestawianie po indeksie jest tu poprawne WYŁĄCZNIE dlatego, że `serie`
+   * powstają na wspólnej osi czasu (patrz komentarz przy `serie` wyżej).
+   * Bez tego indeks `i` znaczyłby w każdej sondzie inną chwilę.
    */
   const rozwarstwienie = useMemo(() => {
     if (serie.length === 0) return null;
@@ -392,6 +430,10 @@ export function WykresMagazynu({ profil }: Props) {
    * kilka tysięcy prostokątów na wiersz i przeglądarka zaczęłaby się zacinać.
    * Przerzedzamy PRÓBKOWANIEM, nie uśrednianiem — uśrednianie zjadłoby
    * krótkie skoki temperatury, a to one są ciekawe.
+   *
+   * WIERSZE LEŻĄ NA WSPÓLNEJ OSI CZASU (patrz komentarz przy `serie`) — bez
+   * tego kolumna nr `i` znaczyłaby w każdym wierszu inną chwilę i wędrujący
+   * front przemiany byłby po części artefaktem rozjechanych osi.
    *
    * POŁOŻENIE KOLUMNY BIERZE SIĘ ZE ZNACZNIKA CZASU, nie z numeru próbki.
    * Rozstawienie po numerze jest kuszące i błędne: serwer zwraca tylko te
