@@ -90,7 +90,14 @@ Railway, region EU West. **Push na `master` wdraża sam** — nie ma osobnego kr
 Sonda żywotności to `/api`, nie `/api/health`: to drugie zwraca 503, gdy Loxone
 nie odpowiada, co dla sondy liveness jest błędem (aplikacja żyje, źródło nie).
 
-Adres: https://magazyn-pcmserver-production.up.railway.app
+Adresy: strona o produkcie https://entalvia.eu, aplikacja https://app.entalvia.eu,
+surowy adres Railway https://magazyn-pcmserver-production.up.railway.app.
+DNS domeny obsługuje **Cloudflare**, nie home.pl — jak to jest spięte i dlaczego
+wierzchołek domeny musi być proxowany, opisuje `docs/DOMENY-I-DNS.md`.
+
+Brama hasła jest **włączona** (`AUTH_ENABLED` i `AUTH_PASSWORD_HASH` w zmiennych
+Railway). Lokalnie zostaje wyłączona celowo: w sieci laboratorium dodatkowy ekran
+przed pracą przy stanowisku tylko przeszkadza.
 
 ## Zasada weryfikacji
 
@@ -101,12 +108,8 @@ możesz — powiedz to wprost, zamiast domykać zdanie słowem „gotowe".
 
 ## Do zrobienia
 
-- **Hasło na Railway.** Brama i ekran startowy stoją na `master`, hash leży
-  w lokalnym `.env`. Adres publiczny zostaje OTWARTY, dopóki `AUTH_ENABLED`,
-  `AUTH_PASSWORD_HASH` i `AUTH_COOKIE_SECURE=true` nie zostaną ustawione
-  w panelu Railway — plik `.env` tam nie dochodzi. Lokalnie brama jest
-  wyłączona celowo: w sieci laboratorium tylko przeszkadza.
-- Osobny token Mapbox: tylko do czytania, ograniczony do adresu.
+- Osobny token Mapbox: tylko do czytania, ograniczony do adresu (teraz również
+  do `entalvia.eu` i `app.entalvia.eu`).
 - Kopie zapasowe z wolumenu Railway.
 - `METER_POWER` nie istnieje w Miniserverze — mocy chwilowej nie ma czym podać.
 - Ciepłomierz **odbioru** ma w Loxone tylko dwie temperatury i ΔT. Brakuje
