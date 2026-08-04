@@ -42,6 +42,16 @@ export interface BindOptions {
    * czytania rysunku inaczej niż tryb prawdziwy.
    */
   przeplywDemo?: number | null;
+  /**
+   * NAŁADOWANIE MAGAZYNU, 0–1, albo null, gdy nie ma z czego policzyć.
+   *
+   * Liczy je strona wywołująca — dokładnie ten sam odczyt, który pokazuje belka
+   * nad schematem. Gdyby ten plik liczył je sam, na jednym ekranie stanęłyby
+   * dwie różne liczby opisujące to samo, a wtedy żadnej nie da się wierzyć.
+   * Ten sam szew do podmiany źródła (temperatura → bilans energii): zmiana
+   * dotyka miejsca wywołania, nie rysunku.
+   */
+  naladowanie?: number | null;
 }
 
 /** Klasy stanu — dokładnie jedna z nich siedzi na elemencie. */
@@ -290,6 +300,35 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
 
     element.dataset.flowSpeed = predkoscStrumienia(flow, opts.flowFullSpeed).toFixed(1);
     setState(element, 'is-flowing');
+  }
+
+  // --- Pasek naładowania pod zbiornikiem -----------------------------------
+  //
+  // Prosty tor i wypełnienie od lewej, procent wyrównany do prawej krawędzi
+  // zbiornika. Szerokość toru czytamy Z RYSUNKU (`data-soc-track`), a nie
+  // z kodu: po przerysowaniu schematu pasek dopasuje się sam.
+  //
+  // Brak odczytu to KRESKA i pusty tor, nigdy zero procent. „0%" znaczyłoby
+  // „magazyn rozładowany", czyli konkretny stan instalacji — a my w tej chwili
+  // po prostu nie wiemy, w jakim jest.
+  const tor = root.querySelector<SVGRectElement>('[data-soc-track]');
+  const wypelnienie = root.querySelector<SVGRectElement>('[data-soc-fill]');
+  const napis = root.querySelector<SVGElement>('[data-soc-text]');
+
+  if (tor && wypelnienie) {
+    const szerokosc = Number(tor.getAttribute('width') ?? 0);
+    const udzial =
+      opts.naladowanie === null || opts.naladowanie === undefined
+        ? null
+        : Math.min(1, Math.max(0, opts.naladowanie));
+    wypelnienie.setAttribute('width', udzial === null ? '0' : (szerokosc * udzial).toFixed(2));
+    wypelnienie.classList.toggle('is-no-data', udzial === null);
+  }
+  if (napis) {
+    napis.textContent =
+      opts.naladowanie === null || opts.naladowanie === undefined
+        ? NO_DATA
+        : `${Math.round(Math.min(1, Math.max(0, opts.naladowanie)) * 100)}%`;
   }
 
   // --- Stany binarne -------------------------------------------------------

@@ -2212,6 +2212,47 @@ code {
   pointer-events: none;
 }
 
+/* PASEK NAŁADOWANIA POD ZBIORNIKIEM — w miejscu dawnego podpisu „Magazyn PCM".
+   Prosty tor i wypełnienie od lewej, procent wyrównany do prawej krawędzi
+   płaszcza. Bez zaokrągleń: krawędź wypełnienia jest odczytem, a zaokrąglony
+   narożnik rozmywa dokładnie to miejsce.
+
+   `!important` nie jest ozdobą — blok <style> wewnątrz SVG stoi w dokumencie
+   ZA tym arkuszem, więc bez niego przegrałby z regułami z pliku projektanta
+   (patrz nagłówek tej sekcji).
+
+   Barwa wypełnienia idzie ZA NOŚNIKIEM (`--akcent`), więc magazyn chłodu
+   dostaje błękit, a ciepła pomarańcz, bez ani jednego rozgałęzienia w kodzie. */
+.schema .soc {
+  pointer-events: none;
+}
+
+.schema .soc__tor {
+  fill: color-mix(in srgb, var(--ink) 12%, transparent) !important;
+  stroke: none !important;
+}
+
+.schema .soc__wypelnienie {
+  fill: var(--akcent) !important;
+  stroke: none !important;
+  /* Naładowanie zmienia się w minutach, nie w klatkach — płynne dojście
+     odróżnia ruch magazynu od przeskoku po ponownym połączeniu. */
+  transition: width 600ms ease;
+}
+
+/* Brak odczytu to PUSTY TOR I KRESKA, nigdy zero procent: „0%" znaczyłoby
+   „magazyn rozładowany", czyli konkretny stan, którego w tej chwili nie znamy. */
+.schema .soc__wypelnienie.is-no-data {
+  fill: none !important;
+}
+
+.schema .soc__wartosc {
+  fill: var(--ink) !important;
+  font-family: var(--mono) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
 /* Magazyn ciepła: krem i pomarańcz.
    ---------------------------------------------------------------------------
    Te wartości stały wcześniej w `:root` jako domyślne, bo ciepło było jedyną

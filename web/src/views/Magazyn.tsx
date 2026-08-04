@@ -179,6 +179,52 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
     };
   }, [host, settings.animacjePrzeplywu]);
 
+  /* --- Stan zbiornika: średnia, rozrzut, naładowanie -----------------------
+   *
+   * Liczone PRZED efektem rysującym, a nie pod koniec komponentu, i to nie
+   * kwestia porządku: od kiedy pasek naładowania stoi na samym schemacie,
+   * `soc` wchodzi do zależności tego efektu. Tablica zależności powstaje
+   * w trakcie renderowania, więc stała niżej dawałaby `ReferenceError`
+   * z martwej strefy `const`. */
+
+  const pcmPoints = points.filter((p) => p.group === 'pcm' && p.geometry);
+  const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
+
+  // Średnia z sond magazynu — jedna liczba opisująca stan zbiornika,
+  // zaznaczana markerem na belce. Definicja siedzi w `naladowanie.ts`,
+  // bo tę samą liczbę pokazuje pinezka na mapie.
+  const averageC = sredniaZSond(points, values);
+
+  // Skrajne odczyty. Gdy sondy się rozjeżdżają, sama średnia to ukrywa —
+  // belka pokazuje wtedy dodatkowo pas od najzimniejszej do najcieplejszej.
+  const odczytyPcm = pcmPoints
+    .map((p) => values[p.id]?.v)
+    .filter((v): v is number => typeof v === 'number');
+  const zakresC =
+    odczytyPcm.length > 1
+      ? { min: Math.min(...odczytyPcm), max: Math.max(...odczytyPcm) }
+      : null;
+
+  // TO JEST SZEW DO PODMIANY ŹRÓDŁA SOC. Dziś naładowanie liczy się
+  // z temperatury; gdy ciepłomierz zacznie podawać wiarygodną energię, w tym
+  // jednym miejscu wstawi się odczyt z bilansu — ani belka, ani pasek pod
+  // zbiornikiem nie zauważą różnicy.
+  const soc =
+    profile && averageC !== null
+      ? socZTemperatury(
+          averageC,
+          {
+            tMin: profile.scaleMin,
+            tMax: profile.scaleMax,
+            solidus: KONFIGURACJA[profile.id].solidus,
+            liquidus: KONFIGURACJA[profile.id].liquidus,
+            cieploPrzemiany: KONFIGURACJA[profile.id].cieploPrzemiany,
+            cp: KONFIGURACJA[profile.id].cp,
+          },
+          KONFIGURACJA[profile.id].kierunek,
+        )
+      : null;
+
   // --- Aktualizacja rysunku przy każdej zmianie danych ---------------------
   useEffect(() => {
     if (!host || !profile || host.childElementCount === 0) return;
@@ -192,8 +238,11 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
       flowFullSpeed: materials?.flowFullSpeed ?? 0.8,
       channelAlive,
       przeplywDemo: demo ? PRZEPLYW_DEMO_M3H : null,
+      // Pasek pod zbiornikiem bierze TEN SAM odczyt co belka nad schematem.
+      // Dwie liczby naładowania na jednym ekranie unieważniałyby obie.
+      naladowanie: soc?.soc ?? null,
     });
-  }, [host, pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo]);
+  }, [host, pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo, soc?.soc]);
 
   // --- Najechanie i klikanie sond na schemacie ------------------------------
   useEffect(() => {
@@ -243,43 +292,6 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
       host.removeEventListener('click', onClick);
     };
   }, [host]);
-
-  const pcmPoints = points.filter((p) => p.group === 'pcm' && p.geometry);
-  const selectedPoint = selected ? (pointMap.get(selected) ?? null) : null;
-
-  // Średnia z sond magazynu — jedna liczba opisująca stan zbiornika,
-  // zaznaczana markerem na belce. Definicja siedzi w `naladowanie.ts`,
-  // bo tę samą liczbę pokazuje pinezka na mapie.
-  const averageC = sredniaZSond(points, values);
-
-  // Skrajne odczyty. Gdy sondy się rozjeżdżają, sama średnia to ukrywa —
-  // belka pokazuje wtedy dodatkowo pas od najzimniejszej do najcieplejszej.
-  const odczytyPcm = pcmPoints
-    .map((p) => values[p.id]?.v)
-    .filter((v): v is number => typeof v === 'number');
-  const zakresC =
-    odczytyPcm.length > 1
-      ? { min: Math.min(...odczytyPcm), max: Math.max(...odczytyPcm) }
-      : null;
-
-  // TO JEST SZEW DO PODMIANY ŹRÓDŁA SOC. Dziś naładowanie liczy się
-  // z temperatury; gdy ciepłomierz zacznie podawać wiarygodną energię, w tym
-  // jednym miejscu wstawi się odczyt z bilansu — belka nie zauważy różnicy.
-  const soc =
-    profile && averageC !== null
-      ? socZTemperatury(
-          averageC,
-          {
-            tMin: profile.scaleMin,
-            tMax: profile.scaleMax,
-            solidus: KONFIGURACJA[profile.id].solidus,
-            liquidus: KONFIGURACJA[profile.id].liquidus,
-            cieploPrzemiany: KONFIGURACJA[profile.id].cieploPrzemiany,
-            cp: KONFIGURACJA[profile.id].cp,
-          },
-          KONFIGURACJA[profile.id].kierunek,
-        )
-      : null;
 
   // Kierunek zmiany do chipu stanu.
   //

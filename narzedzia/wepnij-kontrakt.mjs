@@ -315,6 +315,31 @@ podmien(
     ' data-object="storage" data-label="Magazyn PCM" data-h="8" data-vessel="true"/>',
 );
 
+// PASEK NALADOWANIA W MIEJSCU PODPISU „Magazyn PCM".
+//
+// Podpis zniknal swiadomie i to nie strata: zbiornik jest najwieksza brylą na
+// rysunku, jego panel po klikniecu nosi te sama nazwe, a nazwa parafiny stoi
+// w belce nad schematem. To miejsce pod zbiornikiem jest natomiast jedynym,
+// w ktorym naladowanie da sie postawic PRZY samym magazynie — a nie w naglowku,
+// dwadziescia centymetrow wyzej.
+//
+// Wspolrzedne pochodza z rysunku, nie z oka: plaszcz zbiornika to
+// x = 657,18 … 786,18, a podpis mial linie pisma na y = 635,03. Pasek zajmuje
+// lewa czesc tej szerokosci, procent stoi wyrownany do prawej krawedzi
+// zbiornika — tak, zeby oba konczyly sie tam, gdzie konczy sie brylą.
+//
+// `data-soc-track` niesie szerokosc toru, zeby bindSchema nie musiala jej
+// znac z kodu. Podmiana rysunku zmieni ja sama.
+podmien(
+  'podpis zbiornika -> pasek naladowania',
+  '<text class="st13" transform="translate(691.98 635.03)"><tspan x="0" y="0">Magazyn PCM</tspan></text>',
+  '<g class="soc">' +
+    '<rect class="soc__tor" data-soc-track="true" x="657.18" y="629" width="101" height="8"/>' +
+    '<rect class="soc__wypelnienie" data-soc-fill="true" x="657.18" y="629" width="0" height="8"/>' +
+    '<text class="soc__wartosc" data-soc-text="true" x="786.18" y="636.5" text-anchor="end">—</text>' +
+    '</g>',
+);
+
 podmien(
   'karta modulu centralnego',
   '<rect class="st7" x="579.18" y="254.46" width="290" height="356.94" rx="8.12" ry="8.12"/>',
