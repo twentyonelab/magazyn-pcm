@@ -241,25 +241,14 @@ export function Wykres({ series, band, events, fromMs, toMs }: WykresProps) {
             i przy waskim zakresie zajmowala wiecej miejsca niz sama linia. */}
         {band && band.max > yMin && band.min < yMax ? (
           <g>
-            <defs>
-              <pattern
-                id="chart-sztrych"
-                width={6}
-                height={6}
-                patternUnits="userSpaceOnUse"
-                patternTransform="rotate(45)"
-              >
-                <line x1={0} y1={0} x2={0} y2={6} className="chart__band-hatch" />
-              </pattern>
-            </defs>
             <rect
               x={M.left}
               width={PLOT_W}
               y={yOf(Math.min(band.max, yMax))}
               height={Math.max(yOf(Math.max(band.min, yMin)) - yOf(Math.min(band.max, yMax)), 1)}
-              fill="url(#chart-sztrych)"
+              className="chart__band"
             />
-            {/* Granice pasma — to one sa informacja: sztrych mowi tylko „tutaj". */}
+            {/* Granice pasma — to one sa informacja: pas mowi tylko „tutaj". */}
             {[band.min, band.max]
               .filter((t) => t > yMin && t < yMax)
               .map((t) => (

@@ -147,6 +147,7 @@
   /* Neutralnie, bo `:root` bez `data-kierunek` to przegląd — barwę nośnika
      dokładają bloki `[data-kierunek]`. */
   --tlo-strony: #131315;
+  --pasmo-tlo: rgba(242, 239, 234, 0.07);
   --tlo-blask-lewy: #2a2a30;
   --tlo-blask-prawy: #26262b;
   --tlo-blask-gorny: #2d2d33;
@@ -2054,6 +2055,10 @@ code {
   --akcent-tlo: var(--cieplo-tlo);
   --akcent-mocny: #ad431d;
 
+  /* Pasmo przemiany na wykresach — lekko ciepłe, nie pomarańczowe: ma być
+     tłem pod linią, a nie drugą serią danych. */
+  --pasmo-tlo: rgba(216, 90, 48, 0.07);
+
   --tlo-strony: #f7f1ea;
   --tlo-blask-lewy: var(--akcent);
   --tlo-blask-prawy: var(--ladunek-jasny);
@@ -2065,6 +2070,10 @@ code {
    kolejność w arkuszu. */
 :root[data-theme='dark'][data-kierunek='cieplo'] {
   --tlo-strony: #14140f;
+  /* Noca pasmo musi byc JASNIEJSZE od tla, nie ciemniejsze — dzienna wartosc
+     na ciemnym tle byla niewidoczna. Dwa atrybuty w selektorze z tego samego
+     powodu co --tlo-strony. */
+  --pasmo-tlo: rgba(240, 153, 123, 0.1);
   --tlo-blask-gorny: #3a2f22;
 }
 
@@ -2080,6 +2089,9 @@ code {
   --zasilanie: var(--chlod);
   --powrot: var(--cieplo);
 
+  /* Pasmo przemiany na wykresach — lekko niebieskie. */
+  --pasmo-tlo: rgba(77, 122, 145, 0.1);
+
   /* Tło schodzi z kremu na chłodną szarość, a oba ciepłe blaski na stalowe.
      Blask lewy idzie za akcentem sam, więc go tu nie ma. */
   --tlo-strony: #eef1f3;
@@ -2094,6 +2106,7 @@ code {
    selektorze dają wagę 0,3,0 i rozstrzygają to jednoznacznie. */
 :root[data-theme='dark'][data-kierunek='chlod'] {
   --tlo-strony: #101416;
+  --pasmo-tlo: rgba(143, 176, 192, 0.12);
   --tlo-blask-gorny: #1d2b33;
 }
 
@@ -2961,16 +2974,16 @@ code {
   text-anchor: middle;
 }
 
-/* Sztrych pasma przemiany. Kreska cienka i wycofana — ma powiedzieć „tu jest
-   plateau", a nie konkurować z linią pomiaru. Barwa z tuszu palety A2
-   (#1C1C1B) na niskim kryciu, żeby działała w obu motywach. */
-.chart__band-hatch {
-  stroke: rgba(28, 28, 27, 0.22);
-  stroke-width: 1;
-}
-
-:root[data-theme='dark'] .chart__band-hatch {
-  stroke: rgba(242, 239, 234, 0.2);
+/* PASMO PRZEMIANY — spokojny pas w barwie nośnika.
+   Wróciło wypełnienie zamiast sztrychu ze wzoru SVG: `fill="url(#…)"` przy
+   kilku wykresach na stronie potrafiło nie trafić we własny wzór i wtedy
+   przeglądarka maluje domyślną CZERŃ — pod wykresem stawał czarny prostokąt.
+   Odwołanie po identyfikatorze jest tu za kruche, a pas i tak jest tym, co
+   specyfikacja palety dopuszcza jako oznaczenie strefy.
+   Neutralnie na przeglądzie, chłodno przy chłodzie, ciepło przy cieple —
+   barwę bierze zmienna ustawiana w blokach [data-kierunek]. */
+.chart__band {
+  fill: var(--pasmo-tlo, rgba(13, 13, 13, 0.05));
 }
 
 .chart__band-label {
