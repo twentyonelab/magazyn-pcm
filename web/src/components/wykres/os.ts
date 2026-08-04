@@ -71,26 +71,25 @@ export function ticksY(min: number, max: number, ile = 6): number[] {
 
 export const GODZINA_MS = 3600 * 1000;
 
-export interface Zakres {
-  id: string;
-  etykieta: string;
-  godzin: number;
-  domyslny?: boolean;
-}
-
 /**
- * Zakresy do wyboru — wspólne dla obu kart, żeby przełączenie jednej i drugiej
- * dawało ten sam wycinek czasu.
- *
- * Skok jest mniej więcej czterokrotny: przy gęstszej drabince sąsiednie
- * zakresy wyglądałyby tak samo i przełącznik nic by nie dawał.
+ * Zakres wybiera SUWAK godzinowy (1–24 h) plus dwa przyciski: tydzień
+ * i miesiąc — patrz `WyborZakresu.tsx`. Wcześniej stało tu pięć sztywnych
+ * zakresów, a najczęstsze pytanie badacza brzmi „pokaż ostatnie N godzin",
+ * gdzie N zależy od tego, kiedy zaczął się dzisiejszy test. Suwak odpowiada
+ * na nie wprost; powyżej doby precyzja godzinowa przestaje mieć sens, więc
+ * tydzień i miesiąc zostają skokami.
  */
-export const ZAKRESY: Zakres[] = [
-  { id: '1h', etykieta: 'godzina', godzin: 1 },
-  { id: '6h', etykieta: '6 godzin', godzin: 6 },
-  { id: '24h', etykieta: 'doba', godzin: 24, domyslny: true },
-  { id: '7d', etykieta: 'tydzień', godzin: 24 * 7 },
-  { id: '30d', etykieta: 'miesiąc', godzin: 24 * 30 },
-];
+export const SUWAK_MIN_H = 1;
+export const SUWAK_MAX_H = 24;
+export const TYDZIEN_H = 24 * 7;
+export const MIESIAC_H = 24 * 30;
+export const ZAKRES_DOMYSLNY_H = 24;
 
-export const ZAKRES_DOMYSLNY = ZAKRESY.find((z) => z.domyslny) ?? ZAKRESY[1]!;
+/** Podpis zakresu — do nagłówka karty i etykiet dostępności. */
+export function etykietaZakresu(godzin: number): string {
+  if (godzin === MIESIAC_H) return 'miesiąc';
+  if (godzin === TYDZIEN_H) return 'tydzień';
+  if (godzin === 24) return 'doba';
+  if (godzin === 1) return 'godzina';
+  return `${godzin} h`;
+}

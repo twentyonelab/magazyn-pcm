@@ -432,7 +432,7 @@
         </g>
       </g>
     </g>
-    <g id="storage-tank22" data-name="storage-tank2">
+    <g id="storage-tank22" data-name="storage-tank2" class="wylaczone">
       <g class="st16">
         <g class="st16">
           <g class="st16">
@@ -467,9 +467,9 @@
         </g>
       </g>
     </g>
-    <g id="heat-pump1">
+    <g id="heat-pump1" class="wylaczone">
       <g>
-        <rect class="st7 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15" data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>
+        <rect class="st7 karta" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15" data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>
         <rect class="st20" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>
       </g>
     </g>

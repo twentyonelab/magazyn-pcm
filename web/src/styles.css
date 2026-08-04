@@ -2244,6 +2244,16 @@ code {
   pointer-events: none;
 }
 
+/* ELEMENTY WYGASZONE — dziś podgrzewacz wody wodociągowej (2026-08-04).
+   Strona wody użytkowej nie bierze udziału w bieżących testach: element
+   zostaje na rysunku jako kontekst instalacji, w 30 % krycia i bez żadnej
+   interakcji. Klasę nadaje generator (`wepnij-kontrakt.mjs`), nie ręczna
+   edycja pliku SVG — patrz nagłówek tej sekcji. */
+.schema .wylaczone {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
 /* PASEK NAŁADOWANIA POD ZBIORNIKIEM — w miejscu dawnego podpisu „Magazyn PCM".
    Prosty tor i wypełnienie od lewej, procent wyrównany do prawej krawędzi
    płaszcza. Bez zaokrągleń: krawędź wypełnienia jest odczytem, a zaokrąglony
@@ -3923,6 +3933,44 @@ body::after {
   justify-content: space-between;
   gap: 12px 20px;
   margin-bottom: 6px;
+}
+
+/* --- Wybór zakresu: suwak godzinowy + przyciski tydzień/miesiąc ----------- */
+
+.zakres {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.zakres__suwak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+/* Suwak w barwie nośnika — `accent-color` przemalowuje natywny element
+   we wszystkich współczesnych przeglądarkach bez przerysowywania go
+   od zera, więc zachowuje klawiaturę, dotyk i czytniki za darmo. */
+.zakres__suwak input[type='range'] {
+  width: clamp(8rem, 16vw, 12rem);
+  accent-color: var(--akcent);
+  cursor: pointer;
+}
+
+/* Stała szerokość: „godzina" i „7 h" nie mogą przestawiać suwaka w poziomie
+   przy każdej zmianie wartości. */
+.zakres__wartosc {
+  min-width: 4.2rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+/* Zakres siedzi na przycisku tydzień/miesiąc — suwak przygasa, ale zostaje
+   chwytliwy: pierwszy ruch wraca do godzin. */
+.zakres__suwak.is-uspiony {
+  opacity: 0.45;
 }
 
 /* Przełącznik formy — jedna pastylka z trzema polami, bo to wybór

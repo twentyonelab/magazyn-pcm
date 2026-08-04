@@ -25,8 +25,14 @@ interface ElementInfo {
   title: string;
   subtitle: string;
   pointIds: string[];
-  /** Uwagi sprzętowe — to, co inaczej ginie w dokumentacji. */
-  notes: string[];
+  /**
+   * Uwagi sprzętowe — TYLKO DLA MAGAZYNU. Wszystkie pozostałe elementy
+   * straciły opisy 2026-08-04 na wyraźną prośbę: panel bufora, naczynia czy
+   * manometru ma powiedzieć, czym element jest (tytuł i podtytuł), i tyle.
+   * Akapity w rodzaju „Przejmuje przyrost objętości wody…" przenosiły
+   * dokumentację instalacji na ekran, na którym nikt jej nie szukał.
+   */
+  notes?: string[];
 }
 
 const ELEMENTS: Record<string, ElementInfo> = {
@@ -50,10 +56,6 @@ const ELEMENTS: Record<string, ElementInfo> = {
      * zepsuty czujnik, choć czujnika nigdy nie było. Usunięte 2026-08-04.
      */
     pointIds: [],
-    notes: [
-      'Bufor jest elementem hydraulicznym instalacji, nie punktem pomiarowym: nie ma w nim żadnej sondy i monitorowanie go nie jest planowane.',
-      'Objętość jest wartością konfiguracyjną — rysunek instalacji wymienia zasobnik 200 l, opis mówi o buforze 80 l (otwarte pytanie nr 2 ze specyfikacji).',
-    ],
   },
   meter: {
     title: 'Ciepłomierz',
@@ -68,117 +70,79 @@ const ELEMENTS: Record<string, ElementInfo> = {
       'METER_ENERGY_COOL',
       'METER_ERROR',
     ],
-    notes: [
-      'Modbus czyta Miniserver i wystawia odczyty jako kontrolki ZRODLO_* — po naszej stronie to zwykłe punkty pomiarowe, więc mapa rejestrów nie jest już potrzebna.',
-      'Loxone nie deklaruje jednostki dla obu liczników energii, dlatego pokazujemy samą liczbę bez podpisu. Po ustawieniu jednostki w Loxone Config dopiszemy ją tutaj.',
-      'Na samej baterii licznik udostępnia Modbusa tylko 80 sekund na godzinę. Odczyt ciągły wymaga zasilania zewnętrznego 24 VDC.',
-      'Poniżej ΔT = 3 K licznik nie sumuje energii i zgłasza kod błędu 4 — przy małych różnicach temperatur bilans będzie zaniżony z przyczyn metrologicznych.',
-    ],
   },
   heatpump: {
     title: 'Pompa ciepła',
     subtitle: 'Fox Blue Line 8.1',
     pointIds: ['HP_STATE'],
-    notes: ['Stan pracy nie jest jeszcze podłączony do Miniservera.'],
   },
   pump: {
     title: 'Pompa obiegowa',
     subtitle: 'Obieg magazynu',
     pointIds: ['PUMP_STATE'],
-    notes: ['Stan pracy nie jest jeszcze podłączony do Miniservera.'],
   },
   valve: {
     title: 'Zawór odcinający',
     subtitle: 'AFRISO BEV 222 · kula DN20, 24 V AC',
     pointIds: ['VALVE_STATE'],
-    notes: [
-      'To zawór ODCINAJĄCY, nie regulacyjny. Kvs 45 m³/h przy przepływach rzędu 0,5 m³/h daje zerową autorytatywność — dlatego pokazujemy go jako stan otwarty/zamknięty, nigdy jako element modulowany.',
-      'Czas przestawienia: 12 s na 90°.',
-    ],
   },
   ambient: {
     title: 'Hala',
     subtitle: 'Temperatura powietrza wokół stanowiska',
     pointIds: ['AMBIENT_HALL'],
-    notes: ['Punkt zadeklarowany, ale jeszcze niepodłączony.'],
   },
 
   // --- Elementy z rysunku technicznego bez własnych punktów pomiarowych ----
   // Są klikalne, bo są częścią instalacji i badacz musi móc się o nie zapytać.
   // Żaden nie udaje, że coś mierzy.
-  podgrzewacz: {
-    title: 'Podgrzewacz wody wodociągowej',
-    subtitle: 'Odbiór ciepła z magazynu na wodę użytkową',
-    pointIds: [],
-    notes: [
-      'To ODBIORNIK ciepła z magazynu PCM: woda wodociągowa przechodzi przez wymiennik i odbiera ciepło zmagazynowane w parafinie.',
-      'Bez sond temperatury po tej stronie nie da się policzyć, ile ciepła faktycznie trafia do wody — na razie mierzymy tylko sam magazyn.',
-    ],
-  },
+  //
+  // PODGRZEWACZA TU NIE MA — 2026-08-04 został wygaszony na schemacie
+  // (30 % krycia, bez `data-element`), więc jego panel stał się nieosiągalny.
+  // Wpis wróci razem z aktywacją strony wody użytkowej.
   filtr: {
     title: 'Filtr odkamieniający',
     subtitle: 'Na wlocie wody wodociągowej',
     pointIds: [],
-    notes: [
-      'Chroni wymiennik podgrzewacza przed osadem wapiennym. Bez niego kamień odkłada się na ściankach i z każdym tygodniem pogarsza przejmowanie ciepła — co przy badaniu wyglądałoby jak spadek sprawności magazynu.',
-    ],
   },
   woda: {
     title: 'Woda wodociągowa',
     subtitle: 'Wlot zimnej wody',
     pointIds: [],
-    notes: [
-      'Strona odbioru. Temperatura wody wlotowej nie jest mierzona, a bez niej nie policzymy energii oddanej do wody — to pierwszy punkt do dołożenia, gdy dojdą kolejne sondy.',
-    ],
   },
   'naczynie-lewe': {
     title: 'Naczynie przeponowe · obieg odbioru',
     subtitle: 'Kompensacja rozszerzalności cieplnej',
     pointIds: [],
-    notes: [
-      'Przejmuje przyrost objętości wody przy nagrzewaniu. Element bezpieczeństwa, nie pomiarowy.',
-    ],
   },
   'naczynie-prawe': {
     title: 'Naczynie przeponowe · obieg ładowania',
     subtitle: 'Kompensacja rozszerzalności cieplnej',
     pointIds: [],
-    notes: [
-      'Przejmuje przyrost objętości wody przy nagrzewaniu. Element bezpieczeństwa, nie pomiarowy.',
-    ],
   },
   'zawor-bezp-lewy': {
     title: 'Zaworek bezpieczeństwa · obieg odbioru',
     subtitle: 'Zabezpieczenie przed nadciśnieniem',
     pointIds: [],
-    notes: ['Otwiera się samoczynnie po przekroczeniu ciśnienia dopuszczalnego.'],
   },
   'zawor-bezp-prawy': {
     title: 'Zaworek bezpieczeństwa · obieg ładowania',
     subtitle: 'Zabezpieczenie przed nadciśnieniem',
     pointIds: [],
-    notes: ['Otwiera się samoczynnie po przekroczeniu ciśnienia dopuszczalnego.'],
   },
   'manometr-lewy': {
     title: 'Manometr · obieg odbioru',
     subtitle: 'Ciśnienie w obiegu',
     pointIds: [],
-    notes: ['Wskazanie odczytywane z tarczy — nie trafia do Miniservera.'],
   },
   'manometr-prawy': {
     title: 'Manometr · obieg ładowania',
     subtitle: 'Ciśnienie w obiegu',
     pointIds: [],
-    notes: ['Wskazanie odczytywane z tarczy — nie trafia do Miniservera.'],
   },
   'cieplomierz-odbior': {
     title: 'Ciepłomierz · obieg odbioru',
     subtitle: 'Drugi ciepłomierz, po stronie wody użytkowej',
     pointIds: [],
-    notes: [
-      'Jest w instalacji, ale NIE JEST wpięty do Miniservera — dlatego nie pokazuje wartości, a animacja tego obiegu na schemacie korzysta z przepływu zmierzonego po stronie ładowania.',
-      'Dopóki nie zacznie raportować, bilansu odbioru ciepła nie policzymy.',
-    ],
   },
 };
 
@@ -264,18 +228,23 @@ export function PanelElementu({ elementId, data, onClose, onOpenInPrzebiegi }: P
         </div>
       ) : null}
 
-      {!anyData ? (
+      {/* Uwaga o braku wartości tylko tam, gdzie punkty W OGÓLE SĄ — element
+          bez ani jednego punktu (naczynie, manometr) niczego nie „nie
+          raportuje", on po prostu nie mierzy i panel nie ma czego tłumaczyć. */}
+      {info.pointIds.length > 0 && !anyData ? (
         <div className="note">
           Ten element nie raportuje jeszcze żadnych wartości — punkty są zadeklarowane
           w rejestrze, ale nie mają przypisanych UUID-ów albo brakuje sprzętu.
         </div>
       ) : null}
 
-      <ul className="blockers">
-        {info.notes.map((note) => (
-          <li key={note}>{note}</li>
-        ))}
-      </ul>
+      {info.notes && info.notes.length > 0 ? (
+        <ul className="blockers">
+          {info.notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
     </aside>
   );
 }

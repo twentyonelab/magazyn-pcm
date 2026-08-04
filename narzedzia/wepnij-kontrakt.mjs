@@ -427,11 +427,34 @@ podmien(
   '<rect class="st7 karta" data-element="filtr" x="161.98" y="414.3" width="119" height="43.54" rx="20.95" ry="20.95"' +
     ' data-object="filtr" data-label="Filtr odkamieniający" data-h="1.6"/>',
 );
+// PODGRZEWACZ JEST WYGASZONY — 30 % krycia, zero interakcji (2026-08-04).
+// Strona wody uzytkowej nie bierze udzialu w biezacych testach, wiec element
+// zostaje na rysunku jako kontekst instalacji, ale nie udaje aktywnej czesci
+// stanowiska. Dlatego:
+//   * BEZ `data-element` — klik nie otwiera panelu, najechanie nie podswietla
+//     (regula hover w arkuszu celuje w `[data-element]`);
+//   * `data-object` zostaje — scena 3D dalej rysuje bryle;
+//   * klasa `wylaczone` idzie na CALE GRUPY (karta + podpis), nie na sam
+//     prostokat — inaczej podpis staly by w pelnym kryciu pod wyblaklym
+//     urzadzeniem. Podpis „Podgrzewacz wody wodociagowej" to litery zamienione
+//     na krzywe w grupie #storage-tank22, wiec po tekscie go nie znajdziemy;
+//     identyfikator grupy jest jedynym uchwytem i `podmien` KRZYKNIE, gdy
+//     eksporter nada inny przy nastepnej wersji rysunku.
 podmien(
   'karta podgrzewacza',
   '<rect class="st7" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"/>',
-  '<rect class="st7 karta" data-element="podgrzewacz" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"' +
+  '<rect class="st7 karta" x="325.49" y="385.84" width="146.96" height="97.77" rx="15" ry="15"' +
     ' data-object="podgrzewacz" data-label="Podgrzewacz wody" data-h="2"/>',
+);
+podmien(
+  'wygaszenie podgrzewacza (grupa karty)',
+  '<g id="heat-pump1">',
+  '<g id="heat-pump1" class="wylaczone">',
+);
+podmien(
+  'wygaszenie podgrzewacza (grupa podpisu)',
+  '<g id="storage-tank22" data-name="storage-tank2">',
+  '<g id="storage-tank22" data-name="storage-tank2" class="wylaczone">',
 );
 
 // --- 6. Warstwa przeplywu ------------------------------------------------

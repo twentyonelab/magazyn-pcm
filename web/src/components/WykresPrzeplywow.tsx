@@ -33,11 +33,12 @@ import {
   PLOT_H_NISKI,
   PLOT_W,
   W,
-  ZAKRESY,
-  ZAKRES_DOMYSLNY,
+  ZAKRES_DOMYSLNY_H,
   czas,
+  etykietaZakresu,
   ticksY,
 } from './wykres/os.js';
+import { WyborZakresu } from './wykres/WyborZakresu.js';
 
 /**
  * Przepływomierze instalacji — DWA, po jednym na obieg.
@@ -101,7 +102,7 @@ interface Props {
 
 export function WykresPrzeplywow({ points }: Props) {
   const [stan, setStan] = useState<Stan>({ kind: 'loading' });
-  const [zakres, setZakres] = useState(ZAKRES_DOMYSLNY);
+  const [godzin, setGodzin] = useState(ZAKRES_DOMYSLNY_H);
   const [forma, setForma] = useState<Forma>('linie');
   const [ukryte, setUkryte] = useState<Set<string>>(new Set());
   const [hoverX, setHoverX] = useState<number | null>(null);
@@ -115,7 +116,7 @@ export function WykresPrzeplywow({ points }: Props) {
     let porzucone = false;
     setStan({ kind: 'loading' });
     const doMs = Date.now();
-    const odMs = doMs - zakres.godzin * GODZINA_MS;
+    const odMs = doMs - godzin * GODZINA_MS;
 
     fetchHistory({
       ids: PRZEPLYWOMIERZE.map((p) => p.id),
@@ -146,7 +147,7 @@ export function WykresPrzeplywow({ points }: Props) {
     return () => {
       porzucone = true;
     };
-  }, [zakres]);
+  }, [godzin]);
 
   const przelacz = (id: IdPrzeplywu): void => {
     setUkryte((biezace) => {
@@ -312,7 +313,7 @@ export function WykresPrzeplywow({ points }: Props) {
   return (
     <section className="card card--szeroka">
       <div className="card__head">
-        <h2 className="card__title">przepływy · {zakres.etykieta}</h2>
+        <h2 className="card__title">przepływy · {etykietaZakresu(godzin)}</h2>
         <p className="card__meta">
           {gotowe
             ? `dwa obiegi · rozdzielczość ${gotowe.rozdzielczosc}`
@@ -324,19 +325,7 @@ export function WykresPrzeplywow({ points }: Props) {
           włączanie serii. Powtórzenie jest zamierzone — dwie karty jedna pod
           drugą, obsługiwane inaczej, wymagałyby uczenia się dwóch rzeczy. */}
       <div className="przeglad__sterowanie">
-        <div className="segment" role="group" aria-label="Zakres czasu przepływów">
-          {ZAKRESY.map((z) => (
-            <button
-              key={z.id}
-              type="button"
-              className={`segment__item${zakres.id === z.id ? ' is-active' : ''}`}
-              onClick={() => setZakres(z)}
-              title={`Pokaż ostatnie: ${z.etykieta}`}
-            >
-              {z.etykieta}
-            </button>
-          ))}
-        </div>
+        <WyborZakresu godzin={godzin} onGodzin={setGodzin} idSufiks="przeplywy" />
 
         <div className="segment" role="group" aria-label="Forma wykresu przepływów">
           {FORMY.map((f) => (
@@ -411,7 +400,7 @@ export function WykresPrzeplywow({ points }: Props) {
             onMouseMove={ruch}
             onMouseLeave={() => setHoverX(null)}
             role="img"
-            aria-label={`Przepływy obiegów z zakresu ${zakres.etykieta}, forma: ${forma}`}
+            aria-label={`Przepływy obiegów, zakres: ${etykietaZakresu(godzin)}, forma: ${forma}`}
           >
             {tickiY.map((t) => (
               <g key={t}>

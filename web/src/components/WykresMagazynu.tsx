@@ -38,7 +38,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { HistorySeries, MaterialProfile } from '@magazyn-pcm/shared';
 import { fetchHistory } from '../api.js';
-import { barwaTemperatury } from '../paleta-temperatur.js';
 import { SERIES_COLORS } from './Wykres.js';
 import {
   GODZINA_MS,
@@ -47,11 +46,12 @@ import {
   PLOT_H,
   PLOT_W,
   W,
-  ZAKRESY,
-  ZAKRES_DOMYSLNY,
+  ZAKRES_DOMYSLNY_H,
   czas,
+  etykietaZakresu,
   ticksY,
 } from './wykres/os.js';
+import { WyborZakresu } from './wykres/WyborZakresu.js';
 
 /** Sondy magazynu w kolejności OD GÓRY ZBIORNIKA W DÓŁ — tak leżą naprawdę. */
 const SONDY_OD_GORY = ['A3', 'B3', 'A2', 'B2', 'A1', 'B1'] as const;
@@ -129,7 +129,8 @@ const FORMY: Array<{ id: Forma; etykieta: string; opis: string }> = [
  * niezależne karty.
  */
 
-/** Maksymalna liczba kolumn mapy cieplnej — wyżej rysowanie zaczyna zamulać. */
+/** Maks. liczba przystanków gradientu na wiersz mapy — wyżej DOM zaczyna
+ *  puchnąć bez widocznego zysku (przystanki i tak leżą gęściej niż piksele). */
 const MAKS_KOLUMN = 260;
 
 type Stan =
@@ -143,36 +144,64 @@ interface Props {
 }
 
 /**
- * SKALA BARWNA MAPY CIEPLNEJ — SKALIBROWANA RAZ, W PALECIE A2.
+ * SKALA BARWNA MAPY CIEPLNEJ — kalibracja projektanta z 2026-08-04.
  *
- * Mapa nie ma już własnej rampy. Barwa idzie z `paleta-temperatur.ts`, skalą
- * GLOBALNĄ (0–70 °C) — tą samą, którą malowane są kropki sond na schemacie
- * i podziałka na belce stanu. Jeden zapis barwy dla całej aplikacji.
+ * Wymaganie brzmiało dosłownie: „dla chłodu niebieski 6, a potem 15 już
+ * pomarańcz, płynnie gradientem". Rampa robi dokładnie to: pełny błękit
+ * na 6 °C, neutralna przerwa w połowie drogi, pełny pomarańcz na 15 °C.
+ * Powyżej pomarańcz pogłębia się aż do bordo, żeby zakres pracy 57HC
+ * (40–75 °C) nie zlał się w jedną plamę; poniżej 6 °C błękit ciemnieje.
  *
- * DLACZEGO TO ZMIENIŁEM (zgłoszone 2026-08-04: „przy 9 stopniach powinno już
- * być niebieskawe"). Stała tu wcześniej rampa własna, z bielą wpisaną na 0 °C
- * i szarością na 10 °C. Zbiornik 8HC pracuje między 6 a 19 °C, czyli DOKŁADNIE
- * w tym miejscu skali, gdzie tamta rampa nie miała żadnego błękitu — cała doba
- * chłodu wychodziła szaro-piaskowo, a przy 15 °C wjeżdżał pomarańcz. Mapa
- * pokazywała ciepło tam, gdzie magazyn był naładowany chłodem.
+ * TO JEST TRZECIE PODEJŚCIE i warto wiedzieć, czemu dwa poprzednie odpadły.
+ * Pierwsza rampa miała biel na 0 °C i szarość na 10 °C — cała doba chłodu
+ * wychodziła szaro-piaskowo. Druga brała skalę globalną palety A2 — 9 °C
+ * zrobiło się niebieskawe, ale przejście błękit→pomarańcz rozciągało się
+ * na 30 K i w oknie pracy chłodu (6–19 °C) prawie nic się nie działo.
+ * Ta rampa jest skrojona pod PYTANIE mapy: „gdzie w zbiorniku jest chłód,
+ * a gdzie już go nie ma" — i dlatego jest WŁASNOŚCIĄ mapy cieplnej, a nie
+ * palety A2. Kropki sond na schemacie i podziałka belki zostają przy A2.
  *
- * Paleta A2 ma w tym miejscu to, co trzeba: 0 °C to granatowy błękit, 8 °C
- * jeszcze wyraźny błękit, 20 °C blady błękit, neutralność wchodzi dopiero
- * około 30 °C, a pomarańcze powyżej 45 °C — czyli tam, gdzie pracuje 57HC.
- * Ta sama liczba stopni ma więc jeden kolor w całej aplikacji i dwa materiały
- * dają się porównać, co jest tu jednym z głównych pytań badawczych.
- *
- * Skala jest BEZWZGLĘDNA i celowo NIE jest lokalna. Kolor mówi „ile stopni",
- * nigdy „jak blisko przemiany" — przemianę pokazuje osobno obrys na pasku
- * i granice w podpisie.
+ * Barwy przystanków pochodzą z rodzin A2 (błękity ze skali lokalnej chłodu,
+ * pomarańcze ze skali lokalnej ciepła), więc mapa nie wprowadza nowych
+ * kolorów — tylko inne rozmieszczenie tych samych.
  */
+const RAMPA: ReadonlyArray<{ t: number; rgb: [number, number, number] }> = [
+  { t: -20, rgb: [22, 42, 74] }, // głęboki granat — mróz
+  { t: 0, rgb: [22, 64, 110] }, // ciemny błękit
+  { t: 6, rgb: [46, 107, 168] }, // pełny błękit — tu zaczyna się żądanie
+  { t: 10.5, rgb: [233, 228, 220] }, // neutralna przerwa (środek 6–15)
+  { t: 15, rgb: [226, 138, 69] }, // pełny pomarańcz — tu się kończy
+  { t: 30, rgb: [196, 101, 42] }, // pomarańcz pogłębiony
+  { t: 45, rgb: [154, 69, 23] }, // rdza — okno pracy 57HC
+  { t: 70, rgb: [92, 12, 14] }, // bordo — koniec skali
+];
+
 function barwa(t: number): string {
-  return barwaTemperatury(t, 'globalna');
+  const pierwszy = RAMPA[0]!;
+  const ostatni = RAMPA[RAMPA.length - 1]!;
+  const zapis = (c: readonly [number, number, number]): string => `rgb(${c[0]} ${c[1]} ${c[2]})`;
+
+  if (t <= pierwszy.t) return zapis(pierwszy.rgb);
+  if (t >= ostatni.t) return zapis(ostatni.rgb);
+
+  for (let i = 1; i < RAMPA.length; i += 1) {
+    const b = RAMPA[i]!;
+    if (t > b.t) continue;
+    const a = RAMPA[i - 1]!;
+    const u = (t - a.t) / (b.t - a.t);
+    return zapis([
+      Math.round(a.rgb[0] + (b.rgb[0] - a.rgb[0]) * u),
+      Math.round(a.rgb[1] + (b.rgb[1] - a.rgb[1]) * u),
+      Math.round(a.rgb[2] + (b.rgb[2] - a.rgb[2]) * u),
+    ]);
+  }
+
+  return zapis(ostatni.rgb);
 }
 
 export function WykresMagazynu({ profil }: Props) {
   const [stan, setStan] = useState<Stan>({ kind: 'loading' });
-  const [zakres, setZakres] = useState(ZAKRES_DOMYSLNY);
+  const [godzin, setGodzin] = useState(ZAKRES_DOMYSLNY_H);
   const [forma, setForma] = useState<Forma>('linie');
   const [ukryte, setUkryte] = useState<Set<string>>(new Set());
   const [hoverX, setHoverX] = useState<number | null>(null);
@@ -184,7 +213,7 @@ export function WykresMagazynu({ profil }: Props) {
     let porzucone = false;
     setStan({ kind: 'loading' });
     const doMs = Date.now();
-    const odMs = doMs - zakres.godzin * GODZINA_MS;
+    const odMs = doMs - godzin * GODZINA_MS;
 
     fetchHistory({
       ids: [...SONDY_OD_GORY],
@@ -215,7 +244,7 @@ export function WykresMagazynu({ profil }: Props) {
     return () => {
       porzucone = true;
     };
-  }, [zakres]);
+  }, [godzin]);
 
   const widoczne = useMemo(
     () => SONDY_OD_GORY.filter((id) => !ukryte.has(id)),
@@ -424,65 +453,59 @@ export function WykresMagazynu({ profil }: Props) {
   }, [serie, yMin, yMax, odMs, zakresMs]);
 
   /**
-   * Mapa cieplna: siatka wiersz-sonda × kolumna-czas.
+   * Mapa cieplna: wiersz na sondę, a wzdłuż czasu JEDEN CIĄGŁY GRADIENT.
    *
-   * Kolumny są przerzedzane do `MAKS_KOLUMN`, bo doba surowych próbek dałaby
-   * kilka tysięcy prostokątów na wiersz i przeglądarka zaczęłaby się zacinać.
-   * Przerzedzamy PRÓBKOWANIEM, nie uśrednianiem — uśrednianie zjadłoby
-   * krótkie skoki temperatury, a to one są ciekawe.
+   * Wcześniej każdy wiersz był łańcuchem osobnych prostokątów — po jednym na
+   * kubełek — i każdy kubełek bez pomiaru zostawał przezroczystą szparą.
+   * Przy sondach różniących się o kilka kubełków na dobę mapa wyglądała jak
+   * podziurkowana taśma (zgłoszone 2026-08-04: „połącz te dziury, żeby była
+   * ciągłość"). Teraz wiersz to jeden prostokąt wypełniony `linearGradient`,
+   * którego przystanki stoją DOKŁADNIE w chwilach pomiarów — a między
+   * przystankami przeglądarka interpoluje barwę sama. Płynne przejścia
+   * i mostkowanie przerw w jednym mechanizmie, bez tysiąca węzłów DOM.
    *
-   * WIERSZE LEŻĄ NA WSPÓLNEJ OSI CZASU (patrz komentarz przy `serie`) — bez
-   * tego kolumna nr `i` znaczyłaby w każdym wierszu inną chwilę i wędrujący
-   * front przemiany byłby po części artefaktem rozjechanych osi.
+   * ILE W TYM DOMYSŁU — tyle samo, co w formie „linie". Gradient przez
+   * przerwę w zapisie to ta sama interpolacja, którą linia robi przeskakując
+   * dziurę; kto chce zobaczyć, co NAPRAWDĘ zmierzono, ma formę „odczyty".
+   * Za to poza skrajne pomiary wiersz NIE wychodzi: prostokąt zaczyna się na
+   * pierwszej próbce sondy i kończy na ostatniej, więc początek i koniec
+   * zakresu bez danych zostają puste, a nie rozciągnięte pierwszym kolorem.
    *
-   * POŁOŻENIE KOLUMNY BIERZE SIĘ ZE ZNACZNIKA CZASU, nie z numeru próbki.
-   * Rozstawienie po numerze jest kuszące i błędne: serwer zwraca tylko te
-   * kubełki, w których coś zmierzono, więc półtorej godziny danych z doby
-   * rozciągnęłoby się na całą szerokość i przeczyłoby osi czasu narysowanej
-   * pod spodem. Przerwa w pomiarach ma zostać przerwą także tutaj.
+   * PRZYSTANKI SĄ PRZERZEDZANE do MAKS_KOLUMN próbkowaniem, nie uśrednianiem
+   * — uśrednianie zjadłoby krótkie skoki temperatury, a to one są ciekawe.
+   * Ostatnia próbka wchodzi zawsze, żeby wiersz kończył się prawdziwym
+   * pomiarem, nie wynikiem kroku przerzedzania.
    */
   const mapa = useMemo(() => {
-    if (serie.length === 0 || !profil) return null;
-    const os = serie[0]!.punkty;
-    if (os.length === 0) return null;
-
-    const skok = Math.max(1, Math.ceil(os.length / MAKS_KOLUMN));
-    const indeksy: number[] = [];
-    for (let i = 0; i < os.length; i += skok) indeksy.push(i);
-
+    if (serie.length === 0) return null;
     const wysokosc = PLOT_H / serie.length;
 
-    // Szerokość pola = odstęp do następnej próbki. Ostatnie pole dostaje
-    // odstęp poprzedniego, żeby nie zwężało się do zera.
-    const szerokosci = indeksy.map((indeks, k) => {
-      const nastepny = indeksy[k + 1];
-      const doMs = nastepny !== undefined ? os[nastepny]!.ms : os[os.length - 1]!.ms;
-      const odMsPola = os[indeks]!.ms;
-      const szer = xOf(doMs) - xOf(odMsPola);
-      return szer > 0.2 ? szer : null;
+    const wiersze = serie.map((s, i) => {
+      const probki = s.punkty.filter((p): p is { ms: number; v: number } => p.v !== null);
+      if (probki.length < 2) {
+        return { id: s.id, y: M.top + i * wysokosc, x0: 0, x1: 0, stops: null };
+      }
+
+      const skok = Math.max(1, Math.ceil(probki.length / MAKS_KOLUMN));
+      const wybrane = probki.filter((_, k) => k % skok === 0);
+      if (wybrane[wybrane.length - 1] !== probki[probki.length - 1]) {
+        wybrane.push(probki[probki.length - 1]!);
+      }
+
+      const x0 = xOf(wybrane[0]!.ms);
+      const x1 = xOf(wybrane[wybrane.length - 1]!.ms);
+      const szer = Math.max(x1 - x0, 1);
+      const stops = wybrane.map((p) => ({
+        off: ((xOf(p.ms) - x0) / szer) * 100,
+        kolor: barwa(p.v),
+      }));
+
+      return { id: s.id, y: M.top + i * wysokosc, x0, x1, stops };
     });
-    const domyslna = szerokosci.find((s) => s !== null) ?? 2;
 
-    const komorki = serie.flatMap((s, wiersz) =>
-      indeksy.map((indeks, k) => {
-        const p = s.punkty[indeks];
-        const szer = szerokosci[k] ?? domyslna;
-        return {
-          klucz: `${s.id}-${indeks}`,
-          x: xOf(os[indeks]!.ms),
-          y: M.top + wiersz * wysokosc,
-          // Zakładka 0,6 px kasuje włoskowe szpary między sąsiednimi polami,
-          // które inaczej rysują się jako biała krateczka.
-          w: szer + 0.6,
-          h: wysokosc,
-          fill: p && p.v !== null ? barwa(p.v) : 'transparent',
-        };
-      }),
-    );
-
-    return { komorki, wysokoscWiersza: wysokosc };
+    return { wiersze, wysokoscWiersza: wysokosc };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serie, profil, odMs, zakresMs]);
+  }, [serie, odMs, zakresMs]);
 
   /** Najechanie — wspólne dla linii i rozwarstwienia. */
   const podpowiedz = useMemo(() => {
@@ -524,7 +547,7 @@ export function WykresMagazynu({ profil }: Props) {
   return (
     <section className="card card--szeroka">
       <div className="card__head">
-        <h2 className="card__title">magazyn · {zakres.etykieta}</h2>
+        <h2 className="card__title">magazyn · {etykietaZakresu(godzin)}</h2>
         <p className="card__meta">
           {gotowe ? `sześć sond · rozdzielczość ${gotowe.rozdzielczosc}` : 'wszystkie sondy magazynu'}
         </p>
@@ -532,19 +555,7 @@ export function WykresMagazynu({ profil }: Props) {
 
       {/* --- Sterowanie: zakres, forma prezentacji, włączanie sond -------- */}
       <div className="przeglad__sterowanie">
-        <div className="segment" role="group" aria-label="Zakres czasu">
-          {ZAKRESY.map((z) => (
-            <button
-              key={z.id}
-              type="button"
-              className={`segment__item${zakres.id === z.id ? ' is-active' : ''}`}
-              onClick={() => setZakres(z)}
-              title={`Pokaż ostatnie: ${z.etykieta}`}
-            >
-              {z.etykieta}
-            </button>
-          ))}
-        </div>
+        <WyborZakresu godzin={godzin} onGodzin={setGodzin} idSufiks="magazyn" />
 
         <div className="segment" role="group" aria-label="Forma wykresu">
           {FORMY.map((f) => (
@@ -606,7 +617,7 @@ export function WykresMagazynu({ profil }: Props) {
             onMouseMove={ruch}
             onMouseLeave={() => setHoverX(null)}
             role="img"
-            aria-label={`Temperatury magazynu z ostatniej doby, forma: ${forma}`}
+            aria-label={`Temperatury magazynu, zakres: ${etykietaZakresu(godzin)}, forma: ${forma}`}
           >
             {/* Pasmo przemiany — w liniach i rozwarstwieniu jako tło osi Y.
                 W mapie cieplnej niesie je sama barwa, więc tu go nie ma. */}
@@ -707,9 +718,29 @@ export function WykresMagazynu({ profil }: Props) {
             {/* --- Forma: mapa cieplna --- */}
             {forma === 'mapa' && mapa ? (
               <g>
-                {mapa.komorki.map((k) => (
-                  <rect key={k.klucz} x={k.x} y={k.y} width={k.w} height={k.h} fill={k.fill} shapeRendering="crispEdges" />
-                ))}
+                <defs>
+                  {mapa.wiersze.map((w) =>
+                    w.stops ? (
+                      <linearGradient key={w.id} id={`wm-mapa-${w.id}`} x1="0" y1="0" x2="1" y2="0">
+                        {w.stops.map((st, k) => (
+                          <stop key={k} offset={`${st.off.toFixed(3)}%`} stopColor={st.kolor} />
+                        ))}
+                      </linearGradient>
+                    ) : null,
+                  )}
+                </defs>
+                {mapa.wiersze.map((w) =>
+                  w.stops ? (
+                    <rect
+                      key={w.id}
+                      x={w.x0}
+                      y={w.y}
+                      width={Math.max(w.x1 - w.x0, 1)}
+                      height={mapa.wysokoscWiersza}
+                      fill={`url(#wm-mapa-${w.id})`}
+                    />
+                  ) : null,
+                )}
                 {serie.map((s, i) => (
                   <text
                     key={s.id}
