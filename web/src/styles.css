@@ -721,6 +721,21 @@ code {
   overflow-x: hidden;
 }
 
+/* DUŻE MONITORY: kolumna treści rośnie z ekranem zamiast stać na 1400 px.
+   Ta granica była dobra dla laptopów, ale na 4K zostawiała ponad połowę
+   ekranu pustych marginesów (zgłoszone 2026-08-05). Wykresy przeglądowe są
+   SVG na stałym viewBox, więc rosną razem ze swoją typografią — jak
+   powiększenie, nie jak rozciągnięcie — i niczego nie trzeba przeliczać.
+
+   Próg 1500 px zostawia wszystkie laptopy (1280–1440 px CSS) dokładnie tak,
+   jak były; sufit 2400 px pilnuje, żeby wiersz tekstu w kartach nie zrobił
+   się dłuższy, niż da się śledzić wzrokiem. */
+@media (min-width: 1500px) {
+  .main {
+    max-width: min(92vw, 2400px);
+  }
+}
+
 /* Rama dla widoków obrazowych: do samych krawędzi ekranu, bez marginesów
    i bez ograniczenia szerokości. Obraz sam pilnuje swoich proporcji, więc nie
    ma tu czego przewijać. */
