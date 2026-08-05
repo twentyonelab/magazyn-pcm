@@ -339,7 +339,7 @@ podmien(
     '<text class="soc__wartosc" data-soc-text="true" x="786.18" y="636.5" text-anchor="end">—</text>' +
     // Energia pod paskiem: „ile jest / ile sie miesci" w kWh. Wyrownana do tej
     // samej prawej krawedzi co procent, zeby obie liczby konczyl jeden pion.
-    '<text class="soc__energia" data-soc-energy="true" x="786.18" y="650" text-anchor="end">—</text>' +
+    '<text class="soc__energia" data-soc-energy="true" x="786.18" y="653" text-anchor="end">—</text>' +
     '</g>',
 );
 

@@ -2291,7 +2291,7 @@ code {
 .schema .soc__wartosc {
   fill: var(--ink) !important;
   font-family: var(--mono) !important;
-  font-size: 11px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
 }
 
@@ -2300,7 +2300,7 @@ code {
 .schema .soc__energia {
   fill: var(--ink-soft) !important;
   font-family: var(--mono) !important;
-  font-size: 8.5px !important;
+  font-size: 10.5px !important;
 }
 
 /* Magazyn ciepła: krem i pomarańcz.
