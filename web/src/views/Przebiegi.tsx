@@ -163,9 +163,19 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
     });
 
     const anyTemperature = series.some((s) => s.unit === '°C');
-    const profile = data.materials
-      ? data.materials.profiles[data.session?.material ?? data.materials.defaultMaterial]
-      : null;
+    /*
+     * Material do pasma bierzemy sesja > zywa detekcja > dopiero na koniec
+     * stala domyslna. Bylo tu `data.materials.defaultMaterial` (zawsze
+     * RT8HC) jako ostatni fallback — bez otwartej sesji wykres magazynu
+     * ciepla pokazywal pasmo 7-9 (chlodu) miejsce 53-58, bo material nigdy
+     * nie sprawdzal, co faktycznie zyje na sondach.
+     */
+    const materialPasma =
+      data.session?.material ??
+      (data.health?.bank.detection === 'auto' ? data.health.bank.active : null) ??
+      data.materials?.defaultMaterial ??
+      null;
+    const profile = data.materials && materialPasma ? data.materials.profiles[materialPasma] : null;
 
     return {
       series,
@@ -180,7 +190,7 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
       fromMs: Date.parse(state.data.from),
       toMs: Date.parse(state.data.to),
     };
-  }, [state, byId, data.materials, data.session]);
+  }, [state, byId, data.materials, data.session, data.health]);
 
   /** Statystyki serii — tabela wartosci pod wykresem. */
   const stats = useMemo(() => {

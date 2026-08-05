@@ -60,13 +60,23 @@ export interface Lokalizacja {
  * aktywne, rozstrzyga BankDetector po żywych sondach. Aktywne miga na mapie,
  * nieaktywne stoi przygaszone i mówi, że sondy są przepięte.
  */
+/*
+ * DWA OSOBNE BUDYNKI, NIE JEDNA HALA — poprawione 2026-08-05 po zrzucie
+ * ekranu z widoku 3D. Magazyn ciepła stoi w budynku pod numerem 26
+ * (tam faktycznie jest stanowisko), magazyn chłodu w budynku 28, kawałek
+ * dalej na zachód (Hala „Nowa", Ośrodek Sportu Politechniki Śląskiej —
+ * geokodowane, bo to inny adres niż 26). Wcześniejsza wersja stawiała OBA
+ * znaczniki na tych samych współrzędnych przesuniętych o kilka metrów,
+ * co wyglądało dobrze z góry, ale w widoku 3D chłód trafiał na budynek 26
+ * (błędnie) a ciepło wisiało w powietrzu na drodze.
+ */
 export const STANOWISKO_CHLOD: Lokalizacja = {
   id: 'gliwice-chlod',
   nazwa: 'Magazyn chłodu · Politechnika',
   miasto: 'Gliwice',
-  opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 8HC',
-  lon: 18.680455,
-  lat: 50.28975,
+  opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 28 · zbiornik 8HC',
+  lon: 18.6799623,
+  lat: 50.2894103,
   stan: 'live',
   typ: 'chlod',
 };
@@ -76,16 +86,7 @@ export const STANOWISKO_CIEPLO: Lokalizacja = {
   nazwa: 'Magazyn ciepła · Politechnika',
   miasto: 'Gliwice',
   opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 57HC',
-  /*
-   * TEN SAM BUDYNEK CO MAGAZYN CHŁODU, PO DRUGIEJ STRONIE — jedna hala,
-   * jeden Miniserver. Druga wersja (25 m na północny wschód) wypychała
-   * ten punkt poza obrys budynku, na drogę — widać to było na mapie jako
-   * znacznik stojący samotnie kawałek od hali. Teraz oba punkty mają tę
-   * samą szerokość geograficzną i różnią się tylko długością: chłód
-   * odsunięty na zachód, ciepło na wschód, po ~9 m od środka (razem ~17 m,
-   * czyli w obrysie jednego budynku, ale już jako dwa osobne znaczniki).
-   */
-  lon: 18.680695,
+  lon: 18.680455,
   lat: 50.28975,
   stan: 'live',
   typ: 'cieplo',
