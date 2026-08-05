@@ -374,7 +374,8 @@ export function WykresPrzeplywow({ points }: Props) {
         </div>
       </div>
 
-      <p className="przeglad__opis">{FORMY.find((f) => f.id === forma)!.opis}</p>
+      {/* Akapit z opisem formy zdjęty 2026-08-05 na prośbę — opisy zostają
+          w podpowiedziach przycisków (`title`), gdzie nie zabierają wiersza. */}
 
       {stan.kind === 'loading' ? <div className="note">Pobieram przepływy…</div> : null}
       {stan.kind === 'error' ? <div className="note is-bad">{stan.message}</div> : null}

@@ -224,11 +224,8 @@ export function Sesje({ data }: { data: LiveData }) {
             </button>
           </form>
 
-          <p className="session-form__hint">
-            Od parafiny zależy skala barwna i pasmo przemiany na wszystkich wykresach, więc
-            od niej zależy, czy z ekranu da się cokolwiek wyczytać. Wybór zapisze się razem
-            z danymi tej sesji.
-          </p>
+          {/* Akapit tłumaczący wybór parafiny zdjęty 2026-08-05 na prośbę —
+              formularz sam mówi, co wybrać, a uzasadnienie mieszka w docs. */}
 
           {data.health?.sourceKind === 'mock' ? (
             <p className="session-form__hint">

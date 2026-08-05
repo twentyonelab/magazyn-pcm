@@ -43,7 +43,6 @@ const ELEMENTS: Record<string, ElementInfo> = {
     notes: [
       'Sześć sond Loxone 200077 (DS18B20) zanurzonych bezpośrednio w parafinie, przywiązanych do dwóch prętów na przekątnych zbiornika.',
       'Przewodność cieplna parafiny to 0,2 W/(m·K) — konwekcji praktycznie nie ma, więc front przemiany posuwa się od wymiennika na zewnątrz, a stałe czasowe są w minutach.',
-      'Kliknij pojedynczą sondę, żeby zobaczyć jej historię.',
     ],
   },
   buffer: {

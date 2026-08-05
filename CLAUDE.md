@@ -114,6 +114,27 @@ Brama hasła jest **włączona** (`AUTH_ENABLED` i `AUTH_PASSWORD_HASH` w zmienn
 Railway). Lokalnie zostaje wyłączona celowo: w sieci laboratorium dodatkowy ekran
 przed pracą przy stanowisku tylko przeszkadza.
 
+## Kody diagnostyczne (D1–D7)
+
+Widok Diagnostyka pokazuje usterki jednym zdaniem z kodem — kod służy
+rozmowie („mam D6"), pełny mechanizm jest tu. Numeracja jest STAŁA: kod raz
+nadany nie zmienia znaczenia; nowe komunikaty dostają kolejne numery.
+
+- **D1** — Miniserver zgłasza błąd; treść przychodzi z serwera (`health.message`).
+- **D2** — zbiornik nierozpoznany: `BankDetector` nie umie wskazać zestawu sond,
+  skala barwna może nie pasować do parafiny.
+- **D3** — zbiornik wymuszony przez `FORCE_BANK` w `.env` — po wymianie
+  zbiornika trzeba zmienić ręcznie.
+- **D4** — punkty bez UUID-ów: uruchom `npm run uuid` w sieci laboratorium
+  i uzupełnij `server/src/points.config.ts`.
+- **D5** — konfiguracja Loxone zmieniła się od startu aplikacji; UUID-y mogą
+  wskazywać inne kontrolki (patrz pułapka wyżej: zła dana udająca dobrą).
+- **D6** — pogoda ze sterownika zwraca same zera (także 0 hPa, które nie
+  istnieje): usługa pogodowa Loxone nie ma zapisanej lokalizacji projektu
+  w Miniserverze. Ustawić lokalizację w Loxone Config i ZAPISAĆ do sterownika;
+  aplikacja przełączy źródło sama. Do tego czasu kafelek używa Open-Meteo.
+- **D7** — przeglądarka nie ma łączności z serwerem aplikacji.
+
 ## Zasada weryfikacji
 
 Brak wyjątku **nie jest** dowodem, że coś zadziałało. W tym projekcie ta pomyłka

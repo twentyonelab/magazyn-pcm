@@ -161,56 +161,75 @@ export function Diagnostyka({ data }: { data: LiveData }) {
         />
       </section>
 
+      {/*
+        KOMUNIKATY DIAGNOSTYCZNE: JEDNO ZDANIE I KOD.
+        =====================================================================
+        Wcześniej każda z tych ramek była akapitem tłumaczącym mechanizm
+        usterki. Na ekranie diagnostycznym to szum: kto tu zagląda, chce
+        wiedzieć CO nie działa, a nie czytać wykład. Pełne wyjaśnienia i kroki
+        naprawy mieszkają w spisie poniżej i w CLAUDE.md — w repozytorium,
+        nie na ekranie.
+
+        KOD (D1…D6) służy rozmowie: „mam D5" mówi jednoznacznie, o którą
+        usterkę chodzi, bez opisywania ekranu przez telefon. Numeracja jest
+        STAŁA — kod raz nadany nie zmienia znaczenia, nawet gdy komunikat
+        zniknie z ekranu; nowe dostają kolejne numery.
+
+          D1  Miniserver zgłasza błąd (treść z serwera)
+          D2  zbiornik nierozpoznany
+          D3  zbiornik wymuszony przez FORCE_BANK
+          D4  punkty bez UUID-ów
+          D5  konfiguracja Loxone zmieniona od startu
+          D6  pogoda ze sterownika zwraca zera (brak lokalizacji w projekcie)
+          D7  brak łączności przeglądarki z serwerem
+      */}
       {linkLive && health?.message ? (
-        <div className={`note${sourceTone === 'bad' ? ' is-bad' : ''}`}>{health.message}</div>
+        <div className={`note${sourceTone === 'bad' ? ' is-bad' : ''}`}>
+          <code className="mono">D1</code> Miniserver: {health.message}
+        </div>
       ) : null}
 
-      {/* Nierozpoznany zbiornik to nie drobiazg: od zestawu zalezy parafina,
-          a od niej cala skala barwna i opis zbieranych danych. */}
       {linkLive && health && !health.bank.active && health.bank.message ? (
         <div className="note">
-          <strong>Nie wiem, który zbiornik jest podłączony.</strong> {health.bank.message}
+          <code className="mono">D2</code> Zbiornik nierozpoznany — skala barwna może nie
+          pasować do parafiny.
         </div>
       ) : null}
 
       {linkLive && health?.bank.active && health.bank.detection === 'manual' ? (
         <div className="note">
-          Zbiornik <strong>{materialLabel(health.bank.active, data.materials)}</strong> jest
-          wymuszony w konfiguracji (<code>FORCE_BANK</code>), nie rozpoznany. Po wymianie zbiornika
-          trzeba to zmienić ręcznie w pliku <code>.env</code>.
+          <code className="mono">D3</code> Zbiornik{' '}
+          {materialLabel(health.bank.active, data.materials)} wymuszony w konfiguracji
+          (<code>FORCE_BANK</code>).
         </div>
       ) : null}
 
       {health && health.pendingUuidIds.length > 0 ? (
         <div className="note">
-          <strong>{health.pendingUuidIds.length} punktów czeka na UUID</strong> (
-          {health.pendingUuidIds.join(', ')}). Miniserver wydaje wartości po identyfikatorze
-          kontrolki, a nie po jej nazwie — punkt bez identyfikatora nie ma o co zapytać i zostaje
-          pusty. Uruchom <code>npm run uuid</code> w sieci laboratorium i uzupełnij{' '}
-          <code>server/src/points.config.ts</code>.
+          <code className="mono">D4</code> {health.pendingUuidIds.length} punktów bez UUID:{' '}
+          {health.pendingUuidIds.join(', ')}.
         </div>
       ) : null}
 
       {health?.configChanged ? (
         <div className="note is-bad">
-          Konfiguracja w Loxone Config zmieniła się od startu aplikacji. Sprawdź, czy UUID-y
-          w rejestrze punktów nadal są aktualne.
+          <code className="mono">D5</code> Konfiguracja Loxone zmieniona od startu — UUID-y mogą
+          być nieaktualne.
         </div>
       ) : null}
 
       {linkLive && pogodaStoiNaZerach ? (
         <div className="note">
-          <strong>Pogoda ze sterownika odpowiada, ale nic nie mierzy.</strong> Wszystkie cztery
-          punkty z pokoju „Otoczenie" zwracają dokładnie zero — także ciśnienie, które nie może
-          wynosić 0 hPa. Usługa pogodowa Loxone nie ma dla czego liczyć pogody, bo{' '}
-          <strong>lokalizacja projektu nie jest zapisana w Miniserverze</strong> (szerokość
-          i długość geograficzna = 0). Ustaw lokalizację w Loxone Config, zapisz konfigurację —
-          i to wszystko, aplikacja przełączy źródło sama. Do tego czasu kafelek pogody na
-          schemacie bierze dane z Open-Meteo i tak się podpisuje.
+          <code className="mono">D6</code> Pogoda ze sterownika zwraca zera — brak lokalizacji
+          w Miniserverze. Schemat używa Open-Meteo.
         </div>
       ) : null}
 
-      {data.error && link !== 'live' ? <div className="note is-bad">{data.error}</div> : null}
+      {data.error && link !== 'live' ? (
+        <div className="note is-bad">
+          <code className="mono">D7</code> Brak łączności z serwerem: {data.error}
+        </div>
+      ) : null}
 
       <section className="card">
         <div className="card__head">
