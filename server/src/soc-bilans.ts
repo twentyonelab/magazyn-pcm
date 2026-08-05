@@ -57,6 +57,23 @@ const MIN_POKRYCIE = 0.5;
  */
 const PRZECIEK_KW = 0.03;
 
+/**
+ * STRATY OBIEGU PODCZAS PRACY POMPY, kW.
+ *
+ * Cieplomierz zrodla mierzy CALY odcinek obiegu, nie sam zbiornik — a rury
+ * i bufor 80 l nie sa izolowane i w cieplej hali lapia cieplo na wlasny
+ * rachunek. Skala wyszla w nocy 4/5.08: obieg oddal 7,5 kWh, gdy jeden modul
+ * parafiny miesci 3,25 — nadwyzka ~4,2 kWh przez ~14 h pracy to ~0,30 kW
+ * ciaglych przeciekow obiegu. Bez tej poprawki bilans doliczal je zbiornikowi
+ * i nasycal sie do 100 % na dlugo przed prawdziwym zamrozeniem (zgloszone:
+ * sondy wciaz w pasmie przemiany przy "100 %" na ekranie).
+ *
+ * DO REKALIBRACJI PO IZOLACJI RUR — wtedy ta liczba powinna spasc kilkukrotnie
+ * i zawyzanie wroci, tyle ze w druga strone. Znak jak przy przecieku: chlod
+ * dostaje cieplo, cieplo je traci.
+ */
+const STRATY_OBIEGU_KW = 0.3;
+
 /** kW na (m3/h x K) dla wody. */
 const STALA_WODY = 1.163;
 
@@ -233,6 +250,9 @@ export class SocBilans {
       if (f !== null && f > 0.05 && a !== null && b !== null) {
         // Dodatnie = zasilanie cieplejsze od powrotu = zrodlo GRZEJE zbiornik.
         cieploDoZbiornikaKWh += f * (a - b) * STALA_WODY * dtH;
+        // Czesc zmierzonego ciepla obiegu nigdy nie dociera do zbiornika —
+        // lapia je nieizolowane rury i bufor (patrz STRATY_OBIEGU_KW).
+        cieploDoZbiornikaKWh += (kierunek === 'chlod' ? STRATY_OBIEGU_KW : -STRATY_OBIEGU_KW) * dtH;
         pokryty = true;
       }
 
@@ -258,7 +278,37 @@ export class SocBilans {
     // Chlod laduje sie ODBIERANIEM ciepla, wiec cieplo dodane zmniejsza SOC.
     const delta =
       (kierunek === 'chlod' ? -cieploDoZbiornikaKWh : cieploDoZbiornikaKWh) / pojemnoscKWh;
-    const soc = przytnij01(kotwicaSoc + delta);
+    let soc = przytnij01(kotwicaSoc + delta);
+
+    /*
+     * TWARDY SUFIT Z TERMOMETRU. Pelne naladowanie znaczy: CALA parafina
+     * przeszla przemiane — przy chlodzie kazda sonda ponizej solidusu, przy
+     * cieple kazda powyzej liquidusu. Dopoki ktoras sonda siedzi w pasmie,
+     * czesc materialu jest nieprzemieniona i zaden bilans nie ma prawa
+     * pokazac wiecej niz SOC granicy pasma (dla 8HC: 93 %).
+     *
+     * To zabezpiecza przed bledami kalibracji strat obiegu w OBIE strony:
+     * bilans moze sie mylic o kilowatogodzine, termometr o stan skupienia
+     * przy sondzie sie nie myli. Zgloszone wprost 2026-08-05: ekran mowil
+     * 100 %, a sondy po prawej stronie zbiornika staly w srodku przemiany.
+     */
+    const zyweTeraz = sondy
+      .map((id) => this.deps.cache.get(id).v)
+      .filter((v): v is number => typeof v === 'number');
+    if (zyweTeraz.length > 0) {
+      const niePrzemienioneDoKonca =
+        kierunek === 'chlod'
+          ? Math.max(...zyweTeraz) > profil.phaseBandMin + MARGINES_K
+          : Math.min(...zyweTeraz) < profil.phaseBandMax - MARGINES_K;
+      if (niePrzemienioneDoKonca) {
+        const sufit = this.socZTemperatury(
+          kierunek === 'chlod' ? profil.phaseBandMin : profil.phaseBandMax,
+          profil,
+          kierunek,
+        );
+        soc = Math.min(soc, sufit);
+      }
+    }
 
     return {
       soc,

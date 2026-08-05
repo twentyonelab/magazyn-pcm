@@ -333,8 +333,13 @@ podmien(
 podmien(
   'podpis zbiornika -> pasek naladowania',
   '<text class="st13" transform="translate(691.98 635.03)"><tspan x="0" y="0">Magazyn PCM</tspan></text>',
+  // Tor konczy sie na x=740, a procent jest zakotwiczony do prawej krawedzi
+  // zbiornika (786). Przy trzech cyfrach „100%" ma w kroju maszynowym ~36 px,
+  // wiec zaczyna sie na ~750 — te 10 px przerwy to cala roznica miedzy
+  // podpisem a napisem wjezdzajacym na pasek (zgloszone 2026-08-05 przy
+  // pierwszym prawdziwym 100 %).
   '<g class="soc">' +
-    '<rect class="soc__tor" data-soc-track="true" x="657.18" y="629" width="101" height="8"/>' +
+    '<rect class="soc__tor" data-soc-track="true" x="657.18" y="629" width="83" height="8"/>' +
     '<rect class="soc__wypelnienie" data-soc-fill="true" x="657.18" y="629" width="0" height="8"/>' +
     '<text class="soc__wartosc" data-soc-text="true" x="786.18" y="636.5" text-anchor="end">—</text>' +
     // Energia pod paskiem: „ile jest / ile sie miesci" w kWh. Wyrownana do tej
