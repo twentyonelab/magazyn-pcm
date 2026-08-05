@@ -65,8 +65,8 @@ export const STANOWISKO_CHLOD: Lokalizacja = {
   nazwa: 'Magazyn chłodu · Politechnika',
   miasto: 'Gliwice',
   opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 8HC',
-  lon: 18.6804,
-  lat: 50.2897,
+  lon: 18.680455,
+  lat: 50.28975,
   stan: 'live',
   typ: 'chlod',
 };
@@ -77,15 +77,16 @@ export const STANOWISKO_CIEPLO: Lokalizacja = {
   miasto: 'Gliwice',
   opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 57HC',
   /*
-   * TEN SAM BUDYNEK CO MAGAZYN CHŁODU — oba stanowiska stoją obok siebie
-   * w jednej hali, na jednym Miniserverze. Przesunięcie to około 25 m
-   * (0,00035° długości ≈ 25 m, 0,0001° szerokości ≈ 11 m na 50°N): dość,
-   * żeby po przybliżeniu do stanowiska były to dwa osobne znaczniki, i za
-   * mało, żeby sugerować dwie różne lokalizacje. Pierwsza wersja miała 600 m
-   * i wyglądała jak dwa budynki na przeciwnych końcach kampusu.
+   * TEN SAM BUDYNEK CO MAGAZYN CHŁODU, PO DRUGIEJ STRONIE — jedna hala,
+   * jeden Miniserver. Druga wersja (25 m na północny wschód) wypychała
+   * ten punkt poza obrys budynku, na drogę — widać to było na mapie jako
+   * znacznik stojący samotnie kawałek od hali. Teraz oba punkty mają tę
+   * samą szerokość geograficzną i różnią się tylko długością: chłód
+   * odsunięty na zachód, ciepło na wschód, po ~9 m od środka (razem ~17 m,
+   * czyli w obrysie jednego budynku, ale już jako dwa osobne znaczniki).
    */
-  lon: 18.68075,
-  lat: 50.28980,
+  lon: 18.680695,
+  lat: 50.28975,
   stan: 'live',
   typ: 'cieplo',
 };

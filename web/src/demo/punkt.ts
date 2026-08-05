@@ -51,7 +51,10 @@ interface ParametryNosnika {
 }
 
 const NOSNIK: Record<Kierunek, ParametryNosnika> = {
-  cieplo: { material: 'RT57HC', tDol: 44, tGora: 66, pasmoMin: 55, pasmoMax: 58 },
+  // Pasmo 53–58 — suma topnienia (55–58) i krzepnięcia (53–57), tak jak
+  // w profilu materiału serwera. Było tu 55, więc plateau przemiany na
+  // punktach pokazowych wypadało 2° wyżej niż na prawdziwym stanowisku.
+  cieplo: { material: 'RT57HC', tDol: 44, tGora: 66, pasmoMin: 53, pasmoMax: 58 },
   // 8HC topi się przy 7–9 °C. Zakres cyklu dobrany symetrycznie wokół pasma,
   // tak jak przy parafinie: kilkanaście stopni w jedną i drugą stronę.
   chlod: { material: 'RT8HC', tDol: 2, tGora: 17, pasmoMin: 7, pasmoMax: 9 },
