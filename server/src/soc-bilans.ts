@@ -51,11 +51,13 @@ const MAKS_DZIURA_MS = 45 * 60 * 1000;
 const MIN_POKRYCIE = 0.5;
 
 /**
- * Doplyw ciepla z otoczenia, kW. Zmierzony z dryfu zbiornika przy postoju
- * (0,3 K/h w strefie jawnej = ~29 W). Dla ciepla znak sie odwraca — magazyn
- * 57HC jest cieplejszy od hali i traci.
+ * Doplyw ciepla z otoczenia, kW. Z dryfu zbiornika przy postoju: 0,3 K/h
+ * w strefie jawnej x pojemnosc cieplna JEDNEGO MODULU (59 kg x 2 kJ/kgK
+ * = 118 kJ/K) = ~10 W. Pierwsza wersja liczyla z masy 176 kg (trzykrotnie
+ * za duzo) i wychodzilo 29 W. Dla ciepla znak sie odwraca — magazyn 57HC
+ * jest cieplejszy od hali i traci.
  */
-const PRZECIEK_KW = 0.03;
+const PRZECIEK_KW = 0.01;
 
 /**
  * STRATY OBIEGU PODCZAS PRACY POMPY, kW.

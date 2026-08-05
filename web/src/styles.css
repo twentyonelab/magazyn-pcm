@@ -2348,6 +2348,15 @@ code {
   --akcent-tlo: var(--cieplo-tlo);
   --akcent-mocny: #ad431d;
 
+  /* NA SCHEMACIE CIEPŁA WSZĘDZIE PŁYNIE CIEPŁA WODA (zgłoszone 2026-08-05).
+     Domyślnie powrót nosi barwy chłodne — co ma sens na przeglądzie, ale
+     w magazynie ciepła sugerowało, że połową obiegu płynie zimna woda.
+     Powrót dostaje więc jaśniejszą, bledszą odmianę ciepła: dalej widać,
+     która rura jest zasilaniem, a która powrotem, ale obie mówią „ciepło" —
+     lustrzane odbicie tego, co chłód robi od zawsze (obie rury błękitne). */
+  --strumien-powrot-core: #e69a6a;
+  --strumien-powrot-glow: #f6cdaa;
+
   /* Pasmo przemiany na wykresach — lekko ciepłe, nie pomarańczowe: ma być
      tłem pod linią, a nie drugą serią danych. */
   --pasmo-tlo: rgba(216, 90, 48, 0.07);
@@ -2874,6 +2883,23 @@ code {
   font-size: 0.84rem;
   font-weight: 700;
   -webkit-text-stroke-width: 3.5px;
+}
+
+/* STANOWISKO UŚPIONE — Gliwice mają dwa żywe punkty (chłód i ciepło) na
+   jednym Miniserverze, a sondy przepina się fizycznie. Punkt, którego sondy
+   są odpięte, stoi przygaszony i nie pulsuje: wygląda na obecny, ale wyraźnie
+   nieczynny. Kolor tożsamości (obrys, podpis) ZOSTAJE — to dalej ten sam
+   magazyn, tylko śpi. */
+/* Krycie siedzi na DZIECIACH, nie na znaczniku: Mapbox zarządza kryciem
+   samego elementu markera stylem inline (chowanie za terenem przy pochylonej
+   kamerze) i nadpisałby klasę. Zmierzone: klasa była, krycie zostawało 1. */
+.pinezka.is-live.is-uspiona .pinezka__kolo,
+.pinezka.is-live.is-uspiona .pinezka__podpis {
+  opacity: 0.5;
+}
+
+.pinezka.is-live.is-uspiona .pinezka__kolo {
+  border-style: dashed;
 }
 
 /* Nocą obrys liter musi być CIEMNY, nie jasny: na nocnej mapie jasna otoczka

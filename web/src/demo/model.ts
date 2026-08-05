@@ -65,15 +65,34 @@ function wygladz(x: number, a: number, b: number): number {
  *
  * Godziny są ułamkowe, więc przejścia wypadają płynnie także między próbkami.
  */
+/**
+ * DOBA JEST ASYMETRYCZNA — dostrojona do pomiarów z 4–5.08.2026.
+ *
+ * Prawdziwe stanowisko pokazało asymetrię, której pierwsza wersja modelu nie
+ * znała: ŁADOWANIE JEST WOLNE (napór temperaturowy między źródłem a przemianą
+ * to ledwie 2–4 K, moc ~0,6 kW, pełne naładowanie ~12 h), a ROZŁADOWANIE
+ * SZYBKIE (odbiorca wraca kilkanaście K od przemiany, moc 2–3,5 kW, ~2 h).
+ * Model, który ładował i rozładowywał w tym samym tempie, uczył pokaz
+ * nieprawdziwej fizyki. Stąd nowa doba:
+ *
+ *   21–09  ładowanie      12 h powolnego wchodzenia przez plateau (taryfa
+ *                          nocna to zarazem naturalna pora ładowania)
+ *   09–17  postój          straty rzędu kilku procent
+ *   17–19:30 rozładowanie  2,5 h intensywnego odbioru w szczycie
+ *   19:30–21 spoczynek     zbiornik rozładowany czeka na noc
+ */
 export function postepDoby(ms: number): number {
   const d = new Date(ms);
   const h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
 
-  if (h < 6) return 0.06 * (1 - h / 6); // noc: resztka ciepła schodzi
-  if (h < 11) return wygladz(h, 6, 11); // ładowanie
-  if (h < 17) return 1 - 0.18 * wygladz(h, 11, 17); // postój, lekkie straty
-  if (h < 22) return 0.82 * (1 - wygladz(h, 17, 22)); // rozładowanie
-  return 0.06 + 0.0 * h; // wieczór: prawie zimno
+  if (h >= 21 || h < 9) {
+    // Godziny od startu ładowania (21:00), z przejściem przez północ.
+    const c = h >= 21 ? h - 21 : h + 3;
+    return 0.06 + 0.94 * wygladz(c, 0, 12);
+  }
+  if (h < 17) return 1 - 0.07 * wygladz(h, 9, 17); // postój, lekkie straty
+  if (h < 19.5) return 0.06 + 0.87 * (1 - wygladz(h, 17, 19.5)); // rozładowanie
+  return 0.06; // spoczynek
 }
 
 /**
@@ -143,12 +162,13 @@ function zPlateau(postep: number): number {
   return temperaturaZPostepu(postep, ZAKRES_57HC);
 }
 
-/** Czy o tej porze przez instalację coś płynie. */
+/** Czy o tej porze przez instalację coś płynie. Granice = `postepDoby`. */
 export function fazaPracy(ms: number): 'ladowanie' | 'postoj' | 'rozladowanie' | 'spoczynek' {
-  const h = new Date(ms).getHours();
-  if (h >= 6 && h < 11) return 'ladowanie';
-  if (h >= 11 && h < 17) return 'postoj';
-  if (h >= 17 && h < 22) return 'rozladowanie';
+  const d = new Date(ms);
+  const h = d.getHours() + d.getMinutes() / 60;
+  if (h >= 21 || h < 9) return 'ladowanie';
+  if (h < 17) return 'postoj';
+  if (h < 19.5) return 'rozladowanie';
   return 'spoczynek';
 }
 
@@ -176,20 +196,37 @@ export function temperaturaSondy(id: string, ms: number): number {
   );
 }
 
-/** Przepływ w m³/h — zero, gdy pompa stoi. */
+/** Przepływ w m³/h — zero, gdy pompa stoi. Wartość robocza z pomiarów. */
 export function przeplyw(ms: number): number {
   const faza = fazaPracy(ms);
   if (faza === 'postoj' || faza === 'spoczynek') return 0;
-  return 0.55 + szum(ms, 11) * 0.02;
+  return 0.92 + szum(ms, 11) * 0.03;
 }
 
-/** Zasilanie i powrót ciepłomierza. */
+/**
+ * Zasilanie i powrót ciepłomierza — DOSTROJONE DO POMIARÓW 4–5.08.2026.
+ *
+ * Wymiennik zanurzeniowy przenosi ~0,3 kW na 1 K naporu, więc przy ładowaniu
+ * (napór 2–3 K) ΔT obiegu to ledwie ~0,6 K — a nie 3,7 K, jak zmyślała
+ * pierwsza wersja. Przy rozładowaniu odbiorca wraca kilkanaście K od
+ * przemiany i ΔT rośnie do ~3,5 K. Z przepływem 0,92 m³/h daje to moce
+ * 0,64 kW / 2,4 kW — dokładnie zmierzone wartości.
+ *
+ * TAKTOWANIE: prawdziwe źródło nie trzyma zasilania równo, tylko oscyluje
+ * o ±1,4 K w rytmie kilku minut (sprężarka dochodzi do progu i odpuszcza).
+ * Sinus o okresie 10 minut odtwarza ten charakter bez łamania zasady
+ * „wartość jest czystą funkcją czasu".
+ */
 export function temperaturyObiegu(ms: number): { t1: number; t2: number } {
   const faza = fazaPracy(ms);
   const srednia = (temperaturaSondy('A3', ms) + temperaturaSondy('A1', ms)) / 2;
 
-  if (faza === 'ladowanie') return { t1: srednia + 4.2, t2: srednia + 0.5 };
-  if (faza === 'rozladowanie') return { t1: srednia - 3.8, t2: srednia - 0.4 };
+  if (faza === 'ladowanie') {
+    const taktowanie = 1.4 * Math.sin((ms / 600_000) * 2 * Math.PI);
+    const t1 = srednia + 2.4 + taktowanie;
+    return { t1, t2: t1 - 0.6 };
+  }
+  if (faza === 'rozladowanie') return { t1: srednia - 0.3, t2: srednia - 3.8 };
   // Bez przepływu zasilanie i powrót schodzą się do temperatury zbiornika.
   return { t1: srednia + 0.1, t2: srednia - 0.1 };
 }
@@ -233,7 +270,8 @@ export function temperaturyOdbioru(ms: number): { zasilanie: number; powrot: num
 export function przeplywOdbioru(ms: number): number {
   const faza = fazaPracy(ms);
   if (faza !== 'rozladowanie') return 0;
-  return 0.42 + szum(ms, 17) * 0.015;
+  // Zmierzone przy rozładowaniu 4.08: 0,43–0,72 m³/h — środek tego zakresu.
+  return 0.58 + szum(ms, 17) * 0.04;
 }
 
 /**

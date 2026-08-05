@@ -45,6 +45,23 @@ export const POINTS: readonly PointDef[] = [
   // odpytywanie ich byloby strzelaniem w puste UUID-y przy kazdym cyklu
   // rozpoznawania zbiornika. Gdy zbiornik 57HC wroci, jego sondy dostana
   // nowe UUID-y i trzeba bedzie ponownie uruchomic `npm run uuid --zapisz`.
+  //
+  // NUMERY SERYJNE 1-WIRE SOND ZBIORNIKA 57HC (magazyn ciepla) — podane
+  // 2026-08-05, PRZED fizycznym wpieciem. To adresy SPRZETU (DS18B20),
+  // trwale dla sondy; UUID-y kontrolek Loxone powstana dopiero po dodaniu
+  // ich w Loxone Config i beda inne niz historyczne. Zapisane tutaj, zeby
+  // przy wpinaniu dalo sie sparowac sonde z punktem bez zgadywania:
+  //
+  //   A1  <- 1A_57HC  28.03.EB.F6.10.00.00.DF
+  //   B1  <- 1B_57HC  28.9B.E0.F6.10.00.00.BF
+  //   A2  <- 2A_57HC  28.E1.26.F6.10.00.00.56
+  //   B2  <- 2B_57HC  28.FE.82.F4.10.00.00.02
+  //   A3  <- 3A_57HC  28.E2.C6.F4.10.00.00.D2
+  //   B3  <- 3B_57HC  28.B9.BF.F6.10.00.00.9D
+  //
+  // Po wpieciu i dodaniu kontrolek w Loxone Config: `npm run uuid -- --zapisz`
+  // uzupelni `uuidByBank.RT57HC` po nazwach — i od tej chwili BankDetector
+  // sam rozpozna, ze aktywny jest magazyn ciepla (mapa przelaczy stanowiska).
   // -------------------------------------------------------------------------
   {
     id: 'A1',

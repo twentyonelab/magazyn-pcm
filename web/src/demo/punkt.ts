@@ -182,11 +182,16 @@ export function wartosciPunktu(lok: Lokalizacja, ms: number): PointValues {
 
   // Przy chłodzie ładowanie ZABIERA ciepło, więc zasilanie jest zimniejsze od
   // zbiornika, nie cieplejsze. Znak idzie za nośnikiem.
+  //
+  // ΔT DOSTROJONE DO POMIARÓW 4–5.08 (te same liczby co model stanowiska):
+  // ładowanie ledwie ~0,6 K, bo wymiennik przenosi ~0,3 kW na 1 K naporu,
+  // a naporu jest 2–3 K; rozładowanie ~3,5 K, bo odbiorca wraca kilkanaście
+  // K od przemiany. Z przepływem 0,92 daje to 0,64 / 2,4 kW — jak zmierzono.
   const znak = lok.typ === 'chlod' ? -1 : 1;
   const rozpietosc = (n.tGora - n.tDol) / 22;
-  const t1 = srednia + (faza === 'ladowanie' ? 4.2 : faza === 'rozladowanie' ? -3.8 : 0.1) * znak * rozpietosc;
-  const t2 = srednia + (faza === 'ladowanie' ? 0.5 : faza === 'rozladowanie' ? -0.4 : -0.1) * znak * rozpietosc;
-  const przeplyw = pracuje ? 0.55 : 0;
+  const t1 = srednia + (faza === 'ladowanie' ? 2.4 : faza === 'rozladowanie' ? -0.3 : 0.1) * znak * rozpietosc;
+  const t2 = srednia + (faza === 'ladowanie' ? 1.8 : faza === 'rozladowanie' ? -3.8 : -0.1) * znak * rozpietosc;
+  const przeplyw = pracuje ? 0.92 : 0;
 
   values.METER_FLOW = swiezy(Number(przeplyw.toFixed(3)));
   values.METER_T1 = swiezy(Number(t1.toFixed(1)));
@@ -221,7 +226,7 @@ export function wartosciPunktu(lok: Lokalizacja, ms: number): PointValues {
   values.ODBIOR_DT = swiezy(Number((odbiorZasilanie - odbiorPowrot).toFixed(2)));
   // Obieg odbioru ma od 2026-08-04 wlasny przeplyw i moc w Miniserverze,
   // wiec punkt pokazowy tez je podaje. Bufora nie — nie jest monitorowany.
-  const odbiorPrzeplyw = odbiorPracuje ? 0.42 : 0;
+  const odbiorPrzeplyw = odbiorPracuje ? 0.58 : 0;
   values.ODBIOR_FLOW = swiezy(Number(odbiorPrzeplyw.toFixed(3)));
   values.ODBIOR_POWER = swiezy(
     Number((odbiorPrzeplyw * (odbiorZasilanie - odbiorPowrot) * 1.163).toFixed(2)),

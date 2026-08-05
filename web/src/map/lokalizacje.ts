@@ -49,32 +49,48 @@ export interface Lokalizacja {
   demoNaladowanie?: number;
 }
 
-/** Stanowisko badawcze — jedyny punkt z prawdziwymi danymi. */
-export const STANOWISKO: Lokalizacja = {
-  id: 'gliwice-kaszubska',
-  nazwa: 'Instalacja testowa Politechnika',
+/**
+ * DWA STANOWISKA W GLIWICACH, JEDEN MINISERVER (od 2026-08-05).
+ *
+ * Fizycznie to jedno laboratorium i jeden sterownik, ale DWA magazyny:
+ * chłodu (zbiornik 8HC, sondy `*_8HC`) i ciepła (zbiornik 57HC, sondy
+ * `*_57HC`). Sondy przepina się ręcznie — w danej chwili żyje jeden zestaw.
+ * Rodzaj NIE jest już wartością zapasową do rozpoznania (tak było, gdy punkt
+ * był jeden): każde stanowisko ma stałą tożsamość, a to, KTÓRE jest teraz
+ * aktywne, rozstrzyga BankDetector po żywych sondach. Aktywne miga na mapie,
+ * nieaktywne stoi przygaszone i mówi, że sondy są przepięte.
+ */
+export const STANOWISKO_CHLOD: Lokalizacja = {
+  id: 'gliwice-chlod',
+  nazwa: 'Magazyn chłodu · Politechnika',
   miasto: 'Gliwice',
-  opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26',
+  opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 8HC',
   lon: 18.6804,
   lat: 50.2897,
   stan: 'live',
-  /*
-   * WARTOŚĆ ZAPASOWA, nie źródło prawdy.
-   *
-   * Stanowisko pracuje wymiennymi zbiornikami i rodzaj magazynu zmienia się
-   * razem ze zbiornikiem: parafina 57HC to ciepło, materiał 8HC to chłód.
-   * Stał tu kiedyś komentarz „gdy pojawi się 8HC, przestaw na chlod" —
-   * i 2026-08-03 faktycznie się pojawił, a znacznik na mapie dalej świecił
-   * pomarańczowo, bo nikt tej linijki nie ruszył. Ręczne pole, którego
-   * poprawność zależy od pamięci człowieka, jest błędem czekającym na okazję.
-   *
-   * Widok Mapa bierze więc rodzaj Z ROZPOZNANEGO MATERIAŁU, a nie stąd
-   * (patrz `kierunekStanowiska` w Mapa.tsx). Ta wartość działa tylko wtedy,
-   * gdy materiału jeszcze nie znamy — na przykład w pierwszej sekundzie po
-   * otwarciu aplikacji.
-   */
+  typ: 'chlod',
+};
+
+export const STANOWISKO_CIEPLO: Lokalizacja = {
+  id: 'gliwice-cieplo',
+  nazwa: 'Magazyn ciepła · Politechnika',
+  miasto: 'Gliwice',
+  opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 57HC',
+  // Obok stanowiska chłodu — na mapie regionu to wciąż ten sam kampus,
+  // przesunięcie jest tylko po to, żeby znaczniki się nie nakrywały.
+  lon: 18.6874,
+  lat: 50.2914,
+  stan: 'live',
   typ: 'cieplo',
 };
+
+export const STANOWISKA: readonly Lokalizacja[] = [STANOWISKO_CHLOD, STANOWISKO_CIEPLO];
+
+/**
+ * Zgodność wstecz: kafelek pogody i aktualizacje dymka odwołują się do
+ * „stanowiska" — współrzędne i adres są wspólne dla obu magazynów.
+ */
+export const STANOWISKO = STANOWISKO_CHLOD;
 
 /**
  * Punkty pokazowe: nazwa instalacji, miasto, rodzaj magazynu i poziom
@@ -155,7 +171,7 @@ function rozsuniecie(nazwa: string): { lon: number; lat: number } {
 }
 
 export const LOKALIZACJE: ReadonlyArray<Lokalizacja> = [
-  STANOWISKO,
+  ...STANOWISKA,
   ...DEMO.map((d) => ({
     id: `demo-${d.miasto.toLowerCase().replace(/[^a-z]+/g, '-')}`,
     nazwa: d.nazwa,

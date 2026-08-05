@@ -25,7 +25,9 @@ import {
   KADR,
   LOKALIZACJE,
   MAX_GRANICE,
-  STANOWISKO,
+  STANOWISKA,
+  STANOWISKO_CHLOD,
+  STANOWISKO_CIEPLO,
   type Lokalizacja,
 } from '../map/lokalizacje.js';
 import type { LiveData } from '../useLiveData.js';
@@ -167,6 +169,12 @@ function trescDymka(
   kierunek: Kierunek,
   /** Skąd pochodzi procent — podpis musi mówić prawdę o metodzie. */
   opisZrodla = 'szacunek z temperatury',
+  /**
+   * Uwaga zastępująca blok naładowania — dla NIEAKTYWNEGO stanowiska
+   * (sondy przepięte na drugi magazyn). Procent z martwych sond byłby
+   * kłamstwem, więc zamiast niego stoi zdanie, które mówi dlaczego.
+   */
+  notka: string | null = null,
 ): string {
   const zdjecie =
     `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.nazwa}" loading="lazy" ` +
@@ -186,8 +194,9 @@ function trescDymka(
   // pokazowych z wartości wpisanej na stałe — i wtedy podpisany jako pokazowy.
   const poziom = punkt.stan === 'live' ? procent : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
-  const ladunek =
-    poziom === null
+  const ladunek = notka
+    ? `<p class="dymek__akcja">${notka}</p>`
+    : poziom === null
       ? '<p class="dymek__akcja">Brak odczytu sond — naładowania nie da się oszacować</p>'
       : '<div class="ladunek">' +
         '<div class="ladunek__gora">' +
@@ -229,29 +238,23 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const theme = useAppliedTheme();
   const [blad, setBlad] = useState<string | null>(null);
-  /** Dymek stanowiska — trzymany, żeby odświeżać w nim naładowanie. */
-  const dymekLiveRef = useRef<mapboxgl.Popup | null>(null);
-  /** Wypełnienie zbiornika stanowiska — podnoszone bez przebudowy mapy. */
-  const wypelnienieLiveRef = useRef<HTMLElement | null>(null);
   /*
-   * ZNACZNIK STANOWISKA W CZĘŚCIACH — i to jest poprawka usterki, nie ozdoba.
+   * UCHWYTY DO OBU STANOWISK — od 2026-08-05 Gliwice mają DWA żywe punkty:
+   * magazyn chłodu (8HC) i magazyn ciepła (57HC), na jednym Miniserverze.
+   * Sondy przepina się fizycznie, więc w danej chwili żyje jeden zestaw —
+   * to, KTÓRY, rozpoznaje serwer po sondach (BankDetector), a mapa tylko
+   * przełącza klasy: aktywne stanowisko pulsuje i nosi naładowanie,
+   * nieaktywne stoi przygaszone.
    *
-   * Znaczniki powstają RAZ, w efekcie montującym mapę. W pierwszej klatce nie
-   * ma jeszcze ani `/api/materials`, ani rozpoznanego zbiornika, więc rodzaj
-   * magazynu spada wtedy na wartość zapasową `STANOWISKO.typ`, czyli CIEPŁO.
-   * Barwa obrysu i podpisu wchodziła wtedy na stałe jako pomarańcz i już nigdy
-   * się nie zmieniała: odświeżał się tylko słupek wypełnienia i treść karty.
-   * Stąd zgłoszenie „instalacja w Gliwicach świeci pomarańczowo, aż odświeżę
-   * stronę" — a po odświeżeniu czasem trafiało się w kolejność, w której dane
-   * były już na miejscu.
-   *
-   * Trzymamy więc uchwyty do obrysu i podpisu i przemalowujemy je dokładnie
-   * wtedy, gdy rodzaj magazynu się rozstrzygnie. Bez przebudowy mapy, więc
-   * kadr, obrót i otwarta karta zostają na miejscu.
+   * Tożsamość każdego punktu (barwa obrysu, podpis) jest STAŁA — to koniec
+   * wcześniejszego przemalowywania pinezki po rozpoznaniu materiału: nie ma
+   * już jednej pinezki o zmiennym rodzaju, są dwie o rodzajach ustalonych.
+   * Znaczniki powstają raz, w efekcie montującym mapę; uchwyty pozwalają
+   * odświeżać treść bez przebudowy (kadr, obrót i otwarty dymek zostają).
    */
-  const pinezkaLiveRef = useRef<HTMLElement | null>(null);
-  const koloLiveRef = useRef<HTMLElement | null>(null);
-  const podpisLiveRef = useRef<HTMLElement | null>(null);
+  const stacjeRef = useRef(
+    new Map<string, { dymek: mapboxgl.Popup; el: HTMLElement; wypelnienie: HTMLElement | null }>(),
+  );
   /**
    * Naładowanie stanowiska widziane przez kod budujący znaczniki.
    * Efekt tworzący mapę nie może zależeć od `procent`, bo przy każdym odczycie
@@ -289,12 +292,6 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   ciemnyRef.current = theme === 'dark';
   /** Uchwyt mapy — potrzebny, żeby przemalować ją bez przebudowy. */
   const mapaRef = useRef<mapboxgl.Map | null>(null);
-  /**
-   * Rodzaj magazynu na stanowisku, widziany przez kod budujący znaczniki.
-   * Referencją z tego samego powodu co naładowanie: gdyby efekt tworzący mapę
-   * zależał od tej wartości, przebudowywałby ją po rozpoznaniu materiału.
-   */
-  const kierunekRef = useRef<Kierunek>(STANOWISKO.typ);
 
   // Dane płyną? To decyduje, czy kropka stanowiska pulsuje.
   const zywe = data.link === 'live';
@@ -332,7 +329,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     sredniaC === null || !profile || profile.scaleMax <= profile.scaleMin
       ? null
       : (sredniaC - profile.scaleMin) / (profile.scaleMax - profile.scaleMin);
-  kierunekRef.current = kierunekStanowiska;
+  /** Które z dwóch gliwickich stanowisk jest AKTYWNE — po rozpoznanych sondach. */
+  const aktywnaStacjaId =
+    kierunekStanowiska === 'chlod' ? STANOWISKO_CHLOD.id : STANOWISKO_CIEPLO.id;
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
   otworzRef.current = onOtworzMagazyn;
@@ -469,9 +468,12 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       // zabierała mapie miejsce i przy dwudziestu jeden punktach robiła z niej
       // planszę kafelków — a mapa ma pokazywać teren. Koło zajmuje tyle, ile
       // musi, obrys niesie kolor, a poziom cieczy zostaje.
-      // Stanowisko badawcze bierze rodzaj z materiału, punkty pokazowe z pola:
-      // za nimi nie stoi żaden zbiornik, więc nie ma czego rozpoznawać.
-      const kierunekPunktu = live ? kierunekRef.current : punkt.typ;
+      //
+      // RODZAJ JEST TOŻSAMOŚCIĄ PUNKTU — także dla stanowisk. Odkąd Gliwice
+      // mają osobny punkt chłodu i osobny ciepła, żaden znacznik nie zmienia
+      // już rodzaju po rozpoznaniu materiału; zmienia się tylko to, KTÓRY
+      // z nich jest aktywny (efekt niżej).
+      const kierunekPunktu = punkt.typ;
       const paleta = PALETA[kierunekPunktu];
       const poziom =
         live ? (procentRef.current ?? 0) : Math.round((punkt.demoNaladowanie ?? 0) * 100);
@@ -498,8 +500,6 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
           : paleta.jasny;
 
       const el = document.createElement('div');
-      // Rodzaj w klasie idzie z `kierunekPunktu`, nie z `punkt.typ`: dla
-      // stanowiska decyduje rozpoznany materiał, a nie wartość zapasowa.
       el.className = `pinezka is-${punkt.stan} is-${kierunekPunktu}`;
       // Podpis to NAZWA INSTALACJI, nie miasto: etykiety miast rysuje już sam
       // Mapbox i drugi taki napis obok pinezki czytał się jak jego powtórzenie.
@@ -519,11 +519,11 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       }).setHTML(trescDymka(punkt, null, null, kierunekPunktu));
 
       if (live) {
-        dymekLiveRef.current = dymek;
-        wypelnienieLiveRef.current = el.querySelector('.pinezka__wypelnienie');
-        pinezkaLiveRef.current = el;
-        koloLiveRef.current = el.querySelector('.pinezka__kolo');
-        podpisLiveRef.current = el.querySelector('.pinezka__podpis');
+        stacjeRef.current.set(punkt.id, {
+          dymek,
+          el,
+          wypelnienie: el.querySelector('.pinezka__wypelnienie'),
+        });
       }
 
       const marker = new mapboxgl.Marker({
@@ -588,11 +588,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     }
 
     return () => {
-      dymekLiveRef.current = null;
-      pinezkaLiveRef.current = null;
-      koloLiveRef.current = null;
-      podpisLiveRef.current = null;
-      wypelnienieLiveRef.current = null;
+      stacjeRef.current.clear();
       map.remove();
     };
     // Mapa budowana RAZ. Motyw i sposób kolorowania wchodzą osobnymi efektami.
@@ -633,47 +629,57 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     }
   }, [motywMapy]);
 
-  // Pulsowanie kropki stanowiska idzie za stanem łącza — bez przebudowy mapy.
+  /*
+   * ODŚWIEŻANIE OBU STANOWISK — bez przebudowy mapy.
+   *
+   * AKTYWNE (rozpoznane po żywych sondach): pulsuje przy działającym łączu,
+   * nosi naładowanie w słupku i pełną kartę z procentem.
+   * NIEAKTYWNE: klasa `is-uspiona` (przygaszenie w arkuszu), pusty słupek
+   * i karta mówiąca wprost, że sondy są przepięte na drugi magazyn — bo
+   * nieaktywny punkt z zamrożoną starą liczbą wyglądałby jak działający
+   * czujnik, a to najgorszy rodzaj kłamstwa w tym narzędziu.
+   *
+   * `kierunekStanowiska` w zależnościach: to on wybiera aktywną stację,
+   * a zmienia się dokładnie wtedy, gdy ktoś przepnie sondy.
+   */
   useEffect(() => {
-    const el = hostRef.current?.querySelector('.pinezka.is-live');
-    el?.classList.toggle('is-plynie', zywe);
-  }, [zywe]);
+    for (const punkt of STANOWISKA) {
+      const uchwyty = stacjeRef.current.get(punkt.id);
+      if (!uchwyty) continue;
+      const aktywna = punkt.id === aktywnaStacjaId;
 
-  // Stanowisko odświeża się z danymi: treść karty, wysokość i barwa
-  // wypełnienia oraz — i to jest ta poprawka — RODZAJ MAGAZYNU, czyli barwa
-  // obrysu, podpisu i klasa znacznika. Podmieniamy tylko te rzeczy, żeby nie
-  // przebudowywać całej mapy przy każdym odczycie sond.
-  //
-  // `kierunekStanowiska` MUSI być w zależnościach. Bez niego przemalowanie
-  // trafiało się przypadkiem, przy najbliższej zmianie średniej z sond — a
-  // w plateau przemiany temperatura stoi godzinami, więc „przypadek" nie
-  // przychodził wcale.
-  useEffect(() => {
-    dymekLiveRef.current?.setHTML(
-      trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska, opisZrodla),
-    );
+      uchwyty.el.classList.toggle('is-uspiona', !aktywna);
+      uchwyty.el.classList.toggle('is-plynie', aktywna && zywe);
 
-    const paleta = PALETA[kierunekStanowiska];
-
-    if (pinezkaLiveRef.current) {
-      pinezkaLiveRef.current.classList.toggle('is-cieplo', kierunekStanowiska === 'cieplo');
-      pinezkaLiveRef.current.classList.toggle('is-chlod', kierunekStanowiska === 'chlod');
+      if (aktywna) {
+        uchwyty.dymek.setHTML(trescDymka(punkt, sredniaC, procent, punkt.typ, opisZrodla));
+        if (uchwyty.wypelnienie) {
+          uchwyty.wypelnienie.style.height = `${procent ?? 0}%`;
+          // Barwa idzie za temperaturą, wysokość za naładowaniem — dwa
+          // kanały, dwie liczby. Bez położenia na skali zostaje jasny
+          // odcień rodzaju, ten sam co przy budowie znacznika.
+          uchwyty.wypelnienie.style.background =
+            pozycjaRef.current === null
+              ? PALETA[punkt.typ].jasny
+              : barwaNosnika(punkt.typ, pozycjaRef.current);
+        }
+      } else {
+        uchwyty.dymek.setHTML(
+          trescDymka(
+            punkt,
+            null,
+            null,
+            punkt.typ,
+            opisZrodla,
+            `Stanowisko nieaktywne — sondy przepięte na magazyn ${
+              punkt.typ === 'chlod' ? 'ciepła' : 'chłodu'
+            }. Zbiornik ${punkt.typ === 'chlod' ? '8HC' : '57HC'} czeka na podłączenie.`,
+          ),
+        );
+        if (uchwyty.wypelnienie) uchwyty.wypelnienie.style.height = '0%';
+      }
     }
-    if (koloLiveRef.current) koloLiveRef.current.style.borderColor = paleta.glowny;
-    if (podpisLiveRef.current) podpisLiveRef.current.style.color = paleta.glowny;
-
-    if (wypelnienieLiveRef.current) {
-      wypelnienieLiveRef.current.style.height = `${procent ?? 0}%`;
-      // Barwa idzie za temperaturą, wysokość za naładowaniem — dwa kanały,
-      // dwie liczby, jedno miejsce aktualizacji. Bez położenia na skali
-      // (brak profilu materiału) zostaje płaski, jasny odcień rodzaju —
-      // ten sam wybór co przy budowie znacznika.
-      wypelnienieLiveRef.current.style.background =
-        pozycjaRef.current === null
-          ? paleta.jasny
-          : barwaNosnika(kierunekStanowiska, pozycjaRef.current);
-    }
-  }, [sredniaC, procent, kierunekStanowiska, opisZrodla]);
+  }, [sredniaC, procent, kierunekStanowiska, opisZrodla, zywe, aktywnaStacjaId]);
 
   return (
     <section className="mapa">

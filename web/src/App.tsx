@@ -198,20 +198,16 @@ export function App() {
    * parafina 57HC — pomarańcz, materiał 8HC — stalowy błękit.
    *
    * Na PRZEGLĄDZIE jest `null`, czyli neutralnie. Mapa i lista pokazują
-   * dwadzieścia jeden obiektów obu rodzajów naraz i pomalowanie całego okna
+   * dwadzieścia dwa obiekty obu rodzajów naraz i pomalowanie całego okna
    * na jeden z nich byłoby po prostu nieprawdą.
    *
-   * Dla punktu pokazowego źródłem jest jego rodzaj, dla stanowiska — materiał
-   * sesji albo rozpoznanego zbiornika. Nigdy sam widok: inaczej ten sam
-   * magazyn miałby inną barwę w schemacie i w przebiegach.
+   * RODZAJ JEST TOŻSAMOŚCIĄ PUNKTU — od 2026-08-05 także dla stanowisk:
+   * Gliwice mają osobny magazyn chłodu (8HC) i osobny ciepła (57HC), więc
+   * design idzie za tym, KTÓRY punkt otwarto, a nie za rozpoznanym
+   * materiałem. Wcześniej rodzaj był zgadywany z sesji i materiału, bo punkt
+   * był jeden i zmieniał skórę razem z wymianą zbiornika.
    */
-  const kierunek: Kierunek | null = !otwarty
-    ? null
-    : otwarty.stan === 'demo'
-      ? otwarty.typ
-      : (data.session?.material ?? data.materials?.defaultMaterial) === 'RT8HC'
-        ? 'chlod'
-        : 'cieplo';
+  const kierunek: Kierunek | null = otwarty?.typ ?? null;
 
   useEffect(() => {
     if (kierunek) document.documentElement.dataset.kierunek = kierunek;
