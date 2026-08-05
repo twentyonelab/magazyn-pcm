@@ -79,13 +79,13 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     kierunek: 'cieplo',
     solidus: 53,
     liquidus: 58,
-    // 200 l × ~0,85 kg/l × 240 kJ/kg = 40 800 kJ = 11,3 kWh.
-    // 240 kJ/kg to POJEMNOŚĆ Z KARTY (latent + jawne, 49–64 °C), a nie samo
-    // ciepło utajone — i tu jest to właściwa liczba, bo mianownik ma opisywać
-    // energię użytkową zbiornika w oknie pracy, nie samą przemianę.
-    // Gęstość 0,85 kg/l to średnia z karty: 0,9 (ciało stałe, 20 °C) i 0,8
-    // (ciecz, 60 °C).
-    pojemnoscKWh: 11.3,
+    // JEDEN MODUŁ 67 l (nie 200 — patrz MASA_KG w materials.config serwera):
+    // 57 kg × 240 kJ/kg = 13 680 kJ = 3,8 kWh. 240 kJ/kg to POJEMNOŚĆ Z KARTY
+    // (latent + jawne, 49–64 °C) — mianownik ma opisywać energię użytkową
+    // w oknie pracy, nie samą przemianę. Gęstość 0,85 = średnia z karty.
+    // Ta liczba jest TYLKO ZAPASEM: gdy serwer poda bilans (health.soc),
+    // belka bierze pojemność stamtąd.
+    pojemnoscKWh: 3.8,
     kolorKrzywej: PALETA.cieplo.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
     kolorNaladowany: PALETA.cieplo.jasny,
@@ -105,10 +105,11 @@ export const KONFIGURACJA: Record<PcmMaterial, KonfiguracjaMaterialu> = {
     kierunek: 'chlod',
     solidus: 7,
     liquidus: 9,
-    // 200 l × 0,88 kg/l × 190 kJ/kg = 33 440 kJ = 9,3 kWh.
-    // Gęstość ciała stałego z karty (0,88 przy 0 °C), bo dla magazynu CHŁODU
-    // stan naładowany to stan zamrożony — i wtedy w zbiorniku jest ta masa.
-    pojemnoscKWh: 9.3,
+    // JEDEN MODUŁ 67 l: 59 kg × 190 kJ/kg (pojemność z karty, 1–15 °C)
+    // = 11 210 kJ = 3,1 kWh. Gęstość ciała stałego (0,88 przy 0 °C), bo
+    // magazyn chłodu naładowany to magazyn zamrożony. Zapas na wypadek braku
+    // bilansu z serwera — patrz komentarz przy 57HC wyżej.
+    pojemnoscKWh: 3.1,
     kolorKrzywej: PALETA.chlod.glowny,
     kolorRozladowany: SZARY_ROZLADOWANY,
     kolorNaladowany: PALETA.chlod.jasny,

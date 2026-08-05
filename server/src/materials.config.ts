@@ -100,13 +100,24 @@ export const DEFAULT_MATERIAL: PcmMaterial = 'RT8HC';
 /**
  * MASA PARAFINY W ZBIORNIKU, kg — mianownik bilansu energii (soc-bilans.ts).
  *
- * 200 l x gestosc z karty Rubitherm. Dla 8HC gestosc CIALA STALEGO (0,88 przy
- * 0 °C), bo magazyn chlodu naladowany to magazyn zamrozony — i wtedy w
- * zbiorniku jest ta masa. Dla 57HC srednia z karty (0,9 stale / 0,8 ciecz).
+ * STANOWISKO MA DZIS JEDEN MODUL 67 LITROW. Podpis „Modul 1 / 4" na schemacie
+ * to plan rozbudowy, nie stan — potwierdzone przez uzytkownika 2026-08-05,
+ * gdy bilans nocny (7,5 kWh wyjete z obiegu) fizycznie nie miescil sie
+ * w pojemnosci liczonej dla 200 l. Roznica okazala sie cieplem lapanym
+ * z hali przez nieizolowane rury i bufor — cieplomierz mierzy caly obieg,
+ * nie sam zbiornik.
+ *
+ * Gestosc z karty Rubitherm. Dla 8HC gestosc CIALA STALEGO (0,88 przy 0 °C),
+ * bo magazyn chlodu naladowany to magazyn zamrozony — i wtedy w zbiorniku
+ * jest ta masa. Pojemnosc wychodzi z modelu entalpii: 59 kg x 198 kJ/kg
+ * = 3,25 kWh (z czego sama przemiana 2,65 kWh).
+ *
+ * 57HC: ZALOZENIE takiego samego modulu 67 l (57 kg przy sredniej gestosci
+ * 0,85) — do potwierdzenia przy pierwszym podpieciu tego zbiornika.
  */
 export const MASA_KG: Record<PcmMaterial, number> = {
-  RT8HC: 176,
-  RT57HC: 170,
+  RT8HC: 59,
+  RT57HC: 57,
 };
 
 /**
