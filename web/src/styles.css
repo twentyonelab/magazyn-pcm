@@ -1880,6 +1880,24 @@ code {
   margin-top: clamp(0.5rem, 1.5vw, 1rem);
 }
 
+/* DUŻE MONITORY — te same progi co kolumna treści (patrz `.main` wyżej).
+   Belka, kafelek pogody i kolumna narzędzi rozchodzą się do 2400 px, czyli
+   do tej samej szerokości co karty w pozostałych widokach. SAM RYSUNEK
+   ZOSTAJE BEZ ZMIAN: schemat mieści się w wysokości ekranu i jego skala nie
+   ma nic wspólnego z tymi marginesami — rośnie wyłącznie przestrzeń robocza
+   modułów dookoła (zgłoszone 2026-08-05: „schemat zostaw, resztę na
+   szerokość ekranu"). `--margines-modulu` liczy tę samą krawędź, której
+   używa belka, więc pogoda i narzędzia stoją z nią w jednej linii. */
+@media (min-width: 1500px) {
+  .magazyn-widok .belka {
+    width: min(2400px, 100% - 2 * clamp(1rem, 4vw, 3rem));
+  }
+
+  .magazyn-widok {
+    --margines-modulu: max(clamp(1rem, 4vw, 3rem), calc((100% - 2400px) / 2));
+  }
+}
+
 .magazyn-widok .canvas {
   background: none;
   box-shadow: none;
