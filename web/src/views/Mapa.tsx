@@ -170,9 +170,10 @@ function trescDymka(
   /** Skąd pochodzi procent — podpis musi mówić prawdę o metodzie. */
   opisZrodla = 'szacunek z temperatury',
   /**
-   * Uwaga zastępująca blok naładowania — dla NIEAKTYWNEGO stanowiska
-   * (sondy przepięte na drugi magazyn). Procent z martwych sond byłby
-   * kłamstwem, więc zamiast niego stoi zdanie, które mówi dlaczego.
+   * Uwaga NAD blokiem naładowania — dla stanowiska bez wpiętych sond.
+   * Odczyty pokazujemy (jeden Miniserver, jeden zestaw sond), ale to zdanie
+   * mówi, że pochodzą z drugiego zbiornika. Liczba bez tej informacji
+   * udawałaby własny pomiar.
    */
   notka: string | null = null,
 ): string {
@@ -194,9 +195,10 @@ function trescDymka(
   // pokazowych z wartości wpisanej na stałe — i wtedy podpisany jako pokazowy.
   const poziom = punkt.stan === 'live' ? procent : Math.round((punkt.demoNaladowanie ?? 0) * 100);
 
-  const ladunek = notka
-    ? `<p class="dymek__akcja">${notka}</p>`
-    : poziom === null
+  const uwaga = notka ? `<p class="dymek__akcja">${notka}</p>` : '';
+
+  const ladunek =
+    poziom === null
       ? '<p class="dymek__akcja">Brak odczytu sond — naładowania nie da się oszacować</p>'
       : '<div class="ladunek">' +
         '<div class="ladunek__gora">' +
@@ -220,7 +222,7 @@ function trescDymka(
    * `aria-label` znacznika, gdzie jest potrzebny i gdzie nikomu nie zasłania
    * treści.
    */
-  return zdjecie + naglowek + ladunek;
+  return zdjecie + naglowek + uwaga + ladunek;
 }
 
 interface Props {
@@ -317,7 +319,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   // Naładowanie z BILANSU ENERGII serwera, gdy jest — ten sam odczyt co belka
   // i pasek pod zbiornikiem. Szacunek z temperatury zostaje trybem awaryjnym
   // (patrz server/src/soc-bilans.ts): w plateau przemiany zaniżał o ~30 punktów.
-  const socSerwera = data.health?.soc ?? null;
+  // Bilans serwera liczy sie tylko dla parafiny, dla ktorej powstal —
+  // patrz komentarz w views/Magazyn.tsx (kod D8 w Diagnostyce).
+  const socSerwera =
+    data.health?.soc && data.health.soc.material === materialAktywny ? data.health.soc : null;
   const procent =
     socSerwera && socSerwera.soc !== null
       ? procentSoc(socSerwera.soc)
@@ -329,9 +334,27 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     sredniaC === null || !profile || profile.scaleMax <= profile.scaleMin
       ? null
       : (sredniaC - profile.scaleMin) / (profile.scaleMax - profile.scaleMin);
-  /** Które z dwóch gliwickich stanowisk jest AKTYWNE — po rozpoznanych sondach. */
+  /**
+   * Które z dwóch gliwickich stanowisk ma WPIĘTE SONDY.
+   *
+   * ROZSTRZYGA WYŁĄCZNIE ROZPOZNANIE SOND, nie sesja i nie podgląd. Pytanie
+   * „gdzie fizycznie siedzą sondy" ma jedną odpowiedź i daje ją `BankDetector`.
+   * Pierwsza wersja brała `kierunekStanowiska` (sesja > rozpoznanie) i przy
+   * niezamkniętej sesji z 3.08 pulsowało stanowisko chłodu, choć sondy były
+   * już w zbiorniku ciepła — czyli mapa pokazywała nie to, co jest, a to, co
+   * ktoś kiedyś zadeklarował.
+   *
+   * Bez rozpoznania (`unknown`, tryb syntetyczny) nie ma czego wybierać, więc
+   * oba stanowiska zostają uśpione — żadne nie udaje wtedy podłączonego.
+   */
+  const bankZeSond =
+    data.health?.bank.detection === 'auto' ? data.health.bank.active : null;
   const aktywnaStacjaId =
-    kierunekStanowiska === 'chlod' ? STANOWISKO_CHLOD.id : STANOWISKO_CIEPLO.id;
+    bankZeSond === null
+      ? null
+      : bankZeSond === 'RT8HC'
+        ? STANOWISKO_CHLOD.id
+        : STANOWISKO_CIEPLO.id;
   // Referencja, żeby uchwyt kliknięcia nie wymuszał przebudowy mapy.
   const otworzRef = useRef(onOtworzMagazyn);
   otworzRef.current = onOtworzMagazyn;
@@ -651,32 +674,34 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       uchwyty.el.classList.toggle('is-uspiona', !aktywna);
       uchwyty.el.classList.toggle('is-plynie', aktywna && zywe);
 
-      if (aktywna) {
-        uchwyty.dymek.setHTML(trescDymka(punkt, sredniaC, procent, punkt.typ, opisZrodla));
-        if (uchwyty.wypelnienie) {
-          uchwyty.wypelnienie.style.height = `${procent ?? 0}%`;
-          // Barwa idzie za temperaturą, wysokość za naładowaniem — dwa
-          // kanały, dwie liczby. Bez położenia na skali zostaje jasny
-          // odcień rodzaju, ten sam co przy budowie znacznika.
-          uchwyty.wypelnienie.style.background =
-            pozycjaRef.current === null
-              ? PALETA[punkt.typ].jasny
-              : barwaNosnika(punkt.typ, pozycjaRef.current);
-        }
-      } else {
-        uchwyty.dymek.setHTML(
-          trescDymka(
-            punkt,
-            null,
-            null,
-            punkt.typ,
-            opisZrodla,
-            `Stanowisko nieaktywne — sondy przepięte na magazyn ${
-              punkt.typ === 'chlod' ? 'ciepła' : 'chłodu'
-            }. Zbiornik ${punkt.typ === 'chlod' ? '8HC' : '57HC'} czeka na podłączenie.`,
-          ),
-        );
-        if (uchwyty.wypelnienie) uchwyty.wypelnienie.style.height = '0%';
+      // ODCZYTY IDĄ DO OBU STANOWISK — to jeden Miniserver i jeden zestaw
+      // sond, więc te same liczby opisują ten zbiornik, który jest wpięty.
+      // Stanowisko bez sond dostaje je z dopiskiem, że sondy siedzą teraz
+      // w drugim zbiorniku: liczba nie udaje wtedy własnego pomiaru.
+      uchwyty.dymek.setHTML(
+        trescDymka(
+          punkt,
+          sredniaC,
+          procent,
+          punkt.typ,
+          opisZrodla,
+          aktywna
+            ? null
+            : aktywnaStacjaId === null
+              ? 'Sondy nierozpoznane — odczyty niżej mogą pochodzić z drugiego zbiornika.'
+              : `Sondy są teraz w magazynie ${punkt.typ === 'chlod' ? 'ciepła' : 'chłodu'} — odczyty niżej pochodzą stamtąd, nie z tego zbiornika.`,
+        ),
+      );
+
+      if (uchwyty.wypelnienie) {
+        uchwyty.wypelnienie.style.height = `${procent ?? 0}%`;
+        // Barwa idzie za temperaturą, wysokość za naładowaniem — dwa kanały,
+        // dwie liczby. Bez położenia na skali zostaje jasny odcień rodzaju,
+        // ten sam co przy budowie znacznika.
+        uchwyty.wypelnienie.style.background =
+          pozycjaRef.current === null
+            ? PALETA[punkt.typ].jasny
+            : barwaNosnika(punkt.typ, pozycjaRef.current);
       }
     }
   }, [sredniaC, procent, kierunekStanowiska, opisZrodla, zywe, aktywnaStacjaId]);

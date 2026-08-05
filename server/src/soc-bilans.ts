@@ -181,6 +181,7 @@ export class SocBilans {
     const awaryjnie = (): SocState => {
       const soc = this.socZTemperatury(sredniaTeraz, profil, kierunek);
       return {
+        material: profil.id,
         soc,
         energiaKWh: soc * pojemnoscKWh,
         pojemnoscKWh,
@@ -313,6 +314,7 @@ export class SocBilans {
     }
 
     return {
+      material: profil.id,
       soc,
       energiaKWh: soc * pojemnoscKWh,
       pojemnoscKWh,

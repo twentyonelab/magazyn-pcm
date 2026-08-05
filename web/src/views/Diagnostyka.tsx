@@ -114,6 +114,18 @@ export function Diagnostyka({ data }: { data: LiveData }) {
     pogodaZLoxone.every((p) => values[p.id]?.v === 0) &&
     pogodaZLoxone.some((p) => p.id === 'WEATHER_PRESSURE');
 
+  /**
+   * Sesja deklaruje inną parafinę niż rozpoznały sondy (kod D8).
+   *
+   * Tylko przy rozpoznaniu `auto` — przy `manual`/`unknown` detektor sam nic
+   * nie wie, więc nie ma z czym porównywać i ostrzeżenie byłoby zgadywaniem.
+   */
+  const rozjazdSesji =
+    data.session !== null &&
+    health?.bank.detection === 'auto' &&
+    health.bank.active !== null &&
+    data.session.material !== health.bank.active;
+
   return (
     <div className="stack">
       <section className="tiles">
@@ -182,6 +194,7 @@ export function Diagnostyka({ data }: { data: LiveData }) {
           D5  konfiguracja Loxone zmieniona od startu
           D6  pogoda ze sterownika zwraca zera (brak lokalizacji w projekcie)
           D7  brak łączności przeglądarki z serwerem
+          D8  sesja deklaruje inną parafinę niż rozpoznały sondy
       */}
       {linkLive && health?.message ? (
         <div className={`note${sourceTone === 'bad' ? ' is-bad' : ''}`}>
@@ -201,6 +214,21 @@ export function Diagnostyka({ data }: { data: LiveData }) {
           <code className="mono">D3</code> Zbiornik{' '}
           {materialLabel(health.bank.active, data.materials)} wymuszony w konfiguracji
           (<code>FORCE_BANK</code>).
+        </div>
+      ) : null}
+
+      {/* D8 — najgorszy rodzaj usterki w tym narzędziu: liczba, która wygląda
+          poprawnie i opisuje inny zbiornik. Sesja ma pierwszeństwo nad
+          rozpoznaniem (badacz deklaruje, co bada), więc niezamknięta sesja
+          po wymianie zbiornika przestawia CAŁY bilans na złą pojemność
+          i złą skalę barwną. Wykryte 2026-08-05: sesja z 3.08 deklarowała
+          8HC, gdy sondy siedziały już w 57HC. */}
+      {linkLive && rozjazdSesji ? (
+        <div className="note is-bad">
+          <code className="mono">D8</code> Sesja deklaruje{' '}
+          {materialLabel(data.session?.material ?? null, data.materials)}, a sondy rozpoznały{' '}
+          {materialLabel(health?.bank.active ?? null, data.materials)} — bilans i skala liczą się
+          dla parafiny z sesji. Zakończ sesję w widoku Sesje.
         </div>
       ) : null}
 

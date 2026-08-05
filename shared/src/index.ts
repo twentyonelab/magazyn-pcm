@@ -159,6 +159,18 @@ export interface BankState {
  * pierwsza liczbe.
  */
 export interface SocState {
+  /**
+   * DLA JAKIEJ PARAFINY policzony jest ten bilans.
+   *
+   * Bez tego pola nie da sie sprawdzic, czy wynik opisuje zbiornik, ktory
+   * widac na ekranie. Serwer bierze material z hierarchii sesja > detekcja,
+   * a widok od 2026-08-05 z TOZSAMOSCI PUNKTU (magazyn chlodu / ciepla) —
+   * te dwie odpowiedzi moga sie roznic, np. gdy po wymianie zbiornika zostala
+   * otwarta stara sesja. Wtedy front odrzuca bilans i wraca do szacunku
+   * z temperatury dla wlasnego profilu, zamiast pokazywac pojemnosc innego
+   * zbiornika (zmierzone: 3,2 kWh z 8HC na ekranie magazynu ciepla).
+   */
+  material: PcmMaterial;
   /** 0–1 albo null, gdy nie ma z czego policzyc. */
   soc: number | null;
   /** Energia zgromadzona w zasobniku, kWh — soc x pojemnosc. */

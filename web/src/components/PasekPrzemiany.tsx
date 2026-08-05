@@ -42,6 +42,12 @@ export interface Props {
   fromSession: PcmMaterial | null;
   /** Parafina wynikająca z rozpoznanego zbiornika albo null. */
   detected: PcmMaterial | null;
+  /**
+   * Parafina narzucona przez STANOWISKO — Gliwice mają osobny magazyn chłodu
+   * i osobny ciepła, więc punkt sam mówi, co w nim jest. Ma pierwszeństwo nad
+   * wszystkim innym i blokuje przełącznik.
+   */
+  zeStanowiska?: PcmMaterial | null;
   preview: PcmMaterial;
   onPreviewChange: (material: PcmMaterial) => void;
   /** Objętości zbiorników — pokazywane po rozwinięciu. */
@@ -82,6 +88,7 @@ export function PasekPrzemiany({
   materials,
   fromSession,
   detected,
+  zeStanowiska = null,
   preview,
   onPreviewChange,
   volumesL,
@@ -175,14 +182,17 @@ export function PasekPrzemiany({
   const stan = maDane ? stanZTemperatury(averageC, cfg) : null;
   const poza = maDane ? skala.pozaSkala(averageC) : null;
 
-  const zrodlo = nierozpoznany
-    ? 'rozpoznaję…'
-    : fromSession
-      ? 'z sesji'
-      : detected
-        ? 'z sond'
-        : 'podgląd';
-  const zablokowane = nierozpoznany || fromSession !== null || detected !== null;
+  const zrodlo = zeStanowiska
+    ? 'ze stanowiska'
+    : nierozpoznany
+      ? 'rozpoznaję…'
+      : fromSession
+        ? 'z sesji'
+        : detected
+          ? 'z sond'
+          : 'podgląd';
+  const zablokowane =
+    zeStanowiska !== null || nierozpoznany || fromSession !== null || detected !== null;
   const profile2 = Object.values(materials.profiles) as MaterialProfile[];
 
   const opisKierunku = cfg.kierunek === 'chlod' ? 'chłód' : 'ciepło';

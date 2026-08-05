@@ -35,39 +35,39 @@ export const POINTS: readonly PointDef[] = [
   // specyfikacji — historia pomiarow jest do tego przypisania przywiazana,
   // wiec pol `level` i `diagonal` nie zmieniamy bez powodu.
   //
-  // WYMIANA SOND 2026-08-03: stare sondy zostaly USUNIETE z Loxone Config,
-  // a w ich miejsce doszlo szesc nowych, o innych adresach 1-Wire, wpietych
-  // do DRUGIEGO ZBIORNIKA (8HC). Nowe UUID-y wpisal `npm run uuid --zapisz`
-  // na podstawie nazw 1A_8HC … 3B_8HC.
+  // HISTORIA PRZEPIEC — kazde przelozenie sond do drugiego zbiornika daje
+  // NOWE UUID-y kontrolek, bo w Loxone Config powstaja od nowa. Numery
+  // seryjne 1-Wire (adresy sprzetu DS18B20) sa trwale i to one pozwalaja
+  // sparowac sonde z punktem po montazu.
   //
-  // Wpisy RT57HC sa wyzerowane SWIADOMIE: tamte kontrolki nie istnieja juz
-  // w Miniserverze (sprawdzone w LoxAPP3.json — zero nazw z „57HC"), wiec
-  // odpytywanie ich byloby strzelaniem w puste UUID-y przy kazdym cyklu
-  // rozpoznawania zbiornika. Gdy zbiornik 57HC wroci, jego sondy dostana
-  // nowe UUID-y i trzeba bedzie ponownie uruchomic `npm run uuid --zapisz`.
+  //   2026-08-03  zbiornik 8HC (chlod): kontrolki 1A_8HC … 3B_8HC,
+  //               UUID-y z prefiksem 2114477d-* — juz USUNIETE z projektu.
+  //   2026-08-05  zbiornik 57HC (cieplo): kontrolki 1A_57HC … 3B_57HC,
+  //               UUID-y z prefiksem 211721f1-* — wpisane nizej, sprawdzone
+  //               na zywym sterowniku (sondy oddaja 26–34 °C).
   //
-  // NUMERY SERYJNE 1-WIRE SOND ZBIORNIKA 57HC (magazyn ciepla) — podane
-  // 2026-08-05, PRZED fizycznym wpieciem. To adresy SPRZETU (DS18B20),
-  // trwale dla sondy; UUID-y kontrolek Loxone powstana dopiero po dodaniu
-  // ich w Loxone Config i beda inne niz historyczne. Zapisane tutaj, zeby
-  // przy wpinaniu dalo sie sparowac sonde z punktem bez zgadywania:
+  // Wpisy RT8HC sa teraz wyzerowane SWIADOMIE: tamtych kontrolek nie ma juz
+  // w Miniserverze, wiec odpytywanie ich byloby strzelaniem w puste UUID-y
+  // przy kazdym cyklu rozpoznawania zbiornika. Zbiornik chlodu wroci razem
+  // z ponownym przepieciem sond — wtedy `npm run uuid -- --zapisz`.
   //
-  //   A1  <- 1A_57HC  28.03.EB.F6.10.00.00.DF
-  //   B1  <- 1B_57HC  28.9B.E0.F6.10.00.00.BF
-  //   A2  <- 2A_57HC  28.E1.26.F6.10.00.00.56
-  //   B2  <- 2B_57HC  28.FE.82.F4.10.00.00.02
-  //   A3  <- 3A_57HC  28.E2.C6.F4.10.00.00.D2
-  //   B3  <- 3B_57HC  28.B9.BF.F6.10.00.00.9D
+  // NUMERY SERYJNE 1-WIRE — zbiornik 57HC (montaz 2026-08-05):
+  //   A1  <- 1A_57HC  28.03.EB.F6.10.00.00.DF   UUID 211721f1-0329-6354-…
+  //   B1  <- 1B_57HC  28.9B.E0.F6.10.00.00.BF   UUID 211721f1-0329-635c-…
+  //   A2  <- 2A_57HC  28.E1.26.F6.10.00.00.56   UUID 211721f1-0328-6344-…
+  //   B2  <- 2B_57HC  28.FE.82.F4.10.00.00.02   UUID 211721f1-0328-633c-…
+  //   A3  <- 3A_57HC  28.E2.C6.F4.10.00.00.D2   UUID 211721f1-0319-6331-…
+  //   B3  <- 3B_57HC  28.B9.BF.F6.10.00.00.9D   UUID 211721f1-0329-634c-…
   //
-  // Po wpieciu i dodaniu kontrolek w Loxone Config: `npm run uuid -- --zapisz`
-  // uzupelni `uuidByBank.RT57HC` po nazwach — i od tej chwili BankDetector
-  // sam rozpozna, ze aktywny jest magazyn ciepla (mapa przelaczy stanowiska).
+  // NUMERY SERYJNE 1-WIRE — zbiornik 8HC (chlod, sondy odpiete 2026-08-05):
+  //   do spisania z Loxone Config przy ponownym montazu; adresow tych sond
+  //   nigdy nie zanotowano, a struktura projektu ich nie niesie.
   // -------------------------------------------------------------------------
   {
     id: 'A1',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: '2114477d-0152-77ea-ffff86611eeca57b' },
+    uuidByBank: { RT57HC: '211721f1-0329-6354-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 1',
     unit: '°C',
     kind: 'temperature',
@@ -80,7 +80,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'A2',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: '2114477d-0151-77e2-ffff86611eeca57b' },
+    uuidByBank: { RT57HC: '211721f1-0328-6344-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 2',
     unit: '°C',
     kind: 'temperature',
@@ -93,7 +93,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'A3',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: '2114477d-0153-77fa-ffff86611eeca57b' },
+    uuidByBank: { RT57HC: '211721f1-0319-6331-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna A · poziom 3',
     unit: '°C',
     kind: 'temperature',
@@ -106,7 +106,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'B1',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: '2114477d-0153-7802-ffff86611eeca57b' },
+    uuidByBank: { RT57HC: '211721f1-0329-635c-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 1',
     unit: '°C',
     kind: 'temperature',
@@ -119,7 +119,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'B2',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: '2114477d-014e-77d7-ffff86611eeca57b' },
+    uuidByBank: { RT57HC: '211721f1-0328-633c-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 2',
     unit: '°C',
     kind: 'temperature',
@@ -132,7 +132,7 @@ export const POINTS: readonly PointDef[] = [
     id: 'B3',
     uuid: null,
     // Po jednym UUID na zbiornik. Wypelnia `npm run uuid -- --zapisz`.
-    uuidByBank: { RT57HC: null, RT8HC: '2114477d-0152-77f2-ffff86611eeca57b' },
+    uuidByBank: { RT57HC: '211721f1-0329-634c-ffff86611eeca57b', RT8HC: null },
     label: 'Magazyn · przekątna B · poziom 3',
     unit: '°C',
     kind: 'temperature',

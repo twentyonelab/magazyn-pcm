@@ -2898,6 +2898,15 @@ code {
   opacity: 0.5;
 }
 
+/* PODPIS MAGAZYNU CIEPŁA IDZIE NAD KOŁO. Oba stanowiska stoją w tym samym
+   budynku, 25 m od siebie — na widoku regionu ich znaczniki są praktycznie
+   w jednym punkcie, więc dwa podpisy pod spodem zlałyby się w plamę liter.
+   Jeden nad, drugi pod: nazwy dają się przeczytać przy każdym przybliżeniu. */
+.pinezka.is-live.is-cieplo .pinezka__podpis {
+  top: auto;
+  bottom: calc(100% + 5px);
+}
+
 .pinezka.is-live.is-uspiona .pinezka__kolo {
   border-style: dashed;
 }

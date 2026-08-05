@@ -76,10 +76,16 @@ export const STANOWISKO_CIEPLO: Lokalizacja = {
   nazwa: 'Magazyn ciepła · Politechnika',
   miasto: 'Gliwice',
   opis: 'Wydział Inżynierii Środowiska i Energetyki, Politechnika Śląska · ul. Kaszubska 26 · zbiornik 57HC',
-  // Obok stanowiska chłodu — na mapie regionu to wciąż ten sam kampus,
-  // przesunięcie jest tylko po to, żeby znaczniki się nie nakrywały.
-  lon: 18.6874,
-  lat: 50.2914,
+  /*
+   * TEN SAM BUDYNEK CO MAGAZYN CHŁODU — oba stanowiska stoją obok siebie
+   * w jednej hali, na jednym Miniserverze. Przesunięcie to około 25 m
+   * (0,00035° długości ≈ 25 m, 0,0001° szerokości ≈ 11 m na 50°N): dość,
+   * żeby po przybliżeniu do stanowiska były to dwa osobne znaczniki, i za
+   * mało, żeby sugerować dwie różne lokalizacje. Pierwsza wersja miała 600 m
+   * i wyglądała jak dwa budynki na przeciwnych końcach kampusu.
+   */
+  lon: 18.68075,
+  lat: 50.28980,
   stan: 'live',
   typ: 'cieplo',
 };

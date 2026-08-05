@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { MaterialProfile } from '@magazyn-pcm/shared';
+import type { MaterialProfile, PcmMaterial } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { bindSchema } from '../schema/bindSchema.js';
 import { wlaczStrumien, type Strumien } from '../schema/strumien.js';
@@ -85,9 +85,26 @@ interface MagazynProps {
    * ten, kto nigdy nie klika trojwymiaru.
    */
   scena3d: ReactNode;
+  /**
+   * PARAFINA NARZUCONA PRZEZ OTWARTY PUNKT.
+   *
+   * Od 2026-08-05 Gliwice mają dwa stanowiska: magazyn chłodu (8HC) i ciepła
+   * (57HC). Materiał jest więc TOŻSAMOŚCIĄ punktu, nie wynikiem rozpoznania —
+   * wchodząc w magazyn ciepła chcesz widzieć skalę 57HC, także wtedy, gdy
+   * sondy są akurat przepięte na drugi zbiornik. Wcześniej profil brał się
+   * z rozpoznania i widok ciepła pokazywał skalę chłodu.
+   */
+  materialStanowiska?: PcmMaterial | null;
 }
 
-export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: MagazynProps) {
+export function Magazyn({
+  data,
+  onOpenInPrzebiegi,
+  wymiar,
+  onWymiar,
+  scena3d,
+  materialStanowiska = null,
+}: MagazynProps) {
   const now = useTicker(1000);
   const settings = useSettings();
   /**
@@ -118,8 +135,14 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
   // Gdy kanał żyje, o przestarzałości decyduje serwer — patrz isStale().
   const channelAlive = data.link === 'live';
 
-  // Hierarchia: sesja (deklaracja badacza) > rozpoznany zbiornik > podgląd.
-  // Nigdy nie zgadujemy zakresu skali w kodzie widoku.
+  // Hierarchia: STANOWISKO (tożsamość punktu) > sesja > rozpoznany zbiornik
+  // > podgląd. Nigdy nie zgadujemy zakresu skali w kodzie widoku.
+  //
+  // Stanowisko weszło na szczyt 2026-08-05, gdy Gliwice dostały dwa punkty:
+  // magazyn chłodu i magazyn ciepła. Który zbiornik oglądasz, wynika z tego,
+  // w co kliknąłeś — a nie z tego, gdzie akurat są przepięte sondy. Bez tego
+  // widok „magazyn ciepła" pokazywał skalę 8HC, bo detektor widział sondy
+  // chłodu (zgłoszone: „tu ma się pokazywać zawsze tylko dla ciepła").
   //
   // `detection === 'unknown'` znaczy, że serwer NIE rozpoznał zbiornika i tylko
   // coś założył (tryb syntetyczny, brak UUID-ów). Nie wolno tego traktować jak
@@ -127,7 +150,8 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
   // wartości i nie dałoby się go ruszyć.
   const detectedBank =
     health && health.bank.detection !== 'unknown' ? health.bank.active : null;
-  const activeMaterial = session?.material ?? detectedBank ?? settings.parafinaPodgladu;
+  const activeMaterial =
+    materialStanowiska ?? session?.material ?? detectedBank ?? settings.parafinaPodgladu;
   const profile: MaterialProfile | null = materials
     ? (materials.profiles[activeMaterial] ?? materials.profiles[materials.defaultMaterial])
     : null;
@@ -215,7 +239,19 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
   // Powód zmiany (2026-08-05): po nocy ładowania bilans dawał ~90 %
   // naładowania, a termometr 60 % — w plateau temperatura stoi, więc
   // interpolacja po niej zaniża dokładnie wtedy, gdy magazyn pracuje.
-  const socSerwera = health?.soc ?? null;
+  /*
+   * BILANS Z SERWERA LICZY SIĘ TYLKO WTEDY, GDY OPISUJE TEN ZBIORNIK.
+   *
+   * Serwer bierze parafinę z hierarchii sesja > detekcja, a ten widok od
+   * 2026-08-05 z tożsamości punktu (magazyn chłodu / ciepła). Te odpowiedzi
+   * mogą się różnić — i różniły się: niezamknięta sesja z 3.08 deklarowała
+   * 8HC, więc na ekranie magazynu CIEPŁA pasek pokazywał pojemność 3,2 kWh
+   * zbiornika chłodu. Przy niezgodności odrzucamy bilans i wracamy do
+   * szacunku z temperatury dla własnego profilu; Diagnostyka krzyczy o tym
+   * kodem D8.
+   */
+  const socSerwera =
+    health?.soc && health.soc.material === activeMaterial ? health.soc : null;
   const soc: OdczytSoc | null =
     socSerwera && socSerwera.soc !== null
       ? { soc: socSerwera.soc, entalpiaKJkg: null, zrodlo: socSerwera.zrodlo }
@@ -353,13 +389,17 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
         materials={materials}
         fromSession={session?.material ?? null}
         detected={detectedBank}
+        /* Stanowisko narzuca parafinę — przełącznik w belce jest wtedy
+           zablokowany, bo „magazyn ciepła" nie może pokazywać skali chłodu. */
+        zeStanowiska={materialStanowiska}
         preview={settings.parafinaPodgladu}
         /* Dopóki serwer nie podał stanu, NIE WIEMY, jaka parafina jest
            w zbiorniku — a belka pokazywała wtedy materiał podglądu (57HC)
            z odblokowanym przełącznikiem. Na stanowisku, gdzie zbiornik jest
            rozpoznawany automatycznie, wyglądało to jak zła wartość do
-           poprawienia ręcznie. */
-        nierozpoznany={!session && !detectedBank && !health}
+           poprawienia ręcznie. Przy materiale ze stanowiska nie ma czego
+           rozpoznawać — punkt sam mówi, co w nim jest. */
+        nierozpoznany={!materialStanowiska && !session && !detectedBank && !health}
         onPreviewChange={(material) => setSetting('parafinaPodgladu', material)}
         volumesL={materials?.volumesL}
         averageC={averageC}

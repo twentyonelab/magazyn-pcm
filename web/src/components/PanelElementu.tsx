@@ -40,10 +40,12 @@ const ELEMENTS: Record<string, ElementInfo> = {
     title: 'Magazyn PCM',
     subtitle: 'Zbiornik z materiałem zmiennofazowym',
     pointIds: ['A3', 'B3', 'A2', 'B2', 'A1', 'B1'],
-    notes: [
-      'Sześć sond Loxone 200077 (DS18B20) zanurzonych bezpośrednio w parafinie, przywiązanych do dwóch prętów na przekątnych zbiornika.',
-      'Przewodność cieplna parafiny to 0,2 W/(m·K) — konwekcji praktycznie nie ma, więc front przemiany posuwa się od wymiennika na zewnątrz, a stałe czasowe są w minutach.',
-    ],
+    /*
+     * OPISY ZDJĘTE 2026-08-05 (na prośbę) — magazyn jest ostatnim elementem,
+     * któremu je zostawiliśmy, i teraz też nie ma żadnego. Panel mówi tytułem
+     * i podtytułem, czym element jest, oraz tabelą, co mierzy. Wiedza o
+     * sondach i przewodności parafiny należy do dokumentacji, nie do ekranu.
+     */
   },
   buffer: {
     title: 'Bufor',

@@ -134,6 +134,13 @@ nadany nie zmienia znaczenia; nowe komunikaty dostają kolejne numery.
   w Miniserverze. Ustawić lokalizację w Loxone Config i ZAPISAĆ do sterownika;
   aplikacja przełączy źródło sama. Do tego czasu kafelek używa Open-Meteo.
 - **D7** — przeglądarka nie ma łączności z serwerem aplikacji.
+- **D8** — **sesja deklaruje inną parafinę niż rozpoznały sondy.** Sesja ma
+  pierwszeństwo nad detekcją (badacz deklaruje, co bada), więc niezamknięta
+  sesja po wymianie zbiornika przestawia cały bilans na złą pojemność i złą
+  skalę barwną. Wykryte 2026-08-05: sesja z 3.08 mówiła 8HC (3,25 kWh), gdy
+  sondy siedziały już w 57HC (4,28 kWh). Naprawa: zakończyć sesję w widoku
+  Sesje. To ten sam gatunek błędu co podmienione UUID-y — liczba wygląda
+  poprawnie i opisuje inny obiekt.
 
 ## Zasada weryfikacji
 

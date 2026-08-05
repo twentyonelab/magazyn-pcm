@@ -406,6 +406,10 @@ export function App() {
             <Magazyn
               data={data}
               onOpenInPrzebiegi={openInPrzebiegi}
+              /* Otwarty punkt narzuca parafinę: magazyn ciepła to 57HC,
+                 magazyn chłodu to 8HC — niezależnie od tego, gdzie akurat
+                 są przepięte sondy. Punkty pokazowe też mają swój nośnik. */
+              materialStanowiska={otwarty ? (otwarty.typ === 'chlod' ? 'RT8HC' : 'RT57HC') : null}
               wymiar={wymiarCzynny}
               onWymiar={settings.widok3d ? setWymiar : null}
               scena3d={
