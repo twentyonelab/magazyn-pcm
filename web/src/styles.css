@@ -2295,6 +2295,14 @@ code {
   font-weight: 600 !important;
 }
 
+/* Energia pod procentem — mniejsza i bledsza, bo procent jest odpowiedzią,
+   a kWh jej rozwinięciem. */
+.schema .soc__energia {
+  fill: var(--ink-soft) !important;
+  font-family: var(--mono) !important;
+  font-size: 8.5px !important;
+}
+
 /* Magazyn ciepła: krem i pomarańcz.
    ---------------------------------------------------------------------------
    Te wartości stały wcześniej w `:root` jako domyślne, bo ciepło było jedyną
@@ -3181,6 +3189,14 @@ code {
   display: grid;
   gap: 0.85rem;
   margin-bottom: 1.25rem;
+}
+
+/* Eksport kompletu punktów — pod formularzem, drobny: to wyjście awaryjne
+   do analizy poza aplikacją, nie główna ścieżka widoku. */
+.przebiegi__eksport {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
 }
 
 .picker__label {

@@ -27,7 +27,7 @@ import {
 } from '../format.js';
 import { isInPhaseBand } from '../scale.js';
 import { sredniaZSond } from '../naladowanie.js';
-import { socZTemperatury } from '../soc.js';
+import { energiaKWh, socZTemperatury, type OdczytSoc } from '../soc.js';
 import { KONFIGURACJA } from '../components/belka/konfiguracja.js';
 import { setSetting, useSettings } from '../settings.js';
 import { PasekPrzemiany } from '../components/PasekPrzemiany.js';
@@ -205,28 +205,37 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
       ? { min: Math.min(...odczytyPcm), max: Math.max(...odczytyPcm) }
       : null;
 
-  // TO JEST SZEW DO PODMIANY ŹRÓDŁA SOC. Dziś naładowanie liczy się
-  // z temperatury; gdy ciepłomierz zacznie podawać wiarygodną energię, w tym
-  // jednym miejscu wstawi się odczyt z bilansu — ani belka, ani pasek pod
-  // zbiornikiem nie zauważą różnicy.
-  const soc =
-    profile && averageC !== null
-      ? socZTemperatury(
-          averageC,
-          {
-            tMin: profile.scaleMin,
-            tMax: profile.scaleMax,
-            solidus: KONFIGURACJA[profile.id].solidus,
-            liquidus: KONFIGURACJA[profile.id].liquidus,
-            // Z PROFILU, nie z configu belki — patrz komentarz
-            // w `belka/konfiguracja.ts`: dwa zapisy tej samej wielkości
-            // dawały dwa różne procenty naładowania na jednym ekranie.
-            cieploPrzemiany: profile.latentHeat,
-            cp: profile.cp,
-          },
-          KONFIGURACJA[profile.id].kierunek,
-        )
-      : null;
+  // TEN SZEW WŁAŚNIE ZADZIAŁAŁ. Naładowanie bierze się z BILANSU ENERGII
+  // liczonego na serwerze (health.soc, patrz server/src/soc-bilans.ts) —
+  // kotwica z temperatury poza pasmem przemiany plus całka mocy. Szacunek
+  // z temperatury zostaje wyłącznie jako tryb awaryjny: bez historii, bez
+  // kotwicy albo z dziurami w danych serwer sam wraca do temperatury
+  // i mówi to w polu `zrodlo`.
+  //
+  // Powód zmiany (2026-08-05): po nocy ładowania bilans dawał ~90 %
+  // naładowania, a termometr 60 % — w plateau temperatura stoi, więc
+  // interpolacja po niej zaniża dokładnie wtedy, gdy magazyn pracuje.
+  const socSerwera = health?.soc ?? null;
+  const soc: OdczytSoc | null =
+    socSerwera && socSerwera.soc !== null
+      ? { soc: socSerwera.soc, entalpiaKJkg: null, zrodlo: socSerwera.zrodlo }
+      : profile && averageC !== null
+        ? socZTemperatury(
+            averageC,
+            {
+              tMin: profile.scaleMin,
+              tMax: profile.scaleMax,
+              solidus: KONFIGURACJA[profile.id].solidus,
+              liquidus: KONFIGURACJA[profile.id].liquidus,
+              // Z PROFILU, nie z configu belki — patrz komentarz
+              // w `belka/konfiguracja.ts`: dwa zapisy tej samej wielkości
+              // dawały dwa różne procenty naładowania na jednym ekranie.
+              cieploPrzemiany: profile.latentHeat,
+              cp: profile.cp,
+            },
+            KONFIGURACJA[profile.id].kierunek,
+          )
+        : null;
 
   // --- Aktualizacja rysunku przy każdej zmianie danych ---------------------
   useEffect(() => {
@@ -244,8 +253,16 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
       // Pasek pod zbiornikiem bierze TEN SAM odczyt co belka nad schematem.
       // Dwie liczby naładowania na jednym ekranie unieważniałyby obie.
       naladowanie: soc?.soc ?? null,
+      // Energia z bilansu serwera; awaryjnie z procentu i pojemności configu
+      // belki — tak samo liczy ją linia „Energia: x / y kWh" po rozwinięciu.
+      energiaKWh:
+        socSerwera?.energiaKWh ??
+        (soc?.soc != null && profile ? energiaKWh(soc.soc, KONFIGURACJA[profile.id].pojemnoscKWh) : null),
+      pojemnoscKWh:
+        socSerwera?.pojemnoscKWh ??
+        (profile ? KONFIGURACJA[profile.id].pojemnoscKWh : null),
     });
-  }, [host, pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo, soc?.soc]);
+  }, [host, pointMap, values, profile, staleAfterMs, now, materials, channelAlive, demo, soc?.soc, socSerwera]);
 
   // --- Najechanie i klikanie sond na schemacie ------------------------------
   useEffect(() => {
@@ -348,6 +365,7 @@ export function Magazyn({ data, onOpenInPrzebiegi, wymiar, onWymiar, scena3d }: 
         averageC={averageC}
         zakresC={zakresC}
         soc={soc}
+        bilans={socSerwera}
         kierunekZmiany={kierunekZmiany}
       />
 

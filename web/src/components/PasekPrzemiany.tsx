@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { MaterialProfile, MaterialsResponse, PcmMaterial } from '@magazyn-pcm/shared';
+import type { MaterialProfile, MaterialsResponse, PcmMaterial, SocState } from '@magazyn-pcm/shared';
 import {
   KONFIGURACJA,
   OPIS_STANU,
@@ -60,6 +60,14 @@ export interface Props {
    */
   soc?: OdczytSoc | null;
   /**
+   * Bilans z serwera — gdy jest, linia „Energia: x / y kWh" bierze liczby
+   * z niego, żeby belka i pasek pod zbiornikiem nie pokazywały dwóch różnych
+   * energii z dwóch pojemności (config belki ma 9,3 kWh z karty, bilans liczy
+   * na 9,7 kWh z modelu entalpii — mianowniki muszą być spójne w obrębie
+   * jednego źródła).
+   */
+  bilans?: SocState | null;
+  /**
    * Zbiornik jeszcze NIE ROZPOZNANY (brak sesji, brak rozpoznania, brak stanu
    * z serwera). Wtedy nazwa materiału jest zgadnięta i nie wolno jej podawać
    * jak faktu ani pozwalać na przełączanie.
@@ -80,6 +88,7 @@ export function PasekPrzemiany({
   averageC = null,
   zakresC = null,
   soc = null,
+  bilans = null,
   nierozpoznany = false,
   kierunekZmiany = null,
 }: Props) {
@@ -177,8 +186,14 @@ export function PasekPrzemiany({
   const profile2 = Object.values(materials.profiles) as MaterialProfile[];
 
   const opisKierunku = cfg.kierunek === 'chlod' ? 'chłód' : 'ciepło';
+  // Z bilansu serwera, gdy jest — licznik i mianownik z JEDNEGO źródła.
   const energia =
-    soc?.soc == null ? null : energiaKWh(soc.soc, cfg.pojemnoscKWh);
+    bilans?.energiaKWh != null
+      ? bilans.energiaKWh
+      : soc?.soc == null
+        ? null
+        : energiaKWh(soc.soc, cfg.pojemnoscKWh);
+  const pojemnosc = bilans?.energiaKWh != null ? bilans.pojemnoscKWh : cfg.pojemnoscKWh;
 
   const strzalka =
     kierunekZmiany === 'ladowanie' ? '↑' : kierunekZmiany === 'rozladowanie' ? '↓' : '';
@@ -473,13 +488,17 @@ export function PasekPrzemiany({
           <p className="belka__spod">
             {energia === null
               ? 'Energia: brak odczytu sond. '
-              : `Energia: ${liczba(energia)} / ${liczba(cfg.pojemnoscKWh)} kWh · `}
+              : `Energia: ${liczba(energia)} / ${liczba(pojemnosc)} kWh · `}
             {fromSession
               ? 'parafina z trwającej sesji.'
               : detected
                 ? 'rozpoznana po sondach podłączonego zbiornika.'
                 : 'podgląd bez sesji i bez rozpoznanego zbiornika.'}
-            {soc?.zrodlo === 'temperatura' ? ' Naładowanie szacowane z temperatury.' : ''}
+            {soc?.zrodlo === 'temperatura'
+              ? ' Naładowanie szacowane z temperatury.'
+              : soc?.zrodlo === 'bilans-energii'
+                ? ' Naładowanie z bilansu energii.'
+                : ''}
           </p>
         </div>
       ) : null}

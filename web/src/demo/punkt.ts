@@ -248,6 +248,8 @@ export function zdrowiePunktu(lok: Lokalizacja, startMs: number): Health {
   const n = nosnikPunktu(lok);
   return {
     source: 'ok',
+    // Pokaz nie liczy bilansu energii — front spadnie na szacunek z temperatury.
+    soc: null,
     sourceKind: 'mock',
     bank: {
       active: n.material,

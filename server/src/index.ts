@@ -14,7 +14,8 @@ import Fastify, { LogController, type FastifyBaseLogger } from 'fastify';
 import pino from 'pino';
 import type { BankId, BankState, PointValues, Session, SourceKind } from '@magazyn-pcm/shared';
 import { ConfigError, envFileExists, loadConfig, repoRoot } from './config.js';
-import { DEFAULT_MATERIAL, MATERIALS } from './materials.config.js';
+import { DEFAULT_MATERIAL, MASA_KG, MATERIALS } from './materials.config.js';
+import { SocBilans } from './soc-bilans.js';
 import { createRegistry, RegistryError } from './registry.js';
 import { ValueCache } from './cache.js';
 import { HealthTracker } from './health.js';
@@ -192,6 +193,16 @@ async function main(): Promise<void> {
   const currentMaterial = () =>
     MATERIALS[sessionStore.current()?.material ?? activeBank() ?? DEFAULT_MATERIAL];
 
+  // Naladowanie z bilansu energii — liczone na serwerze, bo tylko on ma
+  // historie i moze zakotwiczyc bilans poza pasmem przemiany.
+  const socBilans = new SocBilans({
+    reader: historyReader,
+    registry,
+    cache,
+    getMaterial: currentMaterial,
+    masaKg: MASA_KG,
+  });
+
   const healthTracker = new HealthTracker({
     sourceKind,
     pollIntervalMs: cfg.POLL_INTERVAL_MS,
@@ -199,6 +210,7 @@ async function main(): Promise<void> {
     registry,
     cache,
     getBank: bankState,
+    getSoc: () => socBilans.current(),
   });
 
   const stream = new StreamHub(logger, () => healthTracker.snapshot());

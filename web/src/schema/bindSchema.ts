@@ -53,6 +53,9 @@ export interface BindOptions {
    * dotyka miejsca wywołania, nie rysunku.
    */
   naladowanie?: number | null;
+  /** Energia zgromadzona w zasobniku i pojemność, kWh — do podpisu paska. */
+  energiaKWh?: number | null;
+  pojemnoscKWh?: number | null;
 }
 
 /** Klasy stanu — dokładnie jedna z nich siedzi na elemencie. */
@@ -337,6 +340,17 @@ export function bindSchema(root: ParentNode, opts: BindOptions): void {
       opts.naladowanie === null || opts.naladowanie === undefined
         ? NO_DATA
         : `${procentSoc(Math.min(1, Math.max(0, opts.naladowanie)))}%`;
+  }
+
+  // Energia pod paskiem: „ile jest / ile się mieści". Kreska przy braku
+  // odczytu — nigdy zero, bo zero to konkretna, pusta wartość.
+  const energia = root.querySelector<SVGElement>('[data-soc-energy]');
+  if (energia) {
+    const kwh = (x: number): string => x.toFixed(1).replace('.', ',');
+    energia.textContent =
+      opts.energiaKWh === null || opts.energiaKWh === undefined || !opts.pojemnoscKWh
+        ? NO_DATA
+        : `${kwh(opts.energiaKWh)} / ${kwh(opts.pojemnoscKWh)} kWh`;
   }
 
   // --- Stany binarne -------------------------------------------------------

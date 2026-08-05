@@ -31,6 +31,7 @@ import {
 import type { LiveData } from '../useLiveData.js';
 import { useAppliedTheme } from '../theme.js';
 import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
+import { procentSoc } from '../soc.js';
 import type { Kierunek } from '../soc.js';
 import { PALETA, barwaNosnika } from '../kolory-magazynu.js';
 
@@ -164,6 +165,8 @@ function trescDymka(
    * i to materiał decyduje, czy to magazyn ciepła, czy chłodu.
    */
   kierunek: Kierunek,
+  /** Skąd pochodzi procent — podpis musi mówić prawdę o metodzie. */
+  opisZrodla = 'szacunek z temperatury',
 ): string {
   const zdjecie =
     `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.nazwa}" loading="lazy" ` +
@@ -189,7 +192,7 @@ function trescDymka(
       : '<div class="ladunek">' +
         '<div class="ladunek__gora">' +
         `<span class="ladunek__etykieta">naładowanie · ${
-          punkt.stan === 'live' ? 'szacunek z temperatury' : 'wartość pokazowa'
+          punkt.stan === 'live' ? opisZrodla : 'wartość pokazowa'
         }</span>` +
         `<span class="ladunek__liczba mono" style="color:${paleta.glowny}">${poziom}%</span>` +
         '</div>' +
@@ -314,7 +317,16 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   // zbiornik chłodu o 24 °C — czyli pusty — pokazywał na mapie 100%.
   const kierunekStanowiska: Kierunek =
     (materialAktywny ?? data.materials?.defaultMaterial) === 'RT8HC' ? 'chlod' : 'cieplo';
-  const procent = naladowanieProcent(sredniaC, profile, kierunekStanowiska);
+  // Naładowanie z BILANSU ENERGII serwera, gdy jest — ten sam odczyt co belka
+  // i pasek pod zbiornikiem. Szacunek z temperatury zostaje trybem awaryjnym
+  // (patrz server/src/soc-bilans.ts): w plateau przemiany zaniżał o ~30 punktów.
+  const socSerwera = data.health?.soc ?? null;
+  const procent =
+    socSerwera && socSerwera.soc !== null
+      ? procentSoc(socSerwera.soc)
+      : naladowanieProcent(sredniaC, profile, kierunekStanowiska);
+  const opisZrodla =
+    socSerwera?.zrodlo === 'bilans-energii' ? 'z bilansu energii' : 'szacunek z temperatury';
   procentRef.current = procent;
   pozycjaRef.current =
     sredniaC === null || !profile || profile.scaleMax <= profile.scaleMin
@@ -637,7 +649,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   // w plateau przemiany temperatura stoi godzinami, więc „przypadek" nie
   // przychodził wcale.
   useEffect(() => {
-    dymekLiveRef.current?.setHTML(trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska));
+    dymekLiveRef.current?.setHTML(
+      trescDymka(STANOWISKO, sredniaC, procent, kierunekStanowiska, opisZrodla),
+    );
 
     const paleta = PALETA[kierunekStanowiska];
 
@@ -659,7 +673,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
           ? paleta.jasny
           : barwaNosnika(kierunekStanowiska, pozycjaRef.current);
     }
-  }, [sredniaC, procent, kierunekStanowiska]);
+  }, [sredniaC, procent, kierunekStanowiska, opisZrodla]);
 
   return (
     <section className="mapa">

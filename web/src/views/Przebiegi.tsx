@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { HistoryAvailable, PublicPoint, SessionEvent } from '@magazyn-pcm/shared';
-import { fetchHistory, fetchSessions, type HistoryParams } from '../api.js';
+import { fetchHistory, fetchSessions, historyCsvUrl, type HistoryParams } from '../api.js';
 import { SERIES_COLORS, Wykres, type ChartSeries } from '../components/Wykres.js';
 import { WykresMagazynu } from '../components/WykresMagazynu.js';
 import { WykresPrzeplywow } from '../components/WykresPrzeplywow.js';
@@ -310,6 +310,32 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
             {state.kind === 'loading' ? 'Pobieram…' : 'Pobierz dane historyczne'}
           </button>
         </div>
+
+        {/*
+          EKSPORT WSZYSTKIEGO — obok wykresu, nie zamiast niego.
+
+          Wykres ma dwa świadome ograniczenia: jedną jednostkę na oś (dwie osie
+          Y to kłamstwo wizualne) i osiem serii (tyle barw ma walidowana
+          paleta). Oba dotyczą CZYTANIA, nie danych — a eksport do analizy był
+          nimi ograniczony przypadkiem: nie dało się z aplikacji wyjąć
+          kompletu pomiarów jednym ruchem (zgłoszone 2026-08-05, gdy do
+          policzenia energii zabrakło w CSV przepływu i drugiej temperatury).
+
+          Ten odnośnik bierze WSZYSTKIE punkty rejestru w zakresie z formularza,
+          surowymi próbkami — niezależnie od tego, co jest zaznaczone wyżej.
+        */}
+        {params ? (
+          <p className="przebiegi__eksport">
+            <a
+              className="link"
+              href={historyCsvUrl({ ...params, ids: data.points.map((p) => p.id), resolution: 'raw' })}
+              download
+              title="Surowe próbki wszystkich punktów w wybranym zakresie — do analizy poza aplikacją"
+            >
+              pobierz CSV wszystkich punktów ({data.points.length}) w tym zakresie
+            </a>
+          </p>
+        ) : null}
       </section>
 
       {/* ------------------------- Wynik ------------------------- */}

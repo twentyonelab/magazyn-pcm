@@ -130,6 +130,8 @@ export function wartosciPokazowe(ms: number): PointValues {
 export function zdrowiePokazowe(startMs: number): Health {
   return {
     source: 'ok',
+    // Pokaz nie liczy bilansu energii — front spadnie na szacunek z temperatury.
+    soc: null,
     // `mock` jest tu prawdą: widok Diagnostyka pokazuje ten rodzaj źródła
     // wprost, więc nawet tam nikt nie zobaczy „Miniserver".
     sourceKind: 'mock',

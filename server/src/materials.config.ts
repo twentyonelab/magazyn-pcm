@@ -98,6 +98,18 @@ export const MATERIALS: Record<PcmMaterial, MaterialProfile> = {
 export const DEFAULT_MATERIAL: PcmMaterial = 'RT8HC';
 
 /**
+ * MASA PARAFINY W ZBIORNIKU, kg — mianownik bilansu energii (soc-bilans.ts).
+ *
+ * 200 l x gestosc z karty Rubitherm. Dla 8HC gestosc CIALA STALEGO (0,88 przy
+ * 0 °C), bo magazyn chlodu naladowany to magazyn zamrozony — i wtedy w
+ * zbiorniku jest ta masa. Dla 57HC srednia z karty (0,9 stale / 0,8 ciecz).
+ */
+export const MASA_KG: Record<PcmMaterial, number> = {
+  RT8HC: 176,
+  RT57HC: 170,
+};
+
+/**
  * Objetosci zbiornikow — wartosci konfiguracyjne, nie zapisane na stale.
  * Rysunek instalacji wymienia zasobnik 200 l, opis mowi o buforze 80 l
  * (otwarte pytanie nr 2 w specyfikacji).

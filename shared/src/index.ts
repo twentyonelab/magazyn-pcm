@@ -144,9 +144,44 @@ export interface BankState {
   message: string | null;
 }
 
+/**
+ * NALADOWANIE MAGAZYNU liczone PO STRONIE SERWERA.
+ *
+ * Dlaczego serwer, a nie przegladarka: w pasmie przemiany temperatura nie
+ * niesie informacji o naladowaniu (staly odczyt przez wiele godzin), wiec
+ * jedyna uczciwa droga jest BILANS ENERGII — kotwica z temperatury w chwili,
+ * gdy zbiornik byl POZA pasmem (tam temperatura mowi prawde), plus calka
+ * mocy zrodla i odbioru z historii. Historia i moc sa na serwerze.
+ *
+ * Zmierzone zanim to powstalo (2026-08-05): po nocy ladowania bilans dawal
+ * ~90 % naladowania, a szacunek z temperatury 60 % — bo srednia sond stala
+ * w srodku plateau. Ta struktura istnieje po to, zeby ekran pokazywal te
+ * pierwsza liczbe.
+ */
+export interface SocState {
+  /** 0–1 albo null, gdy nie ma z czego policzyc. */
+  soc: number | null;
+  /** Energia zgromadzona w zasobniku, kWh — soc x pojemnosc. */
+  energiaKWh: number | null;
+  /** Pojemnosc uzyta w mianowniku, kWh (masa x entalpia pelnego zakresu). */
+  pojemnoscKWh: number;
+  /**
+   * Jak powstala liczba. `bilans-energii` = kotwica + calka mocy;
+   * `temperatura` = czysty szacunek z temperatury (awaryjny — brak historii,
+   * brak kotwicy w ostatnich dniach albo dziury w danych).
+   */
+  zrodlo: 'bilans-energii' | 'temperatura';
+  /** Chwila kotwicy bilansu (ISO) albo null przy zrodle temperaturowym. */
+  kotwicaTs: string | null;
+  /** Udzial czasu od kotwicy pokryty danymi, 0–1, albo null. */
+  pokrycie: number | null;
+}
+
 export interface Health {
   source: SourceStatus;
   sourceKind: SourceKind;
+  /** Naladowanie magazynu — patrz SocState. null, gdy nie policzono. */
+  soc: SocState | null;
   /** Wymienne zbiorniki: ktory zestaw sond jest podlaczony. */
   bank: BankState;
   /** Czas odpowiedzi ostatniego cyklu odczytu w ms. */

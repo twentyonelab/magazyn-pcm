@@ -6,7 +6,7 @@
  * odkryta przy analizie danych.
  */
 
-import type { BankState, Health, SourceKind, SourceStatus } from '@magazyn-pcm/shared';
+import type { BankState, Health, SocState, SourceKind, SourceStatus } from '@magazyn-pcm/shared';
 import type { ValueCache } from './cache.js';
 import type { PointRegistry } from './registry.js';
 
@@ -18,6 +18,12 @@ export interface HealthTrackerOptions {
   cache: ValueCache;
   /** Stan wymiennych zbiornikow — czytany na biezaco, bo zestaw moze sie zmienic. */
   getBank: () => BankState;
+  /**
+   * Naladowanie z bilansu energii (soc-bilans.ts). W Health, bo health JUZ
+   * plynie do przegladarki przy kazdym cyklu — naladowanie dostaje transport
+   * za darmo, bez nowego endpointu i bez drugiego zrodla odswiezania.
+   */
+  getSoc?: () => SocState | null;
   now?: () => number;
 }
 
@@ -62,6 +68,7 @@ export class HealthTracker {
     return {
       source: this.status,
       sourceKind: this.opts.sourceKind,
+      soc: this.opts.getSoc?.() ?? null,
       bank,
       latencyMs: this.latencyMs,
       lastOkAt: this.lastOkAtMs === null ? null : new Date(this.lastOkAtMs).toISOString(),
