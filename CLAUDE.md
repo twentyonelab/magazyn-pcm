@@ -69,6 +69,17 @@ i `cp`, a profil z serwera własne — przy tej samej średniej 8,5 °C wychodzi
 a procent liczy **wyłącznie** `procentSoc` (zaokrąglenie w dół; własny
 `Math.round` w jednym miejscu dawał różnicę o punkt).
 
+**Pasmo przemiany na wykresach idzie za STANOWISKIEM, nigdy za sesją czy
+stałą domyślną.** Reguła użytkownika (2026-08-06, po trzeciej poprawce tego
+samego błędu): w magazynie ciepła pasmo ma być ZAWSZE 53–58 °C, w magazynie
+chłodu ZAWSZE 7–9 °C. Hierarchia materiału w każdym widoku wewnątrz
+stanowiska: `materialStanowiska` (z `otwarty.typ`) > sesja > detekcja sond >
+domyślna. Błąd wracał, bo trzy wykresy (Przebiegi, WykresMagazynu,
+Magazyn3D) liczyły materiał osobno i zaczynały od sesji — a niezamknięta
+sesja z 8HC (D8) malowała pasmo chłodu na wykresach ciepła. Przy dodawaniu
+NOWEGO wykresu z pasmem: nie licz materiału na miejscu, weź `profil`
+z widoku-rodzica, który już ma stanowisko na szczycie.
+
 **`web/src/schema/schema.svg` jest generowany.** Powstaje z wektora projektanta
 przez `narzedzia/wepnij-kontrakt.mjs`, który nakłada na niego kontrakt aplikacji
 (atrybuty `data-*`). Ręczna edycja ginie przy następnym uruchomieniu narzędzia.

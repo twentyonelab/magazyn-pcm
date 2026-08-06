@@ -418,6 +418,7 @@ export function App() {
                       w 3D narzędzia stoją w innym miejscu niż w 2D. */}
                   <Magazyn3D
                     data={data}
+                    materialStanowiska={otwarty.typ === 'chlod' ? 'RT8HC' : 'RT57HC'}
                     przelacznikRzutu={
                       <PrzelacznikRzutu
                         wymiar={wymiarCzynny}
@@ -431,7 +432,12 @@ export function App() {
           ) : null}
           {otwarty && widokWMagazynie === 'przebiegi' ? (
             // Klucz zeruje stan formularza, gdy przyjdziemy z inną sondą.
-            <Przebiegi key={przebiegiIds.join(',')} data={data} initialIds={przebiegiIds} />
+            <Przebiegi
+              key={przebiegiIds.join(',')}
+              data={data}
+              initialIds={przebiegiIds}
+              materialStanowiska={otwarty.typ === 'chlod' ? 'RT8HC' : 'RT57HC'}
+            />
           ) : null}
           {otwarty && widokWMagazynie === 'bilans' ? <Bilans data={data} /> : null}
           {otwarty && widokWMagazynie === 'sesje' ? <Sesje data={data} /> : null}

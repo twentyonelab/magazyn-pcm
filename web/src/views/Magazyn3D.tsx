@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import type { MaterialProfile } from '@magazyn-pcm/shared';
+import type { MaterialProfile, PcmMaterial } from '@magazyn-pcm/shared';
 import schemaMarkup from '../schema/schema.svg?raw';
 import { extractScene, type Scene, type SvgBox } from '../schema/extractScene.js';
 import type { LiveData } from '../useLiveData.js';
@@ -168,9 +168,12 @@ export function Magazyn3D({
    * w różnych miejscach ekranu i jedno położenie w arkuszu nie obsłuży obu.
    */
   przelacznikRzutu,
+  /** Tozsamosc otwartego stanowiska — patrz komentarz przy activeMaterial. */
+  materialStanowiska = null,
 }: {
   data: LiveData;
   przelacznikRzutu?: ReactNode;
+  materialStanowiska?: PcmMaterial | null;
 }) {
   const settings = useSettings();
   const hostRef = useRef<HTMLDivElement>(null);
@@ -208,10 +211,13 @@ export function Magazyn3D({
   const staleAfterMs = data.health?.staleAfterMs ?? FALLBACK_STALE_AFTER_MS;
   // Gdy kanał żyje, o przestarzałości decyduje serwer — patrz isStale().
   const channelAlive = data.link === 'live';
-  // Ta sama hierarchia co w 2D; zestaw "unknown" nie jest pewnikiem.
+  // Ta sama hierarchia co w 2D: tozsamosc stanowiska stoi NAJWYZEJ —
+  // magazyn ciepla ma wygladac jak cieplo takze wtedy, gdy otwarta sesja
+  // deklaruje co innego (kod D8) albo sondy siedza w drugim zbiorniku.
   const detectedBank =
     data.health && data.health.bank.detection !== 'unknown' ? data.health.bank.active : null;
-  const activeMaterial = data.session?.material ?? detectedBank ?? settings.parafinaPodgladu;
+  const activeMaterial =
+    materialStanowiska ?? data.session?.material ?? detectedBank ?? settings.parafinaPodgladu;
   const profile: MaterialProfile | null = data.materials
     ? (data.materials.profiles[activeMaterial] ??
       data.materials.profiles[data.materials.defaultMaterial])

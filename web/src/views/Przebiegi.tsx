@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import type { HistoryAvailable, PublicPoint, SessionEvent } from '@magazyn-pcm/shared';
+import type { HistoryAvailable, PcmMaterial, PublicPoint, SessionEvent } from '@magazyn-pcm/shared';
 import { fetchHistory, fetchSessions, historyCsvUrl, type HistoryParams } from '../api.js';
 import { SERIES_COLORS, Wykres, type ChartSeries } from '../components/Wykres.js';
 import { WykresMagazynu } from '../components/WykresMagazynu.js';
@@ -63,9 +63,11 @@ interface PrzebiegiProps {
    * klikniecien sondy na schemacie. Pusta lista = domyslne szesc sond.
    */
   initialIds?: string[];
+  /** Tozsamosc otwartego stanowiska — patrz komentarz przy materiale widoku. */
+  materialStanowiska?: PcmMaterial | null;
 }
 
-export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
+export function Przebiegi({ data, initialIds, materialStanowiska = null }: PrzebiegiProps) {
   const settings = useSettings();
   const [selected, setSelected] = useState<string[]>(
     initialIds && initialIds.length > 0 ? initialIds : ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'],
@@ -77,6 +79,28 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
   const [events, setEvents] = useState<SessionEvent[]>([]);
 
   const byId = useMemo(() => new Map(data.points.map((p) => [p.id, p])), [data.points]);
+
+  /*
+   * JEDEN material na caly widok — z niego ida OBA pasma przemiany (wykres
+   * dobowy magazynu na gorze i wykres pobranych przebiegow nizej). Hierarchia
+   * ta sama co w widoku Magazyn: TOZSAMOSC STANOWISKA > sesja > zywa detekcja
+   * sond > stala domyslna.
+   *
+   * Do 2026-08-06 kazdy z dwoch wykresow liczyl material po swojemu i oba
+   * zaczynaly od sesji — a niezamknieta sesja deklarujaca 8HC (kod D8)
+   * malowala pasmo 7-9 °C na wykresach magazynu CIEPLA. To byla trzecia
+   * poprawka tego samego bledu w tym widoku, dlatego zrodlo jest teraz JEDNO,
+   * a stanowisko stoi najwyzej: wykres w magazynie ciepla ma pokazywac pasmo
+   * ciepla ZAWSZE, niezaleznie od sesji i od tego, gdzie siedza sondy.
+   */
+  const materialWidoku =
+    materialStanowiska ??
+    data.session?.material ??
+    (data.health?.bank.detection === 'auto' ? data.health.bank.active : null) ??
+    data.materials?.defaultMaterial ??
+    null;
+  const profil =
+    data.materials && materialWidoku ? (data.materials.profiles[materialWidoku] ?? null) : null;
 
   // Jednostka pierwszego zaznaczonego punktu wyznacza os — patrz naglowek.
   const activeUnit = selected.length > 0 ? (byId.get(selected[0]!)?.unit ?? null) : null;
@@ -163,34 +187,21 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
     });
 
     const anyTemperature = series.some((s) => s.unit === '°C');
-    /*
-     * Material do pasma bierzemy sesja > zywa detekcja > dopiero na koniec
-     * stala domyslna. Bylo tu `data.materials.defaultMaterial` (zawsze
-     * RT8HC) jako ostatni fallback — bez otwartej sesji wykres magazynu
-     * ciepla pokazywal pasmo 7-9 (chlodu) miejsce 53-58, bo material nigdy
-     * nie sprawdzal, co faktycznie zyje na sondach.
-     */
-    const materialPasma =
-      data.session?.material ??
-      (data.health?.bank.detection === 'auto' ? data.health.bank.active : null) ??
-      data.materials?.defaultMaterial ??
-      null;
-    const profile = data.materials && materialPasma ? data.materials.profiles[materialPasma] : null;
 
     return {
       series,
       band:
-        anyTemperature && profile
+        anyTemperature && profil
           ? {
-              min: profile.phaseBandMin,
-              max: profile.phaseBandMax,
-              label: `przemiana ${profile.phaseBandMin}–${profile.phaseBandMax} °C`,
+              min: profil.phaseBandMin,
+              max: profil.phaseBandMax,
+              label: `przemiana ${profil.phaseBandMin}–${profil.phaseBandMax} °C`,
             }
           : null,
       fromMs: Date.parse(state.data.from),
       toMs: Date.parse(state.data.to),
     };
-  }, [state, byId, data.materials, data.session, data.health]);
+  }, [state, byId, profil]);
 
   /** Statystyki serii — tabela wartosci pod wykresem. */
   const stats = useMemo(() => {
@@ -211,11 +222,6 @@ export function Przebiegi({ data, initialIds }: PrzebiegiProps) {
       };
     });
   }, [state, byId]);
-
-  // Profil materialu biezacej sesji — z niego biora sie granice przemiany.
-  const profil = data.materials
-    ? data.materials.profiles[data.session?.material ?? data.materials.defaultMaterial]
-    : null;
 
   return (
     <div className="stack">
