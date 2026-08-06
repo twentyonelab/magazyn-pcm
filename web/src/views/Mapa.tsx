@@ -32,6 +32,7 @@ import {
 } from '../map/lokalizacje.js';
 import type { LiveData } from '../useLiveData.js';
 import { useAppliedTheme } from '../theme.js';
+import { blokMiniPrzebiegu, pobierzMiniPrzebieg, type MiniPrzebieg } from '../map/miniprzebieg.js';
 import { naladowanieProcent, sredniaZSond } from '../naladowanie.js';
 import { procentSoc } from '../soc.js';
 import type { Kierunek } from '../soc.js';
@@ -176,6 +177,12 @@ function trescDymka(
    * udawałaby własny pomiar.
    */
   notka: string | null = null,
+  /**
+   * Mini-przebieg 24 h — gotowy blok HTML z `blokMiniPrzebiegu`, tylko dla
+   * stanowisk live. Punkt pokazowy go nie dostaje: nie ma historii pomiarów,
+   * a wykres z wymyślonych liczb wyglądałby jak zapis z czujnika.
+   */
+  miniPrzebieg = '',
 ): string {
   const zdjecie =
     `<img class="dymek__zdjecie" alt="Zdjęcie lotnicze — ${punkt.nazwa}" loading="lazy" ` +
@@ -222,7 +229,7 @@ function trescDymka(
    * `aria-label` znacznika, gdzie jest potrzebny i gdzie nikomu nie zasłania
    * treści.
    */
-  return zdjecie + naglowek + uwaga + ladunek;
+  return zdjecie + naglowek + uwaga + ladunek + miniPrzebieg;
 }
 
 interface Props {
@@ -359,6 +366,38 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   const otworzRef = useRef(onOtworzMagazyn);
   otworzRef.current = onOtworzMagazyn;
 
+  /**
+   * Uchwyty kliknięć stanowisk — kliknięcie BRYŁY BUDYNKU ma robić dokładnie
+   * to samo, co kliknięcie znacznika (pierwszy klik przybliża, drugi otwiera).
+   * Wypełniane w pętli budującej znaczniki, czytane przez interakcję na
+   * featuresecie budynków.
+   */
+  const klikniecia = useRef(new Map<string, () => void>());
+
+  /**
+   * Mini-przebieg 24 h — jedna linia średniej z sond do karty stanowiska.
+   *
+   * JEDEN zestaw danych dla obu stanowisk: sondy są fizycznie jedne, a karta
+   * stanowiska bez sond i tak mówi w notce, skąd pochodzą odczyty. Stan,
+   * nie referencja — po nadejściu danych karty muszą się przerysować.
+   */
+  const [mini, setMini] = useState<MiniPrzebieg | null>(null);
+  useEffect(() => {
+    let zyje = true;
+    const pobierz = (): void => {
+      void pobierzMiniPrzebieg().then((wynik) => {
+        if (zyje && wynik) setMini(wynik);
+      });
+    };
+    pobierz();
+    // Kubełek ma 15 minut, częstsze odpytywanie nic nowego nie przyniesie.
+    const takt = window.setInterval(pobierz, 10 * 60_000);
+    return () => {
+      zyje = false;
+      window.clearInterval(takt);
+    };
+  }, []);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
@@ -427,6 +466,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     // Rzeźba terenu. Przy widoku całego regionu to ona, obok pochylenia kamery,
     // daje wrażenie przestrzeni — bryły budynków są na tej skali niewidoczne.
     map.on('style.load', () => {
+      // Barwy stanów budynków — patrz blok o bryłach stanowisk niżej.
+      map.setConfigProperty(IMPORT_ID, 'colorBuildingSelect', PALETA.cieplo.glowny);
+      map.setConfigProperty(IMPORT_ID, 'colorBuildingHighlight', PALETA.chlod.glowny);
+
       if (map.getSource(DEM_ID)) return;
       map.addSource(DEM_ID, {
         type: 'raster-dem',
@@ -435,6 +478,91 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         maxzoom: 14,
       });
       map.setTerrain({ source: DEM_ID, exaggeration: 1.4 });
+    });
+
+    /*
+     * BRYŁY BUDYNKÓW OBU STANOWISK — podświetlenie barwą nośnika i klik.
+     *
+     * Styl Standard udostępnia budynki jako featureset `buildings` z dwoma
+     * stanami do dyspozycji: `highlight` i `select`, każdy z własną barwą
+     * w konfiguracji (`colorBuildingHighlight` / `colorBuildingSelect`).
+     * Dwa stany = dwie barwy, a stanowiska też są dwa — chłód dostaje stan
+     * `highlight` (błękit), ciepło stan `select` (pomarańcz). Więcej barw
+     * naraz Standard nie umie, ale więcej nie potrzeba.
+     *
+     * TYLKO STANOWISKA LIVE. Punkt pokazowy stoi na wymyślonych
+     * współrzędnych — podświetlenie prawdziwego budynku pod zmyśloną
+     * instalacją ubierałoby czyjś istniejący obiekt w naszą etykietę.
+     *
+     * Bryłę znajdujemy zapytaniem o piksel, w który rzutuje się punkt
+     * stanowiska. Budynki Mapbox rysuje dopiero z bliska, więc szukanie ma
+     * sens od zoomu ~15; niżej stany są zdejmowane i mapa wraca do szarości.
+     */
+    const CEL_BUDYNKI = { featuresetId: 'buildings', importId: IMPORT_ID };
+    const budynkiStanowisk = new Map<string, mapboxgl.TargetFeature>();
+
+    const odswiezBudynki = (): void => {
+      for (const punkt of STANOWISKA) {
+        const poprzednia = budynkiStanowisk.get(punkt.id);
+        let bryla: mapboxgl.TargetFeature | undefined;
+        if (map.getZoom() >= 15) {
+          try {
+            bryla = map.queryRenderedFeatures(map.project([punkt.lon, punkt.lat]), {
+              target: CEL_BUDYNKI,
+            })[0];
+          } catch {
+            return; // styl w trakcie przeładowania — przyjdzie kolejne `idle`
+          }
+        }
+        if (poprzednia && bryla && poprzednia.id === bryla.id) continue;
+        if (poprzednia) map.setFeatureState(poprzednia, { highlight: false, select: false });
+        if (bryla) {
+          map.setFeatureState(
+            bryla,
+            punkt.typ === 'cieplo' ? { select: true } : { highlight: true },
+          );
+          budynkiStanowisk.set(punkt.id, bryla);
+        } else {
+          budynkiStanowisk.delete(punkt.id);
+        }
+      }
+    };
+    // `idle`, nie `moveend`: po przelocie kamery budynki dociągają się chwilę
+    // dłużej niż trwa ruch i zapytanie z `moveend` trafiało w pustkę.
+    map.on('idle', odswiezBudynki);
+
+    // Klik w bryłę = klik w znacznik tego stanowiska (przybliż / otwórz).
+    map.addInteraction('klik-budynku-stanowiska', {
+      type: 'click',
+      target: CEL_BUDYNKI,
+      handler: (zdarzenie) => {
+        for (const [id, bryla] of budynkiStanowisk) {
+          if (zdarzenie.feature && bryla.id === zdarzenie.feature.id) {
+            klikniecia.current.get(id)?.();
+            return true; // obsłużone — klik nie przechodzi dalej na mapę
+          }
+        }
+        return false;
+      },
+    });
+    map.addInteraction('kursor-budynku-stanowiska', {
+      type: 'mouseenter',
+      target: CEL_BUDYNKI,
+      handler: (zdarzenie) => {
+        const nasza = [...budynkiStanowisk.values()].some(
+          (b) => zdarzenie.feature && b.id === zdarzenie.feature.id,
+        );
+        if (nasza) map.getCanvas().style.cursor = 'pointer';
+        return false;
+      },
+    });
+    map.addInteraction('kursor-budynku-koniec', {
+      type: 'mouseleave',
+      target: CEL_BUDYNKI,
+      handler: () => {
+        map.getCanvas().style.cursor = '';
+        return false;
+      },
     });
 
     /**
@@ -588,6 +716,8 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       };
 
       el.addEventListener('click', kliknij);
+      // Stanowiska live rejestrują uchwyt także dla kliknięcia BRYŁY budynku.
+      if (live) klikniecia.current.set(punkt.id, kliknij);
 
       // Każdy znacznik jest teraz przyciskiem — także pokazowy.
       el.setAttribute('role', 'button');
@@ -612,6 +742,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
 
     return () => {
       stacjeRef.current.clear();
+      klikniecia.current.clear();
       map.remove();
     };
     // Mapa budowana RAZ. Motyw i sposób kolorowania wchodzą osobnymi efektami.
@@ -690,6 +821,9 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
             : aktywnaStacjaId === null
               ? 'Sondy nierozpoznane — odczyty niżej mogą pochodzić z drugiego zbiornika.'
               : `Sondy są teraz w magazynie ${punkt.typ === 'chlod' ? 'ciepła' : 'chłodu'} — odczyty niżej pochodzą stamtąd, nie z tego zbiornika.`,
+          // Mini-przebieg w barwie rodzaju punktu — jeden zestaw danych,
+          // patrz komentarz przy stanie `mini`.
+          mini ? blokMiniPrzebiegu(mini, PALETA[punkt.typ].glowny) : '',
         ),
       );
 
@@ -704,7 +838,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
             : barwaNosnika(punkt.typ, pozycjaRef.current);
       }
     }
-  }, [sredniaC, procent, kierunekStanowiska, opisZrodla, zywe, aktywnaStacjaId]);
+  }, [sredniaC, procent, kierunekStanowiska, opisZrodla, zywe, aktywnaStacjaId, mini]);
 
   return (
     <section className="mapa">
