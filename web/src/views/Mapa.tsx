@@ -232,6 +232,40 @@ function trescDymka(
   return zdjecie + naglowek + uwaga + ladunek + miniPrzebieg;
 }
 
+/**
+ * Czy pierścień wielokąta zawiera punkt — zwykły ray casting.
+ * Geometria z zapytań i zdarzeń Mapboxa przychodzi w stopniach
+ * geograficznych, więc porównanie z lon/lat stanowiska jest wprost.
+ */
+function pierscienZawiera(pierscien: number[][], lon: number, lat: number): boolean {
+  let wewnatrz = false;
+  for (let i = 0, j = pierscien.length - 1; i < pierscien.length; j = i, i += 1) {
+    const [xi, yi] = pierscien[i]!;
+    const [xj, yj] = pierscien[j]!;
+    if (
+      yi! > lat !== yj! > lat &&
+      lon < ((xj! - xi!) * (lat - yi!)) / (yj! - yi!) + xi!
+    ) {
+      wewnatrz = !wewnatrz;
+    }
+  }
+  return wewnatrz;
+}
+
+/** Czy obrys bryły budynku zawiera współrzędne punktu na mapie. */
+function brylaZawiera(bryla: mapboxgl.TargetFeature, lon: number, lat: number): boolean {
+  const geometria = bryla.geometry;
+  if (geometria.type === 'Polygon') {
+    return pierscienZawiera(geometria.coordinates[0] ?? [], lon, lat);
+  }
+  if (geometria.type === 'MultiPolygon') {
+    return geometria.coordinates.some((wielokat: number[][][]) =>
+      pierscienZawiera(wielokat[0] ?? [], lon, lat),
+    );
+  }
+  return false;
+}
+
 interface Props {
   data: LiveData;
   /**
@@ -481,87 +515,78 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     });
 
     /*
-     * BRYŁY BUDYNKÓW OBU STANOWISK — podświetlenie barwą nośnika i klik.
+     * BRYŁY BUDYNKÓW OBU STANOWISK — barwa nośnika PO NAJECHANIU i klik.
      *
-     * Styl Standard udostępnia budynki jako featureset `buildings` z dwoma
-     * stanami do dyspozycji: `highlight` i `select`, każdy z własną barwą
-     * w konfiguracji (`colorBuildingHighlight` / `colorBuildingSelect`).
-     * Dwa stany = dwie barwy, a stanowiska też są dwa — chłód dostaje stan
-     * `highlight` (błękit), ciepło stan `select` (pomarańcz). Więcej barw
-     * naraz Standard nie umie, ale więcej nie potrzeba.
+     * Domyślnie bryły wyglądają jak każdy inny budynek na mapie (szarość
+     * stylu) — kolor pojawia się dopiero pod kursorem, na wyraźną prośbę:
+     * podświetlenie na stałe czyniło z budynku drugi znacznik. Styl Standard
+     * daje featureset `buildings` z dwoma stanami o własnych barwach
+     * w konfiguracji (`colorBuildingHighlight` / `colorBuildingSelect`) —
+     * chłód dostaje `highlight` (błękit), ciepło `select` (pomarańcz).
+     *
+     * Czy najechana bryła jest budynkiem stanowiska, rozstrzyga GEOMETRIA:
+     * obrys bryły ze zdarzenia zawiera współrzędne punktu albo nie. Pierwsza
+     * wersja zgadywała bryłę zapytaniem o piksel z `idle` i porównywała
+     * identyfikatory — nie zadziałało ani razu; bryła prosto ze zdarzenia
+     * najechania nie wymaga zgadywania.
      *
      * TYLKO STANOWISKA LIVE. Punkt pokazowy stoi na wymyślonych
      * współrzędnych — podświetlenie prawdziwego budynku pod zmyśloną
      * instalacją ubierałoby czyjś istniejący obiekt w naszą etykietę.
-     *
-     * Bryłę znajdujemy zapytaniem o piksel, w który rzutuje się punkt
-     * stanowiska. Budynki Mapbox rysuje dopiero z bliska, więc szukanie ma
-     * sens od zoomu ~15; niżej stany są zdejmowane i mapa wraca do szarości.
      */
     const CEL_BUDYNKI = { featuresetId: 'buildings', importId: IMPORT_ID };
-    const budynkiStanowisk = new Map<string, mapboxgl.TargetFeature>();
 
-    const odswiezBudynki = (): void => {
-      for (const punkt of STANOWISKA) {
-        const poprzednia = budynkiStanowisk.get(punkt.id);
-        let bryla: mapboxgl.TargetFeature | undefined;
-        if (map.getZoom() >= 15) {
-          try {
-            bryla = map.queryRenderedFeatures(map.project([punkt.lon, punkt.lat]), {
-              target: CEL_BUDYNKI,
-            })[0];
-          } catch {
-            return; // styl w trakcie przeładowania — przyjdzie kolejne `idle`
-          }
-        }
-        if (poprzednia && bryla && poprzednia.id === bryla.id) continue;
-        if (poprzednia) map.setFeatureState(poprzednia, { highlight: false, select: false });
-        if (bryla) {
-          map.setFeatureState(
-            bryla,
-            punkt.typ === 'cieplo' ? { select: true } : { highlight: true },
-          );
-          budynkiStanowisk.set(punkt.id, bryla);
-        } else {
-          budynkiStanowisk.delete(punkt.id);
-        }
+    /** Bryła podświetlona w tej chwili — do zgaszenia przy zjeździe kursora. */
+    let podswietlona: mapboxgl.TargetFeature | null = null;
+
+    const zgas = (): void => {
+      if (podswietlona) {
+        map.setFeatureState(podswietlona, { highlight: false, select: false });
+        podswietlona = null;
       }
+      map.getCanvas().style.cursor = '';
     };
-    // `idle`, nie `moveend`: po przelocie kamery budynki dociągają się chwilę
-    // dłużej niż trwa ruch i zapytanie z `moveend` trafiało w pustkę.
-    map.on('idle', odswiezBudynki);
 
-    // Klik w bryłę = klik w znacznik tego stanowiska (przybliż / otwórz).
-    map.addInteraction('klik-budynku-stanowiska', {
-      type: 'click',
-      target: CEL_BUDYNKI,
-      handler: (zdarzenie) => {
-        for (const [id, bryla] of budynkiStanowisk) {
-          if (zdarzenie.feature && bryla.id === zdarzenie.feature.id) {
-            klikniecia.current.get(id)?.();
-            return true; // obsłużone — klik nie przechodzi dalej na mapę
-          }
-        }
-        return false;
-      },
-    });
-    map.addInteraction('kursor-budynku-stanowiska', {
+    map.addInteraction('budynek-stanowiska-najechanie', {
       type: 'mouseenter',
       target: CEL_BUDYNKI,
       handler: (zdarzenie) => {
-        const nasza = [...budynkiStanowisk.values()].some(
-          (b) => zdarzenie.feature && b.id === zdarzenie.feature.id,
+        const bryla = zdarzenie.feature;
+        // Zgaszenie na starcie łapie też przejście kursora prosto z jednej
+        // bryły na sąsiednią, bez `mouseleave` pomiędzy.
+        zgas();
+        if (!bryla) return false;
+        const stanowisko = STANOWISKA.find((p) => brylaZawiera(bryla, p.lon, p.lat));
+        if (!stanowisko) return false;
+        map.setFeatureState(
+          bryla,
+          stanowisko.typ === 'cieplo' ? { select: true } : { highlight: true },
         );
-        if (nasza) map.getCanvas().style.cursor = 'pointer';
+        podswietlona = bryla;
+        map.getCanvas().style.cursor = 'pointer';
         return false;
       },
     });
-    map.addInteraction('kursor-budynku-koniec', {
+    map.addInteraction('budynek-stanowiska-zjazd', {
       type: 'mouseleave',
       target: CEL_BUDYNKI,
       handler: () => {
-        map.getCanvas().style.cursor = '';
+        zgas();
         return false;
+      },
+    });
+    // Klik w bryłę = klik w znacznik tego stanowiska (przybliż / otwórz).
+    map.addInteraction('budynek-stanowiska-klik', {
+      type: 'click',
+      target: CEL_BUDYNKI,
+      handler: (zdarzenie) => {
+        const bryla = zdarzenie.feature;
+        const stanowisko = bryla
+          ? STANOWISKA.find((p) => brylaZawiera(bryla, p.lon, p.lat))
+          : undefined;
+        if (!stanowisko) return false;
+        klikniecia.current.get(stanowisko.id)?.();
+        return true; // obsłużone — klik nie przechodzi dalej na mapę
       },
     });
 

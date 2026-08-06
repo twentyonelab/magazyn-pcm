@@ -175,8 +175,19 @@ export function PasekPrzemiany({
    * Osią zostaje ZAKRES MATERIAŁU (0–20 albo 40–75 °C), bo podziałka opisuje
    * materiał. Przy skali lokalnej barwa na jej krańcach po prostu się
    * zatrzymuje, tak samo jak na kropkach.
+   *
+   * ODCZYTY SPOZA OSI MATERIAŁU NIE WYBIERAJĄ SKALI. Sondy przepięte do
+   * drugiego zbiornika czytają ~50 °C i wybierały skalę lokalną CIEPŁA
+   * (50–62°) dla osi chłodu 0–20° — cała podziałka wychodziła jednym płowym
+   * odcieniem spoza swojego zakresu (zgłoszone 2026-08-06: „pasek jest jak
+   * dla ciepła" w magazynie chłodu). Gdy wartości leżą poza osią, podziałkę
+   * maluje skala globalna: obejmuje każdą oś i mówi prawdę o temperaturze.
    */
-  const rodzajSkali = wybierzSkale(zakresC ? [zakresC.min, zakresC.max] : [averageC]);
+  const wartosciSkali = zakresC ? [zakresC.min, zakresC.max] : [averageC];
+  const pozaOsia = wartosciSkali.some(
+    (v) => typeof v === 'number' && (v < profile.scaleMin || v > profile.scaleMax),
+  );
+  const rodzajSkali = pozaOsia ? 'globalna' : wybierzSkale(wartosciSkali);
 
   const maDane = averageC !== null;
   const stan = maDane ? stanZTemperatury(averageC, cfg) : null;
