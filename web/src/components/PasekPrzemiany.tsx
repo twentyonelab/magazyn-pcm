@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { MaterialProfile, MaterialsResponse, PcmMaterial, SocState } from '@magazyn-pcm/shared';
+import type { MaterialProfile, MaterialsResponse, PcmMaterial } from '@magazyn-pcm/shared';
 import {
   KONFIGURACJA,
   OPIS_STANU,
@@ -33,7 +33,7 @@ import {
 import { liczba, utworzSkale } from './belka/skala.js';
 import { przystankiGradientu, wybierzSkale } from '../paleta-temperatur.js';
 import { KrzywaEntalpii } from './belka/KrzywaEntalpii.js';
-import { energiaKWh, type OdczytSoc, type ParametryEntalpii } from '../soc.js';
+import { type OdczytSoc, type ParametryEntalpii } from '../soc.js';
 
 export interface Props {
   profile: MaterialProfile | null;
@@ -66,14 +66,6 @@ export interface Props {
    */
   soc?: OdczytSoc | null;
   /**
-   * Bilans z serwera — gdy jest, linia „Energia: x / y kWh" bierze liczby
-   * z niego, żeby belka i pasek pod zbiornikiem nie pokazywały dwóch różnych
-   * energii z dwóch pojemności (config belki ma 9,3 kWh z karty, bilans liczy
-   * na 9,7 kWh z modelu entalpii — mianowniki muszą być spójne w obrębie
-   * jednego źródła).
-   */
-  bilans?: SocState | null;
-  /**
    * Zbiornik jeszcze NIE ROZPOZNANY (brak sesji, brak rozpoznania, brak stanu
    * z serwera). Wtedy nazwa materiału jest zgadnięta i nie wolno jej podawać
    * jak faktu ani pozwalać na przełączanie.
@@ -95,7 +87,6 @@ export function PasekPrzemiany({
   averageC = null,
   zakresC = null,
   soc = null,
-  bilans = null,
   nierozpoznany = false,
   kierunekZmiany = null,
 }: Props) {
@@ -207,14 +198,6 @@ export function PasekPrzemiany({
   const profile2 = Object.values(materials.profiles) as MaterialProfile[];
 
   const opisKierunku = cfg.kierunek === 'chlod' ? 'chłód' : 'ciepło';
-  // Z bilansu serwera, gdy jest — licznik i mianownik z JEDNEGO źródła.
-  const energia =
-    bilans?.energiaKWh != null
-      ? bilans.energiaKWh
-      : soc?.soc == null
-        ? null
-        : energiaKWh(soc.soc, cfg.pojemnoscKWh);
-  const pojemnosc = bilans?.energiaKWh != null ? bilans.pojemnoscKWh : cfg.pojemnoscKWh;
 
   const strzalka =
     kierunekZmiany === 'ladowanie' ? '↑' : kierunekZmiany === 'rozladowanie' ? '↓' : '';
@@ -506,21 +489,13 @@ export function PasekPrzemiany({
             />
           </div>
 
-          <p className="belka__spod">
-            {energia === null
-              ? 'Energia: brak odczytu sond. '
-              : `Energia: ${liczba(energia)} / ${liczba(pojemnosc)} kWh · `}
-            {fromSession
-              ? 'parafina z trwającej sesji.'
-              : detected
-                ? 'rozpoznana po sondach podłączonego zbiornika.'
-                : 'podgląd bez sesji i bez rozpoznanego zbiornika.'}
-            {soc?.zrodlo === 'temperatura'
-              ? ' Naładowanie szacowane z temperatury.'
-              : soc?.zrodlo === 'bilans-energii'
-                ? ' Naładowanie z bilansu energii.'
-                : ''}
-          </p>
+          {/*
+            LINII „Energia: x / y kWh · …" NIE MA — usunięta 2026-08-06 na
+            prośbę. Energia i pojemność stoją już w kaflach wyżej, źródło
+            materiału mówi plakietka przy nazwie („ze stanowiska" / „z sesji"),
+            a metoda liczenia jest w Diagnostyce — to zdanie powtarzało
+            wszystko trzeci raz.
+          */}
         </div>
       ) : null}
     </section>

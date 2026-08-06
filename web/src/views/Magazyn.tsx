@@ -405,7 +405,6 @@ export function Magazyn({
         averageC={averageC}
         zakresC={zakresC}
         soc={soc}
-        bilans={socSerwera}
         kierunekZmiany={kierunekZmiany}
       />
 
