@@ -164,7 +164,8 @@ export const MATERIALY_POKAZOWE: MaterialsResponse = {
     RT8HC: { id: 'RT8HC', label: '8HC', scaleMin: 0, scaleMax: 20, phaseBandMin: 7, phaseBandMax: 9, peak: 8, latentHeat: 162, capacityKJkg: 190, capacityFromC: 1, capacityToC: 15, cp: 2, tMax: 40 },
     RT57HC: { id: 'RT57HC', label: '57HC', scaleMin: 40, scaleMax: 75, phaseBandMin: 53, phaseBandMax: 58, peak: 57, latentHeat: 210, capacityKJkg: 240, capacityFromC: 49, capacityToC: 64, cp: 2, tMax: 90 },
   },
-  volumesL: { buffer: 80, storage: 200 },
+  // Jeden moduł 67 l + bufor 80 l — te same wartości co konfiguracja serwera.
+  volumesL: { buffer: 80, storage: 67 },
   flowFullSpeed: 0.8,
 };
 

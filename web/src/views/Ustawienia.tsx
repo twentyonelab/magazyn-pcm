@@ -158,9 +158,9 @@ export function Ustawienia({ data }: { data: LiveData }) {
             </table>
           </div>
           <p className="card__lead" style={{ marginTop: '1rem', marginBottom: 0 }}>
-            Objętości: magazyn {data.materials.volumesL.storage} l · bufor{' '}
-            {data.materials.volumesL.buffer} l. Wartości konfiguracyjne — rozbieżność 200/80 l
-            z dokumentacji pozostaje do wyjaśnienia.
+            Objętości: magazyn {data.materials.volumesL.storage} l (jeden moduł) · bufor{' '}
+            {data.materials.volumesL.buffer} l. Zasobnik 200 l z dokumentacji to plan rozbudowy
+            do czterech modułów, nie stan instalacji.
           </p>
         </section>
       ) : null}

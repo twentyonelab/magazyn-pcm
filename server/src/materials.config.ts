@@ -122,12 +122,17 @@ export const MASA_KG: Record<PcmMaterial, number> = {
 
 /**
  * Objetosci zbiornikow — wartosci konfiguracyjne, nie zapisane na stale.
- * Rysunek instalacji wymienia zasobnik 200 l, opis mowi o buforze 80 l
- * (otwarte pytanie nr 2 w specyfikacji).
+ *
+ * MAGAZYN TO JEDEN MODUL 67 LITROW — poprawione 2026-08-06 na wskazanie
+ * uzytkownika. Rysunek instalacji wymienial zasobnik 200 l i ta liczba
+ * stala tu od poczatku, ale 200 l to plan rozbudowy (podpis "Modul 1 / 4"
+ * na schemacie), nie stan — dokladnie ta sama pomylka co przy masie
+ * parafiny (patrz MASA_KG wyzej: 59 kg z 67 l, nie 176 kg z 200 l).
+ * Bufor 80 l zostaje, ten jest fizycznie na instalacji.
  */
 export const VOLUMES_L = {
   buffer: 80,
-  storage: 200,
+  storage: 67,
 } as const;
 
 /**
