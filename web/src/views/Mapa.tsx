@@ -536,6 +536,37 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
      */
     const CEL_BUDYNKI = { featuresetId: 'buildings', importId: IMPORT_ID };
 
+    /**
+     * Które stanowisko mieszka w najechanej bryle.
+     *
+     * DWA TESTY, bo każdy z osobna zawodzi. Obrys bryły bywa DOCIĘTY DO
+     * KAFLA, a budynki proceduralne nie niosą wielokąta wcale — wtedy test
+     * geometryczny milczy, choć kursor stoi na właściwym budynku. Odległość
+     * ekranowa z kolei nie wie nic o kształcie. Razem: najpierw pytamy obrys,
+     * a gdy nie rozstrzyga, bierzemy stanowisko najbliższe kursorowi w progu
+     * 48 px (przy zoomie 18 to ~18 m — wnętrze budynku, za mało, żeby
+     * zahaczyć o sąsiedni).
+     */
+    const stanowiskoDlaBryly = (
+      bryla: mapboxgl.TargetFeature,
+      kursor: { x: number; y: number },
+    ): Lokalizacja | undefined => {
+      const poObrysie = STANOWISKA.find((p) => brylaZawiera(bryla, p.lon, p.lat));
+      if (poObrysie) return poObrysie;
+
+      let najblizsze: Lokalizacja | undefined;
+      let najmniejsza = 48;
+      for (const p of STANOWISKA) {
+        const rzut = map.project([p.lon, p.lat]);
+        const d = Math.hypot(rzut.x - kursor.x, rzut.y - kursor.y);
+        if (d < najmniejsza) {
+          najmniejsza = d;
+          najblizsze = p;
+        }
+      }
+      return najblizsze;
+    };
+
     /** Bryła podświetlona w tej chwili — do zgaszenia przy zjeździe kursora. */
     let podswietlona: mapboxgl.TargetFeature | null = null;
 
@@ -556,7 +587,7 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
         // bryły na sąsiednią, bez `mouseleave` pomiędzy.
         zgas();
         if (!bryla) return false;
-        const stanowisko = STANOWISKA.find((p) => brylaZawiera(bryla, p.lon, p.lat));
+        const stanowisko = stanowiskoDlaBryly(bryla, zdarzenie.point);
         if (!stanowisko) return false;
         map.setFeatureState(
           bryla,
@@ -581,14 +612,21 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       target: CEL_BUDYNKI,
       handler: (zdarzenie) => {
         const bryla = zdarzenie.feature;
-        const stanowisko = bryla
-          ? STANOWISKA.find((p) => brylaZawiera(bryla, p.lon, p.lat))
-          : undefined;
+        const stanowisko = bryla ? stanowiskoDlaBryly(bryla, zdarzenie.point) : undefined;
         if (!stanowisko) return false;
         klikniecia.current.get(stanowisko.id)?.();
         return true; // obsłużone — klik nie przechodzi dalej na mapę
       },
     });
+
+    /*
+     * UCHWYT DIAGNOSTYCZNY — tylko do czytania w konsoli przeglądarki.
+     * Panel podglądu, w którym pracuje asystent, nie renderuje klatek mapy,
+     * więc interakcji na featuresetach nie da się stamtąd zweryfikować;
+     * ten uchwyt pozwala sprawdzić stan mapy na żywej stronie bez
+     * przebudowy. Niczego nie zmienia i nic od niego nie zależy.
+     */
+    (window as unknown as { __entalviaMapa?: mapboxgl.Map }).__entalviaMapa = map;
 
     /**
      * Który punkt jest już przybliżony.
@@ -763,6 +801,31 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       el.addEventListener('mouseleave', () => {
         if (dymek.isOpen()) marker.togglePopup();
       });
+
+      // Najechanie na ZNACZNIK stanowiska też barwi bryłę jego budynku —
+      // druga ścieżka obok najechania na samą bryłę. Znacznik to zwykły
+      // element DOM, więc ta droga nie zależy od interakcji na featuresetach;
+      // bryłę bierze zapytanie o piksel, w który rzutuje się punkt.
+      if (live) {
+        el.addEventListener('mouseenter', () => {
+          let bryla: mapboxgl.TargetFeature | undefined;
+          try {
+            bryla = map.queryRenderedFeatures(map.project([punkt.lon, punkt.lat]), {
+              target: CEL_BUDYNKI,
+            })[0];
+          } catch {
+            return; // styl jeszcze nie stoi — bez podświetlenia, bez szkody
+          }
+          if (!bryla) return;
+          zgas();
+          map.setFeatureState(
+            bryla,
+            punkt.typ === 'cieplo' ? { select: true } : { highlight: true },
+          );
+          podswietlona = bryla;
+        });
+        el.addEventListener('mouseleave', zgas);
+      }
     }
 
     return () => {
