@@ -232,40 +232,6 @@ function trescDymka(
   return zdjecie + naglowek + uwaga + ladunek + miniPrzebieg;
 }
 
-/**
- * Czy pierścień wielokąta zawiera punkt — zwykły ray casting.
- * Geometria z zapytań i zdarzeń Mapboxa przychodzi w stopniach
- * geograficznych, więc porównanie z lon/lat stanowiska jest wprost.
- */
-function pierscienZawiera(pierscien: number[][], lon: number, lat: number): boolean {
-  let wewnatrz = false;
-  for (let i = 0, j = pierscien.length - 1; i < pierscien.length; j = i, i += 1) {
-    const [xi, yi] = pierscien[i]!;
-    const [xj, yj] = pierscien[j]!;
-    if (
-      yi! > lat !== yj! > lat &&
-      lon < ((xj! - xi!) * (lat - yi!)) / (yj! - yi!) + xi!
-    ) {
-      wewnatrz = !wewnatrz;
-    }
-  }
-  return wewnatrz;
-}
-
-/** Czy obrys bryły budynku zawiera współrzędne punktu na mapie. */
-function brylaZawiera(bryla: mapboxgl.TargetFeature, lon: number, lat: number): boolean {
-  const geometria = bryla.geometry;
-  if (geometria.type === 'Polygon') {
-    return pierscienZawiera(geometria.coordinates[0] ?? [], lon, lat);
-  }
-  if (geometria.type === 'MultiPolygon') {
-    return geometria.coordinates.some((wielokat: number[][][]) =>
-      pierscienZawiera(wielokat[0] ?? [], lon, lat),
-    );
-  }
-  return false;
-}
-
 interface Props {
   data: LiveData;
   /**
@@ -401,14 +367,6 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
   otworzRef.current = onOtworzMagazyn;
 
   /**
-   * Uchwyty kliknięć stanowisk — kliknięcie BRYŁY BUDYNKU ma robić dokładnie
-   * to samo, co kliknięcie znacznika (pierwszy klik przybliża, drugi otwiera).
-   * Wypełniane w pętli budującej znaczniki, czytane przez interakcję na
-   * featuresecie budynków.
-   */
-  const klikniecia = useRef(new Map<string, () => void>());
-
-  /**
    * Mini-przebieg 24 h — jedna linia średniej z sond do karty stanowiska.
    *
    * JEDEN zestaw danych dla obu stanowisk: sondy są fizycznie jedne, a karta
@@ -500,10 +458,6 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     // Rzeźba terenu. Przy widoku całego regionu to ona, obok pochylenia kamery,
     // daje wrażenie przestrzeni — bryły budynków są na tej skali niewidoczne.
     map.on('style.load', () => {
-      // Barwy stanów budynków — patrz blok o bryłach stanowisk niżej.
-      map.setConfigProperty(IMPORT_ID, 'colorBuildingSelect', PALETA.cieplo.glowny);
-      map.setConfigProperty(IMPORT_ID, 'colorBuildingHighlight', PALETA.chlod.glowny);
-
       if (map.getSource(DEM_ID)) return;
       map.addSource(DEM_ID, {
         type: 'raster-dem',
@@ -515,118 +469,18 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
     });
 
     /*
-     * BRYŁY BUDYNKÓW OBU STANOWISK — barwa nośnika PO NAJECHANIU i klik.
+     * PODŚWIETLANIA BRYŁ BUDYNKÓW NIE MA — zdjęte 2026-08-06 na prośbę.
      *
-     * Domyślnie bryły wyglądają jak każdy inny budynek na mapie (szarość
-     * stylu) — kolor pojawia się dopiero pod kursorem, na wyraźną prośbę:
-     * podświetlenie na stałe czyniło z budynku drugi znacznik. Styl Standard
-     * daje featureset `buildings` z dwoma stanami o własnych barwach
-     * w konfiguracji (`colorBuildingHighlight` / `colorBuildingSelect`) —
-     * chłód dostaje `highlight` (błękit), ciepło `select` (pomarańcz).
-     *
-     * Czy najechana bryła jest budynkiem stanowiska, rozstrzyga GEOMETRIA:
-     * obrys bryły ze zdarzenia zawiera współrzędne punktu albo nie. Pierwsza
-     * wersja zgadywała bryłę zapytaniem o piksel z `idle` i porównywała
-     * identyfikatory — nie zadziałało ani razu; bryła prosto ze zdarzenia
-     * najechania nie wymaga zgadywania.
-     *
-     * TYLKO STANOWISKA LIVE. Punkt pokazowy stoi na wymyślonych
-     * współrzędnych — podświetlenie prawdziwego budynku pod zmyśloną
-     * instalacją ubierałoby czyjś istniejący obiekt w naszą etykietę.
+     * Były tu interakcje na featuresecie `buildings` stylu Standard
+     * (stany highlight/select, barwy w konfiguracji importu), które miały
+     * barwić budynki 26 i 28 pod kursorem, jak w demo Mapbox Places.
+     * Dopasowanie najechanej bryły do stanowiska okazało się zawodne
+     * (obrysy docinane do kafli, budynki proceduralne bez wielokąta)
+     * i po dwóch podejściach efekt dalej nie działał u użytkownika.
+     * Decyzja: zostaje sam znacznik z kartą podglądu — ona niesie całą
+     * treść (naładowanie, mini-przebieg 24 h), a budynek niech będzie
+     * zwykłym budynkiem.
      */
-    const CEL_BUDYNKI = { featuresetId: 'buildings', importId: IMPORT_ID };
-
-    /**
-     * Które stanowisko mieszka w najechanej bryle.
-     *
-     * DWA TESTY, bo każdy z osobna zawodzi. Obrys bryły bywa DOCIĘTY DO
-     * KAFLA, a budynki proceduralne nie niosą wielokąta wcale — wtedy test
-     * geometryczny milczy, choć kursor stoi na właściwym budynku. Odległość
-     * ekranowa z kolei nie wie nic o kształcie. Razem: najpierw pytamy obrys,
-     * a gdy nie rozstrzyga, bierzemy stanowisko najbliższe kursorowi w progu
-     * 48 px (przy zoomie 18 to ~18 m — wnętrze budynku, za mało, żeby
-     * zahaczyć o sąsiedni).
-     */
-    const stanowiskoDlaBryly = (
-      bryla: mapboxgl.TargetFeature,
-      kursor: { x: number; y: number },
-    ): Lokalizacja | undefined => {
-      const poObrysie = STANOWISKA.find((p) => brylaZawiera(bryla, p.lon, p.lat));
-      if (poObrysie) return poObrysie;
-
-      let najblizsze: Lokalizacja | undefined;
-      let najmniejsza = 48;
-      for (const p of STANOWISKA) {
-        const rzut = map.project([p.lon, p.lat]);
-        const d = Math.hypot(rzut.x - kursor.x, rzut.y - kursor.y);
-        if (d < najmniejsza) {
-          najmniejsza = d;
-          najblizsze = p;
-        }
-      }
-      return najblizsze;
-    };
-
-    /** Bryła podświetlona w tej chwili — do zgaszenia przy zjeździe kursora. */
-    let podswietlona: mapboxgl.TargetFeature | null = null;
-
-    const zgas = (): void => {
-      if (podswietlona) {
-        map.setFeatureState(podswietlona, { highlight: false, select: false });
-        podswietlona = null;
-      }
-      map.getCanvas().style.cursor = '';
-    };
-
-    map.addInteraction('budynek-stanowiska-najechanie', {
-      type: 'mouseenter',
-      target: CEL_BUDYNKI,
-      handler: (zdarzenie) => {
-        const bryla = zdarzenie.feature;
-        // Zgaszenie na starcie łapie też przejście kursora prosto z jednej
-        // bryły na sąsiednią, bez `mouseleave` pomiędzy.
-        zgas();
-        if (!bryla) return false;
-        const stanowisko = stanowiskoDlaBryly(bryla, zdarzenie.point);
-        if (!stanowisko) return false;
-        map.setFeatureState(
-          bryla,
-          stanowisko.typ === 'cieplo' ? { select: true } : { highlight: true },
-        );
-        podswietlona = bryla;
-        map.getCanvas().style.cursor = 'pointer';
-        return false;
-      },
-    });
-    map.addInteraction('budynek-stanowiska-zjazd', {
-      type: 'mouseleave',
-      target: CEL_BUDYNKI,
-      handler: () => {
-        zgas();
-        return false;
-      },
-    });
-    // Klik w bryłę = klik w znacznik tego stanowiska (przybliż / otwórz).
-    map.addInteraction('budynek-stanowiska-klik', {
-      type: 'click',
-      target: CEL_BUDYNKI,
-      handler: (zdarzenie) => {
-        const bryla = zdarzenie.feature;
-        const stanowisko = bryla ? stanowiskoDlaBryly(bryla, zdarzenie.point) : undefined;
-        if (!stanowisko) return false;
-        klikniecia.current.get(stanowisko.id)?.();
-        return true; // obsłużone — klik nie przechodzi dalej na mapę
-      },
-    });
-
-    /*
-     * UCHWYT DIAGNOSTYCZNY — tylko do czytania w konsoli przeglądarki.
-     * Panel podglądu, w którym pracuje asystent, nie renderuje klatek mapy,
-     * więc interakcji na featuresetach nie da się stamtąd zweryfikować;
-     * ten uchwyt pozwala sprawdzić stan mapy na żywej stronie bez
-     * przebudowy. Niczego nie zmienia i nic od niego nie zależy.
-     */
-    (window as unknown as { __entalviaMapa?: mapboxgl.Map }).__entalviaMapa = map;
 
     /**
      * Który punkt jest już przybliżony.
@@ -779,8 +633,6 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       };
 
       el.addEventListener('click', kliknij);
-      // Stanowiska live rejestrują uchwyt także dla kliknięcia BRYŁY budynku.
-      if (live) klikniecia.current.set(punkt.id, kliknij);
 
       // Każdy znacznik jest teraz przyciskiem — także pokazowy.
       el.setAttribute('role', 'button');
@@ -801,36 +653,10 @@ export function Mapa({ data, onOtworzMagazyn }: Props) {
       el.addEventListener('mouseleave', () => {
         if (dymek.isOpen()) marker.togglePopup();
       });
-
-      // Najechanie na ZNACZNIK stanowiska też barwi bryłę jego budynku —
-      // druga ścieżka obok najechania na samą bryłę. Znacznik to zwykły
-      // element DOM, więc ta droga nie zależy od interakcji na featuresetach;
-      // bryłę bierze zapytanie o piksel, w który rzutuje się punkt.
-      if (live) {
-        el.addEventListener('mouseenter', () => {
-          let bryla: mapboxgl.TargetFeature | undefined;
-          try {
-            bryla = map.queryRenderedFeatures(map.project([punkt.lon, punkt.lat]), {
-              target: CEL_BUDYNKI,
-            })[0];
-          } catch {
-            return; // styl jeszcze nie stoi — bez podświetlenia, bez szkody
-          }
-          if (!bryla) return;
-          zgas();
-          map.setFeatureState(
-            bryla,
-            punkt.typ === 'cieplo' ? { select: true } : { highlight: true },
-          );
-          podswietlona = bryla;
-        });
-        el.addEventListener('mouseleave', zgas);
-      }
     }
 
     return () => {
       stacjeRef.current.clear();
-      klikniecia.current.clear();
       map.remove();
     };
     // Mapa budowana RAZ. Motyw i sposób kolorowania wchodzą osobnymi efektami.

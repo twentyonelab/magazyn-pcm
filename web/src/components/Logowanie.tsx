@@ -32,7 +32,6 @@
 
 import { useEffect, useState } from 'react';
 import { login } from '../api.js';
-import { useAppliedTheme } from '../theme.js';
 import { WERSJA } from '../wersja.js';
 
 /** Ścieżka do pliku w katalogu publicznym — ta sama zasada co w App.tsx. */
@@ -82,8 +81,6 @@ function rolaAdresu(): 'produkt' | 'aplikacja' {
 }
 
 export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
-  // Oba logotypy mają wersje na jasne i ciemne tło — patrz App.tsx.
-  const ciemny = useAppliedTheme() === 'dark';
   // Rola adresu czytana RAZ: zmiana hosta bez przeładowania strony nie istnieje.
   const [rola] = useState(rolaAdresu);
   const [password, setPassword] = useState('');
@@ -204,12 +201,10 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             </p>
           </form>
 
+          {/* LOGOTYP KLIENTA ZDJĘTY TAKŻE Z BRAMY 2026-08-06 na prośbę —
+              intro mówi o produkcie, marka klienta zostaje w aplikacji
+              (topbar), gdzie opisuje stanowisko, a nie wejście. */}
           <footer className="start__stopka">
-            <img
-              className="start__logo-klienta"
-              src={plik(ciemny ? 'tauron-cieplo-ciemny.png' : 'tauron-cieplo.png')}
-              alt="Tauron Ciepło"
-            />
             <span className="start__wersja mono">{WERSJA}</span>
           </footer>
         </section>
