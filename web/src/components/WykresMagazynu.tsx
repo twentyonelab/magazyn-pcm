@@ -97,6 +97,59 @@ const KOLOR: Record<IdSondy, string> = {
  */
 type Forma = 'linie' | 'odczyty' | 'rozwarstwienie' | 'mapa';
 
+/**
+ * FILTR ANTYPIKOWY (Hampel) — DOTYCZY WYŚWIETLANIA, NIE DANYCH.
+ *
+ * Sonda DS18B20 potrafi oddać pojedynczy fałszywy odczyt (zakłócenie na
+ * magistrali 1-Wire, dotknięcie przewodu przy pracy na stanowisku) — na
+ * wykresie wychodzi z tego pik o kilka stopni, którego fizyka nie umie
+ * wyprodukować: parafina ma stałe czasowe w minutach, nie w sekundach.
+ * Zgłoszone 2026-08-06 (pik B3 do ~62 °C w widoku godziny).
+ *
+ * Zasada: wartość porównuje się z medianą sąsiadów w oknie czasowym; jeśli
+ * odstaje o więcej niż PROG, na rysunku staje mediana. Prawdziwe zmiany
+ * przeżywają filtr: stromy, MONOTONICZNY wzrost ma medianę blisko środka
+ * (nic nie odstaje), a utrzymany skok poziomu po połowie okna staje się
+ * nową medianą. Ginie tylko to, co wyskoczyło i wróciło.
+ *
+ * SUROWE DANE ZOSTAJĄ SUROWE: baza, eksport CSV i forma „odczyty" (która
+ * z definicji pokazuje, co naprawdę zmierzono) nie przechodzą przez filtr.
+ */
+function bezPikow(
+  punkty: Array<{ ms: number; v: number | null }>,
+): Array<{ ms: number; v: number | null }> {
+  const proba: Array<{ i: number; ms: number; v: number }> = [];
+  punkty.forEach((p, i) => {
+    if (p.v !== null) proba.push({ i, ms: p.ms, v: p.v });
+  });
+  const n = proba.length;
+  if (n < 5) return punkty;
+
+  // Okno: co najmniej ±90 s i co najmniej cztery typowe odstępy próbek —
+  // przy rzadkich kubełkach (doba, miesiąc) okno rośnie razem z nimi,
+  // inaczej mediana z jednej próbki niczego by nie filtrowała.
+  const typowyOdstep = (proba[n - 1]!.ms - proba[0]!.ms) / (n - 1);
+  const OKNO_MS = Math.max(90_000, 4 * typowyOdstep);
+  const PROG_K = 2;
+
+  const wynik = punkty.slice();
+  let lo = 0;
+  let hi = 0;
+  for (let k = 0; k < n; k += 1) {
+    while (proba[lo]!.ms < proba[k]!.ms - OKNO_MS) lo += 1;
+    while (hi < n && proba[hi]!.ms <= proba[k]!.ms + OKNO_MS) hi += 1;
+    if (hi - lo < 3) continue;
+    const okno: number[] = [];
+    for (let j = lo; j < hi; j += 1) okno.push(proba[j]!.v);
+    okno.sort((a, b) => a - b);
+    const mediana = okno[okno.length >> 1]!;
+    if (Math.abs(proba[k]!.v - mediana) > PROG_K) {
+      wynik[proba[k]!.i] = { ms: proba[k]!.ms, v: mediana };
+    }
+  }
+  return wynik;
+}
+
 const FORMY: Array<{ id: Forma; etykieta: string; opis: string }> = [
   {
     id: 'linie',
@@ -302,16 +355,20 @@ export function WykresMagazynu({ profil }: Props) {
     return widoczne.map((id) => {
       const wg = new Map<number, number | null>();
       for (const p of mapa.get(id)?.points ?? []) wg.set(Date.parse(p.ts), p.v);
+      // `null` znaczy „w tej chwili ta sonda nie ma pomiaru" — i tak samo
+      // traktuje to reszta pliku, więc brak próbki nie udaje wartości.
+      const punkty = os.map((ms) => ({ ms, v: wg.get(ms) ?? null }));
       return {
         id,
         kolor: KOLOR[id],
         opis: OPIS_SONDY[id],
-        // `null` znaczy „w tej chwili ta sonda nie ma pomiaru" — i tak samo
-        // traktuje to reszta pliku, więc brak próbki nie udaje wartości.
-        punkty: os.map((ms) => ({ ms, v: wg.get(ms) ?? null })),
+        // Formy „kształtu" (linie, rozwarstwienie, mapa) dostają przebieg
+        // bez pików pojedynczych odczytów; „odczyty" pokazują surowość —
+        // patrz komentarz przy `bezPikow`.
+        punkty: forma === 'odczyty' ? punkty : bezPikow(punkty),
       };
     });
-  }, [gotowe, widoczne]);
+  }, [gotowe, widoczne, forma]);
 
   const maProbki = serie.some((s) => s.punkty.some((p) => p.v !== null));
 
