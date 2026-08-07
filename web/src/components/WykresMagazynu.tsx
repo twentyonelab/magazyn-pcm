@@ -158,9 +158,13 @@ function bezPikow(
  * poziomu — na rysunku pionowa ściana o kilka stopni). Ten poziom jest
  * prawdziwy i ma zostać; nieprawdziwa jest ściana: parafina nie umie
  * zmienić temperatury o 9 K w sześć sekund. Na prośbę (2026-08-07) rysunek
- * prowadzi tam łagodną rampę: skok rozkłada się na ±5 minut krzywą S,
- * zakotwiczoną w danych przed i po — tak, jakby sonda dochodziła do
- * nowego poziomu w tempie, w jakim robi to fizyka.
+ * prowadzi tam łagodną rampę: skok rozkłada się na ±15 minut krzywą S,
+ * zakotwiczoną w danych przed i po. Szerokość dobrana do tempa ładowania
+ * sond mierzących poprawnie (~0,3 K/min) — sonda B po skoku ma się
+ * wspinać tak, jak wspina się sąsiednia A („niech B mają taki płynny
+ * wzrost jak A, bez nagłego skoku"). Przy skoku na żywej krawędzi,
+ * gdzie kotwicy „po" jeszcze nie ma, rampa kończy się na ostatniej
+ * próbce — bez tego ściana wisiałaby kwadrans, nim dopłyną dane.
  *
  * Skok rozpoznaje przeskok >2 K między SĄSIEDNIMI próbkami odległymi
  * o ≤60 s — realne ładowanie robi ~0,3 K na próbkę przy tej gęstości.
@@ -181,7 +185,7 @@ function wygladzSkoki(
 
   const PROG_K = 2;
   const MAKS_ODSTEP_MS = 60_000;
-  const RAMPA_MS = 5 * 60_000;
+  const RAMPA_MS = 15 * 60_000;
 
   // Środki skoków w czasie.
   const skoki: number[] = [];
@@ -205,9 +209,10 @@ function wygladzSkoki(
 
   const wynik = punkty.slice();
   for (const [od, dol] of przedzialy) {
-    // Kotwice: ostatnia próbka przed oknem i pierwsza po nim. Bez którejś
-    // z nich (skok na brzegu zakresu) rampa nie ma w czym się zaczepić —
-    // wtedy zostaje ściana; zniknie, gdy dopłyną kolejne pomiary.
+    // Kotwice: ostatnia próbka przed oknem i pierwsza po nim. Gdy okno
+    // wystaje poza zakres danych (skok tuż przy żywej krawędzi albo na
+    // początku kadru), kotwicą staje się brzegowa próbka — rampa jest
+    // wtedy krótsza, ale ściany nie ma ani przez chwilę.
     let a = -1;
     let b = -1;
     for (let k = 0; k < n; k += 1) {
@@ -217,7 +222,9 @@ function wygladzSkoki(
         break;
       }
     }
-    if (a < 0 || b < 0 || b <= a) continue;
+    if (a < 0) a = 0;
+    if (b < 0) b = n - 1;
+    if (b <= a + 1) continue;
     const pa = proba[a]!;
     const pb = proba[b]!;
     for (let k = a + 1; k < b; k += 1) {
