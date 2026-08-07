@@ -150,6 +150,85 @@ function bezPikow(
   return wynik;
 }
 
+/**
+ * WYGŁADZENIE SKOKÓW POZIOMU — drugi stopień za filtrem antypikowym.
+ *
+ * Filtr wyżej usuwa pik, który wyskoczył i wrócił, ale zostawia SKOK, po
+ * którym wartość zostaje (sonda „odkleja się" i doskakuje do prawdziwego
+ * poziomu — na rysunku pionowa ściana o kilka stopni). Ten poziom jest
+ * prawdziwy i ma zostać; nieprawdziwa jest ściana: parafina nie umie
+ * zmienić temperatury o 9 K w sześć sekund. Na prośbę (2026-08-07) rysunek
+ * prowadzi tam łagodną rampę: skok rozkłada się na ±5 minut krzywą S,
+ * zakotwiczoną w danych przed i po — tak, jakby sonda dochodziła do
+ * nowego poziomu w tempie, w jakim robi to fizyka.
+ *
+ * Skok rozpoznaje przeskok >2 K między SĄSIEDNIMI próbkami odległymi
+ * o ≤60 s — realne ładowanie robi ~0,3 K na próbkę przy tej gęstości.
+ * Przy rzadkich kubełkach (doba, miesiąc) 2 K między próbkami bywa
+ * prawdziwym stromym zboczem, więc tam wygładzanie się nie włącza.
+ *
+ * TYLKO RYSUNEK: baza, CSV i forma „odczyty" pokazują surowy przebieg.
+ */
+function wygladzSkoki(
+  punkty: Array<{ ms: number; v: number | null }>,
+): Array<{ ms: number; v: number | null }> {
+  const proba: Array<{ i: number; ms: number; v: number }> = [];
+  punkty.forEach((p, i) => {
+    if (p.v !== null) proba.push({ i, ms: p.ms, v: p.v });
+  });
+  const n = proba.length;
+  if (n < 5) return punkty;
+
+  const PROG_K = 2;
+  const MAKS_ODSTEP_MS = 60_000;
+  const RAMPA_MS = 5 * 60_000;
+
+  // Środki skoków w czasie.
+  const skoki: number[] = [];
+  for (let k = 1; k < n; k += 1) {
+    const dt = proba[k]!.ms - proba[k - 1]!.ms;
+    if (dt <= MAKS_ODSTEP_MS && Math.abs(proba[k]!.v - proba[k - 1]!.v) > PROG_K) {
+      skoki.push((proba[k]!.ms + proba[k - 1]!.ms) / 2);
+    }
+  }
+  if (skoki.length === 0) return punkty;
+
+  // Scal nachodzące na siebie okna rampy w przedziały.
+  const przedzialy: Array<[number, number]> = [];
+  for (const s of skoki) {
+    const od = s - RAMPA_MS;
+    const dol = s + RAMPA_MS;
+    const ostatni = przedzialy[przedzialy.length - 1];
+    if (ostatni && od <= ostatni[1]) ostatni[1] = Math.max(ostatni[1], dol);
+    else przedzialy.push([od, dol]);
+  }
+
+  const wynik = punkty.slice();
+  for (const [od, dol] of przedzialy) {
+    // Kotwice: ostatnia próbka przed oknem i pierwsza po nim. Bez którejś
+    // z nich (skok na brzegu zakresu) rampa nie ma w czym się zaczepić —
+    // wtedy zostaje ściana; zniknie, gdy dopłyną kolejne pomiary.
+    let a = -1;
+    let b = -1;
+    for (let k = 0; k < n; k += 1) {
+      if (proba[k]!.ms <= od) a = k;
+      if (proba[k]!.ms >= dol) {
+        b = k;
+        break;
+      }
+    }
+    if (a < 0 || b < 0 || b <= a) continue;
+    const pa = proba[a]!;
+    const pb = proba[b]!;
+    for (let k = a + 1; k < b; k += 1) {
+      const t = (proba[k]!.ms - pa.ms) / (pb.ms - pa.ms);
+      const s = t * t * (3 - 2 * t); // krzywa S — bez kantów na kotwicach
+      wynik[proba[k]!.i] = { ms: proba[k]!.ms, v: pa.v + (pb.v - pa.v) * s };
+    }
+  }
+  return wynik;
+}
+
 const FORMY: Array<{ id: Forma; etykieta: string; opis: string }> = [
   {
     id: 'linie',
@@ -363,9 +442,9 @@ export function WykresMagazynu({ profil }: Props) {
         kolor: KOLOR[id],
         opis: OPIS_SONDY[id],
         // Formy „kształtu" (linie, rozwarstwienie, mapa) dostają przebieg
-        // bez pików pojedynczych odczytów; „odczyty" pokazują surowość —
-        // patrz komentarz przy `bezPikow`.
-        punkty: forma === 'odczyty' ? punkty : bezPikow(punkty),
+        // bez pików i z rampami zamiast pionowych skoków; „odczyty" pokazują
+        // surowość — patrz komentarze przy `bezPikow` i `wygladzSkoki`.
+        punkty: forma === 'odczyty' ? punkty : wygladzSkoki(bezPikow(punkty)),
       };
     });
   }, [gotowe, widoczne, forma]);
