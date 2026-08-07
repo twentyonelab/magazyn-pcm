@@ -536,16 +536,35 @@ async function main(): Promise<void> {
     shuttingDown = true;
 
     process.stdout.write(`\nZamykam (${signal})…\n`);
+
+    /*
+     * TWARDY BEZPIECZNIK NA ZAWIESZONE ZAMYKANIE. `app.close()` czeka na
+     * otwarte połączenia (SSE!), a `source.stop()` potrafi czekać na trwający
+     * odczyt z Remote Connect — gdy któreś z nich nie domknie się w porę,
+     * Railway po okresie łaski dobija kontener SIGKILL-em i proces kończy się
+     * kodem niezerowym. Skutek: mail „Deployment crashed" przy KAŻDEJ
+     * podmianie wersji, choć nic się nie wysypało (zgłoszone 2026-08-07,
+     * seria fałszywych alarmów po sześciu wdrożeniach jednego dnia).
+     * Po 5 s przestajemy czekać i wychodzimy zerem — i tak umieramy celowo.
+     */
+    const bezpiecznik = setTimeout(() => process.exit(0), 5000);
+    bezpiecznik.unref();
+
     if (tableTimer) clearInterval(tableTimer);
     if (bankTimer) clearInterval(bankTimer);
     clearInterval(staleSweepTimer);
 
-    stream.close();
-    await source.stop();
-    await history.close();
-    await app.close();
-
-    process.stdout.write('Zamkniete.\n');
+    try {
+      stream.close();
+      await source.stop();
+      await history.close();
+      await app.close();
+      process.stdout.write('Zamkniete.\n');
+    } catch (error) {
+      // Błąd przy zamykaniu nie jest awarią działania — nie zmienia kodu wyjścia.
+      process.stdout.write(`Zamkniete z potknieciem: ${(error as Error).message}\n`);
+    }
+    process.exit(0);
   };
 
   process.on('SIGINT', () => void shutdown('SIGINT'));
