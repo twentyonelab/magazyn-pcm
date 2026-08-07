@@ -458,15 +458,10 @@ export function App() {
         <PlakietkaObiektu punkt={otwarty} kierunek={kierunek ?? otwarty.typ} data={data} />
       ) : null}
 
-      {/* 21 zmysłów — prawy dolny róg, nad stopką (v0.6). */}
-      <img
-        className="logo-21"
-        src={plik(
-          theme === 'dark' ? 'logo-21zmyslow-ciemnytryb.webp' : 'logo-21zmyslow-jasnytryb.webp',
-        )}
-        alt="21 zmysłów"
-      />
-
+      {/* Logotyp 21 zmysłów przeniesiony DO stopki (2026-08-07) — stał tu
+          `position: fixed` nad paskiem stanu i w widoku mapy siadał na
+          atrybucji Mapboxa, której licencja nie pozwala zasłaniać.
+          Teraz rysuje go PasekStanu, przy prawej krawędzi. */}
       <PasekStanu data={data} ref={dolnaRef} />
     </div>
   );

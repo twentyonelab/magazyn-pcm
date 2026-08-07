@@ -9,6 +9,7 @@
 
 import { forwardRef } from 'react';
 import type { LiveData, LinkState } from '../useLiveData.js';
+import { useAppliedTheme } from '../theme.js';
 import {
   NO_DATA,
   SOURCE_STATUS_HINT,
@@ -16,6 +17,17 @@ import {
   formatClock,
   formatUptime,
 } from '../format.js';
+
+/**
+ * Logotyp 21 zmysłów — wersja na jasne albo ciemne tło.
+ *
+ * `BASE_URL` zamiast ukośnika na początku: aplikacja bywa serwowana
+ * z podkatalogu (GitHub Pages), a wtedy „/logo.webp" szuka piętro za wysoko.
+ */
+function logo21(ciemny: boolean): string {
+  const nazwa = ciemny ? 'logo-21zmyslow-ciemnytryb.webp' : 'logo-21zmyslow-jasnytryb.webp';
+  return `${import.meta.env.BASE_URL}${nazwa}`;
+}
 
 /**
  * Podpisy obu łączy na pasku.
@@ -131,6 +143,7 @@ export const PasekStanu = forwardRef<HTMLElement, { data: LiveData }>(function P
 ) {
   const { health, link } = data;
   const live = link === 'live';
+  const ciemny = useAppliedTheme() === 'dark';
 
   const linkTone: 'ok' | 'warn' | 'bad' =
     link === 'live' ? 'ok' : link === 'error' || link === 'unauthorized' ? 'bad' : 'warn';
@@ -196,7 +209,16 @@ export const PasekStanu = forwardRef<HTMLElement, { data: LiveData }>(function P
         <Pole label="sesja" value="brak" wtorne />
       )}
 
+      {/*
+        LOGOTYP SIEDZI W STOPCE, NIE NAD NIĄ — przeniesiony 2026-08-07.
+        Wcześniej wisiał `position: fixed` tuż nad paskiem stanu i w widoku
+        mapy siadał na atrybucji Mapboxa, której zasłonić nie wolno (licencja).
+        W stopce ma własne miejsce w układzie i nic nie przykrywa.
+
+        Stoi przy PRAWEJ krawędzi, za notą copyright — tam, gdzie był wcześniej.
+      */}
       <span className="statusbar__copy">copyright 2026 · 21 zmysłów LAB</span>
+      <img className="statusbar__logo" src={logo21(ciemny)} alt="21 zmysłów" />
     </footer>
   );
 });

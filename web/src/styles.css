@@ -3966,21 +3966,22 @@ body::after {
 
 /* 21 zmysłów — prawy dolny róg, tuż nad stopką. Powiększone o połowę
    względem v0.6 (26 → 39 px). */
-.logo-21 {
-  position: fixed;
-  right: clamp(1rem, 3vw, 2rem);
-  bottom: 46px;
-  height: 39px;
-  width: auto;
-  z-index: 4;
-  opacity: 0.92;
-}
-
 .statusbar__copy {
   margin-left: auto;
   font-size: 0.7rem;
   color: var(--ink-faint);
   white-space: nowrap;
+}
+
+/* Logotyp 21 zmysłów — ostatni element stopki, przy prawej krawędzi.
+   Do 2026-08-07 wisiał `position: fixed` nad paskiem i w widoku mapy
+   nachodził na atrybucję Mapboxa (zasłonić jej nie wolno — licencja).
+   W stopce zajmuje własne miejsce w układzie i nic nie przykrywa. */
+.statusbar__logo {
+  height: 22px;
+  width: auto;
+  opacity: 0.92;
+  flex: none;
 }
 
 /* --- Plakietka trybu pokazowego -------------------------------------------
@@ -4704,11 +4705,6 @@ body::after {
     display: none;
   }
 
-  .logo-21 {
-    height: 30px;
-    bottom: 42px;
-  }
-
   /* Kafelek pogody zwęża się i przestaje być szerszy niż połowa ekranu. */
   .pogoda {
     width: min(15.5rem, 46vw);
@@ -4804,9 +4800,9 @@ body::after {
     font-size: 0.78rem;
   }
 
-  .logo-21 {
-    height: 24px;
-    bottom: 38px;
+  /* Logotyp w stopce kurczy się razem z nią — mniejszy, ale zostaje. */
+  .statusbar__logo {
+    height: 18px;
   }
 
   /* Plakietka jest wyśrodkowana, logotyp 21 zmysłów stoi przy prawej krawędzi
@@ -4936,7 +4932,9 @@ body::after {
     padding: 0.45rem 0.6rem;
   }
 
-  .logo-21 {
+  /* Na najwęższych ekranach stopka gubi logotyp — miejsce jest potrzebne
+     na stany łączy, które są tu treścią, a nie ozdobą. */
+  .statusbar__logo {
     display: none;
   }
 
