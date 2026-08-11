@@ -205,6 +205,26 @@ body {
   overscroll-behavior: none;
 }
 
+/*
+ * STRONA O PRODUKCIE PRZEWIJA SIĘ, APLIKACJA NIE.
+ *
+ * Monitoring jest powłoką pełnoekranową: strona stoi, a przewijają się panele
+ * w środku — stąd `overflow: hidden` i sztywna wysokość wyżej. Strona
+ * o produkcie ma odwrotną naturę, bo to zwykły dokument, który przy niskim
+ * oknie musi dać się przewinąć do dołu. Bez tego wizualizacje wystawały poza
+ * krawędź i nie było jak do nich dojechać (zgłoszone 2026-08-11).
+ *
+ * `data-nosnik` stoi na `<html>` tylko wtedy, gdy renderuje się ta strona
+ * (ustawia go Logowanie.tsx), więc jest gotowym znacznikiem powierzchni.
+ */
+:root[data-nosnik],
+:root[data-nosnik] body {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -1162,7 +1182,7 @@ code {
   /* Tekst kurczy się razem z oknem, żeby zrobić miejsce wizualizacjom —
      one mają zostać widoczne w całości na każdej szerokości, a akapit jest
      tym, co bez szkody może zejść o kilka punktów. */
-  font-size: clamp(0.9rem, 0.82rem + 0.4vw, 1rem);
+  font-size: clamp(0.82rem, 0.76rem + 0.3vw, 0.94rem);
   line-height: 1.6;
   color: var(--ink-soft);
 }
@@ -1198,12 +1218,19 @@ code {
 
 /* Odkąd belka stoi w układzie, strona o produkcie układa się pionowo:
    belka, potem treść. `place-items: center` z siatki ustawiałoby oba
-   elementy jeden NA drugim w tej samej komórce. */
+   elementy jeden NA drugim w tej samej komórce.
+
+   `safe center` ZAMIAST `center` to nie kosmetyka, tylko warunek działania
+   przewijania. Przy zwykłym wyśrodkowaniu treść wyższa od okna wystaje poza
+   OBA końce kontenera, a górna nadwyżka jest nieosiągalna — pasek przewijania
+   do niej nie sięga. `safe` przełącza wyrównanie na początek dokładnie wtedy,
+   gdy zabraknie miejsca: na wysokim oknie treść stoi na środku, na niskim
+   daje się dojechać do samego dołu. */
 .start--produkt {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
 }
 
 /* Górna belka strony o produkcie — logotyp po lewej, wejścia po prawej.
@@ -1284,7 +1311,7 @@ code {
    ograniczeniu `max-height` zostawałaby pusta kolumna obok obrazu. */
 .wiz {
   width: 100%;
-  max-width: calc(min(26vh, 17rem) * 1.5);
+  max-width: calc(min(40vh, 26rem) * 1.5);
 }
 
 
@@ -1313,7 +1340,7 @@ code {
 .wiz {
   position: relative;
   aspect-ratio: 3 / 2;
-  max-height: min(26vh, 17rem);
+  max-height: min(40vh, 26rem);
   border-radius: var(--radius);
   overflow: hidden;
 }
