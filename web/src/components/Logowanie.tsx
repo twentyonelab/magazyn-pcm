@@ -74,6 +74,20 @@ const ADRES_APLIKACJI = 'https://app.entalvia.eu';
  */
 const ADRES_SYMULATORA = '/symulator.html';
 
+/*
+ * RENDERY IDĄ PRZEZ VITE, NIE PRZEZ `public/`.
+ *
+ * W `public/` leżały pod stałą nazwą, więc podmiana pliku nie docierała do
+ * nikogo, kto raz otworzył stronę: przeglądarka i Cloudflare trzymały starą
+ * wersję (zgłoszone 2026-08-11 — po zmianie proporcji dalej było widać
+ * poprzednie kadry). Import daje im skrót treści w nazwie, więc każda zmiana
+ * pliku to nowy adres, a stary nigdy nie zostaje podany omyłkowo.
+ */
+import magazynCieplo from '../obrazy/magazyn-cieplo.webp';
+import magazynChlod from '../obrazy/magazyn-chlod.webp';
+import aplikacjaCieplo from '../obrazy/aplikacja-cieplo.webp';
+import aplikacjaChlod from '../obrazy/aplikacja-chlod.webp';
+
 /**
  * WIZUALIZACJE PRZY HAŚLE — po jednej parze na nośnik.
  *
@@ -84,14 +98,14 @@ const ADRES_SYMULATORA = '/symulator.html';
  */
 const WIZUALIZACJE: Record<string, { magazyn: string; aplikacja: string; opisM: string; opisA: string }> = {
   'Ciepło': {
-    magazyn: 'magazyn-cieplo.webp',
-    aplikacja: 'aplikacja-cieplo.webp',
+    magazyn: magazynCieplo,
+    aplikacja: aplikacjaCieplo,
     opisM: 'Moduł magazynu ciepła Entalvia',
     opisA: 'Aplikacja monitorująca — widok magazynu ciepła',
   },
   'Chłód': {
-    magazyn: 'magazyn-chlod.webp',
-    aplikacja: 'aplikacja-chlod.webp',
+    magazyn: magazynChlod,
+    aplikacja: aplikacjaChlod,
     opisM: 'Moduł magazynu chłodu Entalvia',
     opisA: 'Aplikacja monitorująca — widok magazynu chłodu',
   },
@@ -229,7 +243,6 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             <a className="start__wejscie" href={ADRES_APLIKACJI}>
               Monitoring pomiarów
             </a>
-            <span className="start__rozdzielacz" aria-hidden="true" />
             <a className="start__wejscie" href={ADRES_SYMULATORA}>
               Symulator doboru
             </a>
@@ -268,11 +281,24 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             odłożyć na później.
           </h1>
 
+          {/* PROPOZYCJA WARTOŚCI, NIE OPIS TECHNICZNY. Pierwszy akapit mówi,
+              co ten produkt robi dla odbiorcy; drugi — że nie trzeba w to
+              wierzyć na słowo, bo wszystko widać w aplikacji. Poprzednia
+              wersja zaczynała od „materiału zmiennofazowego" i budowy złoża,
+              czyli od rzeczy, która obchodzi inżyniera, a nie kupującego. */}
           <p className="start__akapit">
-            Magazyn na materiale zmiennofazowym gromadzi ciepło albo chłód w przemianie fazowej
-            parafiny, a nie we wzroście temperatury. Ta aplikacja pokazuje, co dzieje się w środku
-            takiego zbiornika — sonda po sondzie, co pięć sekund, na stanowisku badawczym
-            w Gliwicach.
+            Entalvia magazynuje energię cieplną w przemianie fazowej — nie w podgrzanej wodzie.
+            Ten sam zapas ciepła albo chłodu mieści się w kilkukrotnie mniejszej objętości
+            i utrzymuje stałą temperaturę roboczą, zamiast stygnąć od pierwszej minuty.
+            Ładujesz wtedy, gdy energia jest tania albo własna, oddajesz wtedy, gdy jest
+            potrzebna.
+          </p>
+
+          <p className="start__akapit start__akapit--wtorny">
+            Do każdego magazynu należy aplikacja, która pokazuje jego wnętrze w czasie
+            rzeczywistym: temperaturę w sześciu punktach złoża, moc ładowania i rozładowania,
+            stan naładowania i pełną historię pomiarów. Nic tu nie jest szacowane — wszystko
+            pochodzi z czujników pracującej instalacji.
           </p>
         </section>
 
@@ -291,7 +317,9 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
                     <img
                       key={n.slowo}
                       className={`wiz__obraz${i === nosnik ? ' is-teraz' : ''}`}
-                      src={plik(strona === 'magazyn' ? w.magazyn : w.aplikacja)}
+                      /* Bez `plik()`: import z Vite daje gotowy adres
+                         z wpisanym już `BASE_URL` i skrótem treści. */
+                      src={strona === 'magazyn' ? w.magazyn : w.aplikacja}
                       alt={strona === 'magazyn' ? w.opisM : w.opisA}
                       /* NIE `lazy`: to treść nad linią zgięcia, pierwsza rzecz
                          po haśle. Leniwe ładowanie odsuwało ją za resztę strony,
