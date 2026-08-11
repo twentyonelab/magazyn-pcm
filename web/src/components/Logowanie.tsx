@@ -57,7 +57,13 @@ const NOSNIKI: { slowo: string; barwa: string }[] = [
 ];
 
 /** Co tyle słowo się przestawia. Dość długo, żeby dało się przeczytać zdanie. */
-const KARUZELA_MS = 4200;
+/*
+ * 5900 ms zamiast 4200 (2026-08-11, na prośbę: wolniej o 40%). Przy krótszym
+ * takcie zdanie ledwo dawało się przeczytać, a odkąd pod hasłem stoją
+ * wizualizacje, zmiana pociąga za sobą także przenikanie dwóch par obrazów —
+ * całość potrzebuje więcej powietrza.
+ */
+const KARUZELA_MS = 5900;
 
 /** Adres, pod którym stoi sama aplikacja. */
 const ADRES_APLIKACJI = 'https://app.entalvia.eu';
@@ -146,6 +152,25 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
     return () => window.clearInterval(timer);
   }, []);
 
+  /*
+   * POŚWIATA W TLE IDZIE ZA NOŚNIKIEM.
+   *
+   * Blask rysuje `body::after` — czyli element POZA drzewem tego komponentu,
+   * więc nie da się go pomalować atrybutem na własnym korzeniu. Stąd zapis
+   * wprost na `<html>`: arkusz czyta `[data-nosnik]` i podmienia barwy blasku.
+   * Sprzątamy po sobie przy odmontowaniu, żeby wejście do monitoringu nie
+   * zostawiło strony o produkcie pomalowanej na chłód.
+   */
+  useEffect(() => {
+    if (rola !== 'produkt') return;
+    const slowo = NOSNIKI[nosnik]?.slowo;
+    const korzen = document.documentElement;
+    korzen.dataset.nosnik = slowo === 'Chłód' ? 'chlod' : 'cieplo';
+    return () => {
+      delete korzen.dataset.nosnik;
+    };
+  }, [nosnik, rola]);
+
   const submit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
     if (password === '' || busy) return;
@@ -162,6 +187,20 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
         window.location.replace(powrot);
         return;
       }
+      /*
+       * MONITORING MIESZKA POD app.entalvia.eu I MA TAM ZOSTAĆ.
+       *
+       * Logowanie z entalvia.eu (przez `?wejscie`) wpuszczało dotąd do
+       * aplikacji BEZ zmiany adresu — monitoring wyświetlał się pod domeną
+       * strony o produkcie. Oba adresy prowadzą do tego samego serwisu, więc
+       * działało, ale mówiło nieprawdę o tym, gdzie się jest, i psuło zakładki.
+       * Ciasteczko obowiązuje na obu, więc przeniesienie nie każe logować się
+       * drugi raz.
+       */
+      if (HOSTY_PRODUKTU.includes(window.location.hostname.toLowerCase())) {
+        window.location.replace(ADRES_APLIKACJI);
+        return;
+      }
       onSuccess();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -176,7 +215,12 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
           klikniecie dalej: na adres, pod ktorym stoi sama aplikacja. */}
       {rola === 'produkt' ? (
         <header className="start__belka">
-          <img className="start__logo" src={plik('entalvia.png')} alt="Entalvia™" />
+          {/* Logotyp wraca na ekran główny — to tu jest wybór między
+              monitoringiem a symulatorem, więc znak firmowy prowadzi
+              do punktu wyjścia, a nie donikąd. */}
+          <a className="start__logo-link" href="/" aria-label="Entalvia — ekran główny">
+            <img className="start__logo" src={plik('entalvia.png')} alt="Entalvia™" />
+          </a>
           {/* DWA WEJŚCIA, DWA RÓŻNE NARZĘDZIA. „Monitoring pomiarów" prowadzi
               do aplikacji przy stanowisku — pokazuje, co JEST. „Symulator
               doboru" liczy, co BYŁOBY przy zadanych parametrach. Nazwy mówią

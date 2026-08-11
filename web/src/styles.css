@@ -1186,18 +1186,35 @@ code {
   max-width: 68rem;
 }
 
-/* Górna belka strony o produkcie — logotyp po lewej, wejście po prawej.
-   Stoi w narożnikach okna, nie w kolumnie treści: ma być pierwszą rzeczą,
-   którą widać, i nie może wędrować razem z tekstem. */
+/* Odkąd belka stoi w układzie, strona o produkcie układa się pionowo:
+   belka, potem treść. `place-items: center` z siatki ustawiałoby oba
+   elementy jeden NA drugim w tej samej komórce. */
+.start--produkt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Górna belka strony o produkcie — logotyp po lewej, wejścia po prawej.
+   NIE JEST JUŻ POZYCJONOWANA BEZWZGLĘDNIE. Wyjęta z układu nachodziła na
+   nagłówek: przy węższym oknie hasło podjeżdżało pod belkę i słowo „Chłód"
+   chowało się za znakiem firmowym (zgłoszone 2026-08-11 zrzutem ekranu).
+   Teraz jest zwykłym elementem kolumny i sama odsuwa od siebie treść. */
 .start__belka {
-  position: absolute;
-  top: clamp(1rem, 3vw, 2rem);
-  left: clamp(1rem, 4vw, 3rem);
-  right: clamp(1rem, 4vw, 3rem);
+  width: 100%;
+  max-width: 68rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: clamp(1.5rem, 5vw, 3.5rem);
+}
+
+.start__logo-link {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Dwa RÓWNORZĘDNE wejścia rozdzielone kreską. Oba prowadzą do narzędzi
@@ -3794,6 +3811,71 @@ body::after {
 @keyframes poswiata {
   from {
     opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * POŚWIATA IDZIE ZA NOŚNIKIEM — strona o produkcie.
+ *
+ * `data-nosnik` ustawia na `<html>` komponent wejścia przy każdej zmianie
+ * słowa w haśle (patrz Logowanie.tsx). Blask jest tu MOCNIEJSZY niż domyślny
+ * (55/70/85 % zamiast 20/30/55) i pulsuje wyraźniej, bo na tej stronie jest
+ * jedyną rzeczą w tle — w aplikacji musiał ustępować danym, tutaj nie ma
+ * czemu ustępować. Przejście 2,5 s jest CELOWO wolniejsze od taktu karuzeli:
+ * barwa dopływa łagodnie, zamiast przeskakiwać razem ze słowem.
+ */
+:root[data-nosnik] body::after,
+:root[data-theme='dark'][data-nosnik] body::after {
+  transition: background 2500ms ease;
+  animation: poswiata-mocna 7s ease-in-out infinite alternate;
+}
+
+/*
+ * SELEKTORY Z DWOMA ATRYBUTAMI — to nie ozdoba, tylko warunek działania.
+ *
+ * `:root[data-theme='dark'] body::after` ma tę samą wagę (0,2,2) co
+ * `:root[data-nosnik='x'] body::after`, a stoi w pliku NIŻEJ — więc przy
+ * ciemnym motywie wygrywał i blask nośnika w ogóle się nie pojawiał.
+ * Ta sama pułapka, którą CLAUDE.md opisuje przy `[data-theme]`
+ * i `[data-kierunek]`; rozwiązanie jest to samo: para atrybutów daje 0,3,2
+ * i rozstrzyga niezależnie od kolejności.
+ *
+ * Nocą blask jest słabszy — ma grzać, nie świecić po oczach.
+ */
+:root[data-nosnik='chlod'] body::after {
+  background:
+    radial-gradient(60% 70% at 8% 96%, color-mix(in srgb, var(--chlod) 55%, transparent), transparent 72%),
+    radial-gradient(55% 65% at 94% 92%, color-mix(in srgb, var(--chlod-jasny) 70%, transparent), transparent 72%),
+    radial-gradient(75% 60% at 50% -5%, color-mix(in srgb, var(--chlod) 85%, transparent), transparent 78%);
+}
+
+:root[data-nosnik='cieplo'] body::after {
+  background:
+    radial-gradient(60% 70% at 8% 96%, color-mix(in srgb, var(--cieplo) 55%, transparent), transparent 72%),
+    radial-gradient(55% 65% at 94% 92%, color-mix(in srgb, var(--cieplo-jasny) 70%, transparent), transparent 72%),
+    radial-gradient(75% 60% at 50% -5%, color-mix(in srgb, var(--cieplo) 85%, transparent), transparent 78%);
+}
+
+:root[data-theme='dark'][data-nosnik='chlod'] body::after {
+  background:
+    radial-gradient(60% 70% at 8% 96%, color-mix(in srgb, var(--chlod) 42%, transparent), transparent 72%),
+    radial-gradient(55% 65% at 94% 92%, color-mix(in srgb, var(--chlod-jasny) 34%, transparent), transparent 72%),
+    radial-gradient(75% 60% at 50% -5%, color-mix(in srgb, var(--chlod) 55%, transparent), transparent 78%);
+}
+
+:root[data-theme='dark'][data-nosnik='cieplo'] body::after {
+  background:
+    radial-gradient(60% 70% at 8% 96%, color-mix(in srgb, var(--cieplo) 42%, transparent), transparent 72%),
+    radial-gradient(55% 65% at 94% 92%, color-mix(in srgb, var(--cieplo-jasny) 34%, transparent), transparent 72%),
+    radial-gradient(75% 60% at 50% -5%, color-mix(in srgb, var(--cieplo) 55%, transparent), transparent 78%);
+}
+
+@keyframes poswiata-mocna {
+  from {
+    opacity: 0.62;
   }
   to {
     opacity: 1;

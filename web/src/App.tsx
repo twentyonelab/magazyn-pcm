@@ -144,6 +144,9 @@ function plik(nazwa: string): string {
   return `${import.meta.env.BASE_URL}${nazwa}`;
 }
 
+/** Strona o produkcie — cel logotypu w górnej belce. */
+const ADRES_STRONY = 'https://entalvia.eu';
+
 /*
  * BILANS ZDJĘTY Z MENU 2026-08-04 (na razie).
  *
@@ -295,7 +298,13 @@ export function App() {
             Tekst zastępczy niesie ™, bo dla czytnika ekranu i dla wyszukiwarki
             to jedyna droga do tej informacji; z obrazu jej nie wyciągną.
           */}
-          <img className="brand__logo" src={plik('entalvia.png')} alt="Entalvia™" />
+          {/* Logotyp prowadzi na stronę główną produktu — tam jest wybór
+              między monitoringiem a symulatorem. To osobna domena, więc
+              adres bezwzględny; w sieci laboratorium bez internetu odnośnik
+              po prostu nie zadziała i nic się nie psuje. */}
+          <a href={ADRES_STRONY} aria-label="Entalvia — strona główna">
+            <img className="brand__logo" src={plik('entalvia.png')} alt="Entalvia™" />
+          </a>
           {/* Wersja pod nazwą — mała, bo to metryczka, nie tytuł. Numer siedzi
               w `wersja.ts`, żeby był jeden dla całej aplikacji. */}
           <span className="brand__wersja mono">
