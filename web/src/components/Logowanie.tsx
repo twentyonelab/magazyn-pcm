@@ -249,7 +249,13 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
                       className={`wiz__obraz${i === nosnik ? ' is-teraz' : ''}`}
                       src={plik(strona === 'magazyn' ? w.magazyn : w.aplikacja)}
                       alt={strona === 'magazyn' ? w.opisM : w.opisA}
-                      loading="lazy"
+                      /* NIE `lazy`: to treść nad linią zgięcia, pierwsza rzecz
+                         po haśle. Leniwe ładowanie odsuwało ją za resztę strony,
+                         a przy przenikaniu warstw dawało pustą ramkę w chwili
+                         zmiany nośnika — obraz zaczynał się pobierać dopiero
+                         wtedy, gdy miał już być widoczny. */
+                      loading="eager"
+                      decoding="async"
                       /* Brak pliku ma zniknąć, a nie pokazać pękniętą ikonę:
                          rendery wgrywa się osobno od kodu i strona musi
                          wyglądać poprawnie także w chwili między jednym
