@@ -246,6 +246,23 @@ export function App() {
     setWidokMagazynu('przebiegi');
   };
 
+  /*
+   * ZANIM WIADOMO, CZY BRAMA JEST WŁĄCZONA, NIE POKAZUJEMY NIC Z APLIKACJI.
+   *
+   * Stan łącza startuje jako `connecting`, więc do pierwszej odpowiedzi serwera
+   * ten komponent rysował PEŁNY interfejs monitoringu — z górną belką, logotypem
+   * klienta i mapą. Na entalvia.eu, gdzie serwer odpowiada 401, dawało to
+   * przebitkę: przez ułamek sekundy migał cudzy znak firmowy na stronie
+   * o produkcie, zanim pojawiło się właściwe wejście. Zgłoszone 2026-08-10.
+   *
+   * Warunek `points.length === 0` odróżnia PIERWSZE łączenie od zerwania
+   * w trakcie pracy: przy zerwaniu dane już są i interfejs ma zostać na ekranie
+   * (z oznaczeniem przestarzałości), a nie zniknąć.
+   */
+  if (data.link === 'connecting' && data.points.length === 0) {
+    return <div className="start start--cisza" aria-busy="true" />;
+  }
+
   // Brama logowania. Gdy serwer jej nie wymaga (praca w sieci laboratorium),
   // ten ekran nie pojawia się ani na moment.
   if (data.link === 'unauthorized') {

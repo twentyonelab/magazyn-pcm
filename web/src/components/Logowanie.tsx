@@ -103,10 +103,23 @@ const HOSTY_PRODUKTU = ['entalvia.eu', 'www.entalvia.eu'];
  * domeny nie są przepięte.
  */
 function rolaAdresu(): 'produkt' | 'aplikacja' {
-  if (new URLSearchParams(window.location.search).has('produkt')) return 'produkt';
+  const parametry = new URLSearchParams(window.location.search);
+  /* `?wejscie` ma pierwszeństwo przed hostem: serwer dopisuje go, kierując
+     tu kogoś, kto sięgnął po zasób za bramą (symulator). Na entalvia.eu
+     trzeba wtedy pokazać pole hasła, a nie stronę o produkcie. */
+  if (parametry.has('wejscie')) return 'aplikacja';
+  if (parametry.has('produkt')) return 'produkt';
   return HOSTY_PRODUKTU.includes(window.location.hostname.toLowerCase())
     ? 'produkt'
     : 'aplikacja';
+}
+
+/** Dokąd wrócić po zalogowaniu — adres zapamiętany przez serwer przy bramie. */
+function adresPowrotu(): string | null {
+  const cel = new URLSearchParams(window.location.search).get('powrot');
+  /* Tylko ścieżki względne. Adres z zewnątrz otwarty po zalogowaniu byłby
+     otwartym przekierowaniem — cudzą stroną pod naszym adresem wejścia. */
+  return cel !== null && cel.startsWith('/') && !cel.startsWith('//') ? cel : null;
 }
 
 export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
@@ -142,6 +155,13 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
     try {
       await login(password);
       setPassword('');
+      /* Przyszedł po symulator — odsyłamy go tam, zamiast wpuszczać
+         do monitoringu, po który nie sięgał. */
+      const powrot = adresPowrotu();
+      if (powrot !== null) {
+        window.location.replace(powrot);
+        return;
+      }
       onSuccess();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -165,7 +185,8 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             <a className="start__wejscie" href={ADRES_APLIKACJI}>
               Monitoring pomiarów
             </a>
-            <a className="start__wejscie start__wejscie--wtorne" href={ADRES_SYMULATORA}>
+            <span className="start__rozdzielacz" aria-hidden="true" />
+            <a className="start__wejscie" href={ADRES_SYMULATORA}>
               Symulator doboru
             </a>
           </nav>

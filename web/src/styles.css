@@ -1200,13 +1200,21 @@ code {
   gap: 1rem;
 }
 
-/* Dwa wejścia obok siebie: monitoring (pierwsze, pełne) i symulator
-   (drugie, obrysowane). Hierarchia mówi, że pomiar jest tu główną rzeczą,
-   a symulacja narzędziem obok — a nie że jedno zastępuje drugie. */
+/* Dwa RÓWNORZĘDNE wejścia rozdzielone kreską. Oba prowadzą do narzędzi
+   za tym samym hasłem, więc żadne nie jest ważniejsze — kreska mówi
+   „dwie rzeczy obok siebie", a nie „główna i dodatkowa". */
 .start__wejscia {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
+}
+
+/* Kreska rozdzielająca — ciemnoszara, cienka, wysokości przycisku. */
+.start__rozdzielacz {
+  width: 1px;
+  align-self: stretch;
+  background: var(--ink-faint);
+  opacity: 0.45;
 }
 
 .start__wejscie {
@@ -1215,8 +1223,9 @@ code {
   gap: 0.4rem;
   padding: 0.55rem 1.15rem;
   border-radius: 999px;
-  background: var(--akcent);
-  color: #fff;
+  background: transparent;
+  color: var(--ink-soft);
+  box-shadow: inset 0 0 0 1px var(--hairline);
   font-size: 0.92rem;
   font-weight: 600;
   text-decoration: none;
@@ -1224,19 +1233,14 @@ code {
 }
 
 .start__wejscie:hover {
-  background: var(--akcent-mocny);
-}
-
-.start__wejscie--wtorne {
-  background: transparent;
-  color: var(--ink-soft);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.start__wejscie--wtorne:hover {
-  background: transparent;
   color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--line-mocna);
+  box-shadow: inset 0 0 0 1px var(--ink-faint);
+}
+
+/* Ekran ciszy przed rozstrzygnięciem bramy — patrz App.tsx.
+   Sama płaszczyzna w barwie tła, żeby nic nie mrugnęło. */
+.start--cisza {
+  min-height: 100vh;
 }
 
 /* --- Wizualizacje pod hasłem (strona o produkcie) ------------------------
@@ -1254,7 +1258,7 @@ code {
 
 .wiz {
   display: grid;
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   overflow: hidden;
 }
 
@@ -1263,6 +1267,10 @@ code {
   width: 100%;
   height: auto;
   display: block;
+  /* Zaokrąglenie NA SAMYM OBRAZIE, nie tylko na obudowie: przy przejściu
+     kryciem widać obie warstwy naraz i przycięcie rodzica gubi róg tej
+     spodniej w chwili, gdy jest jeszcze częściowo widoczna. */
+  border-radius: 18px;
   opacity: 0;
   transition: opacity 900ms ease;
 }

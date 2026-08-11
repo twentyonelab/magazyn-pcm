@@ -287,6 +287,26 @@ export async function registerAuth(app: FastifyInstance, opts: AuthOptions): Pro
     return reply.send({ error: 'Wymagane logowanie.' });
   });
 
+  /*
+   * SYMULATOR DOBORU TEZ ZA BRAMA — ale inaczej niz /api.
+   *
+   * To STRONA DLA CZLOWIEKA, wiec zamiast odpowiedzi 401 (ktora w przegladarce
+   * wyglada jak awaria) kierujemy na ekran wejscia i zapamietujemy, dokad
+   * uzytkownik zmierzal. Po zalogowaniu wraca dokladnie tam.
+   *
+   * Dziala, bo entalvia.eu i app.entalvia.eu to TEN SAM serwis — ciasteczko
+   * zalozone przy logowaniu obowiazuje na obu adresach.
+   */
+  app.addHook('onRequest', async (request, reply) => {
+    const sciezka = request.url.split('?')[0] ?? request.url;
+    if (sciezka !== '/symulator.html' && sciezka !== '/symulator') return;
+
+    const token = readCookie(request, COOKIE_NAME);
+    if (token !== null && verifyToken(secret, token)) return;
+
+    return reply.redirect('/?wejscie&powrot=' + encodeURIComponent(sciezka));
+  });
+
   opts.logger.info(
     { sessionDays: opts.sessionDays },
     'Logowanie do aplikacji WŁĄCZONE — dostęp do /api wymaga hasła',
