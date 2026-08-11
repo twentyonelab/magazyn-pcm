@@ -1269,21 +1269,24 @@ code {
    (grid, ta sama komórka) i przełączają się kryciem — dzięki temu wysokość
    sekcji jest stała i hasło nad nią nie podskakuje przy zmianie słowa. */
 
+/* Odstęp nad wizualizacjami jest CELOWO oszczędny: razem z hasłem mają się
+   zmieścić w jednym oknie, bez przewijania. */
 .start__wizualizacje {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1rem, 3vw, 2rem);
-  margin-top: clamp(2rem, 5vw, 3.5rem);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  margin-top: clamp(1rem, 2.5vw, 1.75rem);
   width: 100%;
+  justify-items: center;
 }
 
-/* Drugi akapit jest wtórny wobec pierwszego: mówi o narzędziu, nie
-   o produkcie. Mniejszy i przygaszony, żeby nie konkurował z obietnicą. */
-.start__akapit--wtorny {
-  font-size: 0.94em;
-  color: var(--ink-faint);
-  margin-top: 0.9rem;
+/* Ramka nie rozpycha się ponad to, co pozwala jej wysokość — inaczej przy
+   ograniczeniu `max-height` zostawałaby pusta kolumna obok obrazu. */
+.wiz {
+  width: 100%;
+  max-width: calc(min(26vh, 17rem) * 1.5);
 }
+
 
 /* RÓWNE RAMKI, PEŁNE KADRY.
    Rendery mają różne proporcje (moduł 16:9, laptop 4:3), a przycinanie ich
@@ -1298,14 +1301,19 @@ code {
    528×396 zamiast 528×352 i kafle znów były nierówne. Bezwzględne umieszczenie
    obrazów w ramce o zadanej proporcji zrywa to sprzężenie.
 
-   PLIKI SĄ DOPEŁNIONE DO 3:2 barwą własnej krawędzi (patrz `narzedzia`), więc
-   wypełniają ramkę co do piksela. Dlatego `cover`, nie `contain`: przy
-   `contain` obraz nie dotykał rogów i zaokrąglenie w ogóle nie było widoczne,
-   mimo że stało w arkuszu. Żaden kadr przez to nie ginie — dopełnienie zrównało
-   proporcje wcześniej, na etapie eksportu. */
+   PLIKI MAJĄ NATYWNE PROPORCJE — bez dopełniania. Próba zrównania ich w pliku
+   barwą krawędzi dorysowywała widoczne pasy (zgłoszone 2026-08-11), więc
+   kadrowaniem zajmuje się wyłącznie przeglądarka: `cover` wypełnia ramkę
+   w całości, przycinając po kilkanaście procent z dłuższego boku. Zaokrąglenie
+   jest wtedy widoczne, bo obraz dotyka rogów.
+
+   WYSOKOŚĆ RAMKI JEST OGRANICZONA WYSOKOŚCIĄ OKNA. Bez tego wizualizacje
+   spadały pod krawędź ekranu i trzeba było przewijać, żeby je zobaczyć —
+   a mają być widoczne od razu, razem z hasłem. */
 .wiz {
   position: relative;
   aspect-ratio: 3 / 2;
+  max-height: min(26vh, 17rem);
   border-radius: var(--radius);
   overflow: hidden;
 }

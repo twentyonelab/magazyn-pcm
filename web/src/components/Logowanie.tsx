@@ -317,12 +317,6 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             jest tania albo pochodzi z własnego źródła, oddajesz wtedy, gdy jest potrzebna.
           </p>
 
-          <p className="start__akapit start__akapit--wtorny">
-            Do każdego magazynu należy aplikacja, która pokazuje jego wnętrze w czasie
-            rzeczywistym: temperaturę w sześciu punktach złoża, moc ładowania i rozładowania,
-            stan naładowania i pełną historię pomiarów. Nic tu nie jest szacowane — wszystko
-            pochodzi z czujników pracującej instalacji.
-          </p>
         </section>
 
         {/* WIZUALIZACJE — tylko na stronie o produkcie. Para obrazów idzie za
