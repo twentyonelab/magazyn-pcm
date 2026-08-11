@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Symulator doboru · Entalvia</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fffdf9;
+    --page: #fbf7f0;
+    --text-primary: #1c1c1b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #4d7a91;  /* chłód — barwa aplikacji */
+    --series-2: #d85a30;  /* ciepło — barwa aplikacji */
+    --series-3: #1baf7a;  /* energia elektryczna */
+    --status-warning: #fab219;
+    --status-critical: #d03b3b;
+    --status-good: #0ca30c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--text-secondary); margin: 0 0 20px; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .grid { display: grid; gap: 12px; }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 3px; }
+  input, select {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--baseline);
+    border-radius: 6px;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font: inherit;
+  }
+  input:focus, select:focus { outline: 2px solid var(--series-1); outline-offset: 1px; border-color: transparent; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .tile .k { font-size: 12px; color: var(--text-secondary); }
+  .tile .v { font-size: 24px; font-weight: 650; margin-top: 2px; }
+  .tile .u { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: 3px; }
+  .warn {
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    border: 1px solid var(--border);
+  }
+  .warn.w { background: color-mix(in srgb, var(--status-warning) 12%, var(--surface-1)); }
+  .warn.c { background: color-mix(in srgb, var(--status-critical) 12%, var(--surface-1)); }
+  .warn.ok { background: color-mix(in srgb, var(--status-good) 10%, var(--surface-1)); }
+  .warn .ic { font-weight: 700; }
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+  .kv { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
+  .kv:last-child { border-bottom: none; }
+  .kv b { font-weight: 600; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 4px; font-size: 12px; color: var(--text-secondary); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  svg text { font-family: inherit; }
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 9px;
+    font-size: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    display: none;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .chartbox { position: relative; }
+  details summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); }
+  details p { font-size: 13px; color: var(--text-secondary); }
+  table.res { width:100%; border-collapse: collapse; font-size:13px; margin-top:10px; }
+  table.res th, table.res td { padding:6px 8px; border-bottom:1px solid var(--grid); text-align:right; }
+  table.res th:first-child, table.res td:first-child { text-align:left; }
+  table.res thead th { color: var(--text-secondary); font-weight:600; border-bottom:1px solid var(--baseline); }
+  table.res tfoot td { font-weight:650; border-top:1px solid var(--baseline); border-bottom:none; }
+  table.res input { width:78px; padding:4px 6px; text-align:right; }
+  .part-title { font-size:17px; margin:30px 0 4px; }
+  .hint { color: var(--muted); font-weight: 400; font-size: 11px; }
+  .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .btnrow button { background: var(--series-1); color: #fff; border: none; border-radius: 7px; padding: 9px 14px; font: inherit; font-size: 13px; cursor: pointer; }
+  .btnrow button.sec { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--baseline); }
+  .btnrow button:hover { filter: brightness(1.08); }
+  #rfqText { width: 100%; min-height: 230px; margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 10px; border: 1px solid var(--baseline); border-radius: 8px; background: var(--surface-1); color: var(--text-primary); box-sizing: border-box; }
+  #printArea { display: none; }
+  .rpt { max-width: 900px; margin: 0 auto; font-size: 13px; color: #000; background: #fff; }
+  .rpt-head { display: flex; gap: 14px; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
+  .rpt-title { font-size: 18px; font-weight: 700; }
+  .rpt-meta { font-size: 12px; margin-top: 4px; }
+  .rpt-h { font-size: 14px; font-weight: 700; margin: 16px 0 6px; border-bottom: 1px solid #999; padding-bottom: 2px; }
+  .rpt-t { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .rpt-t td { border-bottom: 1px solid #ddd; padding: 4px 6px; }
+  .rpt-sec { break-inside: avoid; }
+  .rpt-foot { margin-top: 18px; border-top: 1px solid #999; padding-top: 6px; font-size: 11px; color: #444; }
+  .rpt .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media print {
+    body { background: #fff !important; }
+    body .wrap { display: none !important; }
+    #printArea { display: block !important; }
+    .viz-root { --surface-1:#fff; --page:#fff; --text-primary:#000; --text-secondary:#333; --muted:#666; --grid:#ddd; --baseline:#bbb; --border:#ccc; }
+  }
+</style>
+<style>
+  .viz-root { font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; }
+  .viz-root .mono, .viz-root code { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  /* Powrót na stronę produktu — ten sam gest co logotyp, ale nazwany. */
+  .entalvia-powrot {
+    position: fixed; left: 16px; bottom: 16px; z-index: 50;
+    font-size: 13px; color: var(--text-secondary); text-decoration: none;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px;
+  }
+  .entalvia-powrot:hover { color: var(--text-primary); }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="/" style="display:inline-flex;align-items:center;text-decoration:none"><img src="/entalvia.png" alt="Entalvia" style="height:26px;display:block"></a>
+      <span id="modelNum" style="font-size:30px;font-weight:300;line-height:1">OAS108</span>
+    </div>
+    <div>
+      <h1 style="margin:0">Dobór zestawu: magazyn ciepła — pompa ciepła woda-woda — magazyn chłodu</h1>
+    </div>
+  </div>
+  <p class="sub">Wstępny dobór inżynierski dla pomp ciepła wodno-wodnych Refra Oasis na R290 (OAS102–OAS440, 34–516&nbsp;kW). Punkt pracy domyślny: magazyn ciepła +58&nbsp;°C, magazyn chłodu +8&nbsp;°C. Wyniki zweryfikuj w programie doboru producenta.</p>
+
+  <div class="card">
+    <h2>1. Maszyna i punkt pracy</h2>
+    <div class="grid g3">
+      <div>
+        <label for="preset">Pompa ciepła (preset)</label>
+        <select id="preset">
+          <optgroup label="Oasis Solo (1 obieg)">
+          <option value="oas102">OAS102 — 34,1 kW / COP 4,68</option>
+          <option value="oas103">OAS103 — 41,3 kW / COP 5,10</option>
+          <option value="oas104">OAS104 — 48,3 kW / COP 5,08</option>
+          <option value="oas105">OAS105 — 56,2 kW / COP 5,10</option>
+          <option value="oas106">OAS106 — 75,3 kW / COP 5,00</option>
+          <option value="oas107">OAS107 — 87,3 kW / COP 5,05</option>
+          <option value="oas108" selected>OAS108 — 104,9 kW / COP 4,92</option>
+          <option value="oas109">OAS109 — 110,4 kW / COP 4,90</option>
+          <option value="oas110">OAS110 — 129,1 kW / COP 4,85</option>
+          <option value="oas111">OAS111 — 151,5 kW / COP 4,67</option>
+          </optgroup>
+          <optgroup label="Oasis Twin (2 obiegi)">
+          <option value="oas210">OAS210 — 112,4 kW / COP 5,10</option>
+          <option value="oas212">OAS212 — 150,6 kW / COP 5,00</option>
+          <option value="oas214">OAS214 — 174,6 kW / COP 5,05</option>
+          <option value="oas216">OAS216 — 209,8 kW / COP 4,92</option>
+          <option value="oas218">OAS218 — 220,8 kW / COP 4,90</option>
+          <option value="oas220">OAS220 — 258,2 kW / COP 4,85</option>
+          <option value="oas222">OAS222 — 303,0 kW / COP 4,67</option>
+          </optgroup>
+          <optgroup label="Oasis Tribus (3 obiegi)">
+          <option value="oas315">OAS315 — 168,6 kW / COP 5,10</option>
+          <option value="oas318">OAS318 — 225,9 kW / COP 5,00</option>
+          <option value="oas321">OAS321 — 261,9 kW / COP 5,05</option>
+          <option value="oas324">OAS324 — 314,7 kW / COP 4,92</option>
+          <option value="oas327">OAS327 — 331,2 kW / COP 4,90</option>
+          <option value="oas330">OAS330 — 387,4 kW / COP 4,85</option>
+          <option value="oas333">OAS333 — 454,5 kW / COP 4,67</option>
+          </optgroup>
+          <optgroup label="Oasis Quad (4 obiegi)">
+          <option value="oas420">OAS420 — 224,8 kW / COP 5,10</option>
+          <option value="oas424">OAS424 — 301,2 kW / COP 5,00</option>
+          <option value="oas428">OAS428 — 349,2 kW / COP 5,05</option>
+          <option value="oas432">OAS432 — 419,6 kW / COP 4,92</option>
+          <option value="oas436">OAS436 — 441,6 kW / COP 4,90</option>
+          <option value="oas440">OAS440 — 516,5 kW / COP 4,85</option>
+          </optgroup>
+          <option value="custom">Własna maszyna…</option>
+        </select>
+      </div>
+      <div><label for="qhNom">Moc grzewcza nominalna [kW]</label><input type="number" id="qhNom" value="104.9" step="0.1"></div>
+      <div><label for="copNom">COP nominalny [–]</label><input type="number" id="copNom" value="4.92" step="0.01"></div>
+      <div><label for="teNom">Nominalna T wyjścia parowacza [°C]</label><input type="number" id="teNom" value="7" step="0.5"></div>
+      <div><label for="tcNom">Nominalna T wyjścia skraplacza [°C]</label><input type="number" id="tcNom" value="45" step="0.5"></div>
+    </div>
+    <div class="grid g3" style="margin-top:12px">
+      <div><label for="tHot">Magazyn ciepła: T zasilania [°C]</label><input type="number" id="tHot" value="58" step="0.5"></div>
+      <div><label for="dtCond">ΔT skraplacza [K]</label><input type="number" id="dtCond" value="5" step="0.5"></div>
+      <div><label for="tCold">Magazyn chłodu: T wyjścia z parowacza [°C]</label><input type="number" id="tCold" value="8" step="0.5"></div>
+      <div><label for="dtEvap">ΔT parowacza [K]</label><input type="number" id="dtEvap" value="5" step="0.5"></div>
+    </div>
+    <div id="envWarnings"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Wyniki w punkcie pracy</h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="note">Model: COP = η·T<sub>skr</sub>/(T<sub>skr</sub>−T<sub>par</sub>) (Carnot × sprawność egzergetyczna η skalibrowana punktem nominalnym); korekta wydajności parowacza +3&nbsp;%/K (parowanie) i −0,6&nbsp;%/K (skraplanie). Dokładność szacunku: ok. ±10&nbsp;%.</div>
+  </div>
+
+  <div class="card">
+    <h2>3. Schemat układu</h2>
+    <div class="chartbox"><svg id="schematic" width="100%" height="300" role="img" aria-label="Schemat układu: magazyn chłodu — pompa ciepła — magazyn ciepła"></svg></div>
+    <div class="note">Temperatury przy króćcach wynikają z punktu pracy i przyjętych ΔT wymienników; zakresy temperatur w zbiornikach — z sekcji 5a/5b. Wszystkie wartości aktualizują się razem z ustawieniami.</div>
+  </div>
+
+  <div class="card">
+    <h2>4. Bilans energii (na 1 h pracy)</h2>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--series-1)"></span>Chłód z magazynu chłodu</span>
+      <span><span class="sw" style="background:var(--series-3)"></span>Energia elektryczna</span>
+      <span><span class="sw" style="background:var(--series-2)"></span>Ciepło do magazynu ciepła</span>
+    </div>
+    <div class="chartbox"><svg id="balanceChart" width="100%" height="120" role="img" aria-label="Bilans energii pompy ciepła"></svg></div>
+  </div>
+
+  <div class="cols2">
+    <div class="card">
+      <h2>5a. Magazyn ciepła</h2>
+      <div class="grid g3">
+        <div><label for="vHot">Pojemność zbiornika [m³]</label><input type="number" id="vHot" value="21" step="0.5"></div>
+        <div><label for="tHotMin">T powrotu / dolna [°C]</label><input type="number" id="tHotMin" value="48" step="0.5"></div>
+      </div>
+      <div id="hotStore" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>5b. Magazyn chłodu</h2>
+      <div class="grid g3">
+        <div><label for="vCold">Pojemność zbiornika [m³]</label><input type="number" id="vCold" value="21" step="0.5"></div>
+        <div><label for="tColdMax">T górna / powrotu [°C]</label><input type="number" id="tColdMax" value="14" step="0.5"></div>
+      </div>
+      <div id="coldStore" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>6. Dobór mocy z zapotrzebowania (opcjonalnie)</h2>
+    <div class="grid g3">
+      <div><label for="demand">Zapotrzebowanie na ciepło [kWh/dobę]</label><input type="number" id="demand" value="1200" step="10"></div>
+      <div><label for="runHours">Dostępny czas pracy PC [h/dobę]</label><input type="number" id="runHours" value="12" step="0.5"></div>
+    </div>
+    <div id="sizing" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>7. COP w funkcji temperatury magazynu ciepła</h2>
+    <p class="sub" style="margin-bottom:6px" id="copChartSub"></p>
+    <div class="chartbox">
+      <svg id="copChart" width="100%" height="260" role="img" aria-label="Wykres COP w funkcji temperatury zasilania magazynu ciepła"></svg>
+      <div class="tooltip" id="copTip"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Założenia, ograniczenia i koperta pracy</summary>
+      <p>Punkt pracy odnosi się do temperatur <b>wyjściowych</b> z wymienników. Pojemność cieplna wody przyjęta 1,163&nbsp;kWh/(m³·K). Parametry katalogowe: Refra Oasis, woda-woda, czynnik R290, sprężarki tłokowe Bitzer, wymienniki BPHE (katalog „Oasis Chillers and Heat Pumps” v1.2). Punkt nominalny katalogu: parowacz EG35% 12/7&nbsp;°C, skraplacz EG35% 40/45&nbsp;°C — COP i wydajność w innych punktach przeliczane są modelem Carnota skalibrowanym tym punktem (dokładność ok. ±10&nbsp;%). Przyjęta koperta pracy: temperatura zasilania do 60&nbsp;°C standardowo (60–65&nbsp;°C do potwierdzenia u producenta), wyjście z parowacza od −7&nbsp;°C (poniżej +4&nbsp;°C zalecany glikol) do +25&nbsp;°C. Sugerowane pojemności magazynów: ok. 0,2&nbsp;m³ na 1&nbsp;kW mocy grzewczej (≈2&nbsp;h pełnego ładowania przy ΔT&nbsp;10&nbsp;K po stronie ciepła). Kalkulator służy do doboru wstępnego — wydajność w punkcie potwierdź u producenta (refra.eu).</p>
+    </details>
+  </div>
+
+  <h2 class="part-title">Część II — Koncepcja osiedla: warianty zasilania</h2>
+  <p class="sub">Zestawienie mocy pięciu budynków, dobór i budżet dla trzech wariantów zasilania w niskotemperaturowej sieci ciepłowniczej. Ceny jednostkowe to edytowalne wartości budżetowe z widełkami (szare zakresy przy polach) — oparte na limitach NFOŚiGW, wskaźnikach kosztorysowych, rozstrzygnięciach przetargów (e-Zamówienia/TED) i benchmarkach TNO/DEA. Podmień je po otrzymaniu ofert.</p>
+
+  <div class="card">
+    <h2>8. Zestawienie mocy budynków [kW]</h2>
+    <table class="res" id="bldTable">
+      <thead><tr><th>Budynek</th><th>CO</th><th>CWU śr</th><th>CWU max</th><th>Moc zamówiona</th></tr></thead>
+      <tbody></tbody>
+      <tfoot></tfoot>
+    </table>
+    <div class="note">Wartości CWU śr / CWU max przyjęto identyczne w sezonie grzewczym i poza sezonem (jak w zestawieniu). Moc zamówiona = CO + CWU max. Tabela jest edytowalna — wszystkie warianty przeliczają się automatycznie.</div>
+  </div>
+
+  <div class="card">
+    <h2>9. Wariant 1 — indywidualne powietrzne pompy ciepła</h2>
+    <div class="grid g3">
+      <div><label for="w1Strat">Strategia doboru mocy</label><select id="w1Strat"><option value="avg" selected>CO + CWU śr (zasobniki CWU)</option><option value="max">CO + CWU max (bez akumulacji)</option></select></div>
+      <div><label for="w1Peak">Czas szczytu CWU [h]</label><input id="w1Peak" type="number" value="2" step="0.5"></div>
+      <div><label for="w1Dt">ΔT zasobnika CWU [K]</label><input id="w1Dt" type="number" value="45" step="1"></div>
+      <div><label for="w1CkW">PC powietrzna [zł/kW] <span class="hint">2500–4500</span></label><input id="w1CkW" type="number" value="3500" step="50"></div>
+      <div><label for="w1CV">Zasobnik [zł/m³] <span class="hint">4000–8000</span></label><input id="w1CV" type="number" value="6000" step="100"></div>
+      <div><label for="w1CCwu">Moduł CWU [zł/kW CWU max] <span class="hint">500–800</span></label><input id="w1CCwu" type="number" value="800" step="50"></div>
+      <div><label for="w1Inst">Montaż i infrastruktura [%]</label><input id="w1Inst" type="number" value="30" step="5"></div>
+    </div>
+    <div id="w1Out"></div>
+    <div class="note">Moce pomp odniesione do punktu A-7/W55 (moc przy obliczeniowej temperaturze zewnętrznej). Przy strategii „CO + CWU śr” szczyt CWU pokrywa zasobnik.</div>
+  </div>
+
+  <div class="card">
+    <h2>10. Wariant 2 — centralne źródło + sieć NT 50 °C + boostery W/W</h2>
+    <div class="grid g3">
+      <div><label for="w2P">Moc centralna PC pow. (A7/W55) [kW]</label><input id="w2P" type="number" value="1000" step="10"></div>
+      <div><label for="w2CkW">PC centralna [zł/kW] <span class="hint">3500–5500</span></label><input id="w2CkW" type="number" value="4000" step="50"></div>
+      <div><label for="w2BufMin">Bufor centralny [min pełnej mocy]</label><input id="w2BufMin" type="number" value="20" step="5"></div>
+      <div><label for="w2DtNet">ΔT sieci [K]</label><input id="w2DtNet" type="number" value="15" step="1"></div>
+      <div><label for="w2Flow">Przepływ sieci [m³/h]</label><input id="w2Flow" type="number" value="35" step="1"></div>
+      <div><label for="w2Pump">Układ pompowy sieci [zł] <span class="hint">100–250 tys.</span></label><input id="w2Pump" type="number" value="150000" step="10000"></div>
+      <div><label for="w2Strat">Dobór boosterów CWU</label><select id="w2Strat"><option value="avg" selected>CWU śr (zasobniki)</option><option value="max">CWU max</option></select></div>
+      <div><label for="w2BCkW">Booster W/W [zł/kW] <span class="hint">2500–4000</span></label><input id="w2BCkW" type="number" value="2800" step="50"></div>
+      <div><label for="w2Inst">Montaż i infrastruktura [%]</label><input id="w2Inst" type="number" value="30" step="5"></div>
+    </div>
+    <div id="w2Out"></div>
+    <div class="note">CO zasilane bezpośrednio z sieci (zasilanie ≤ 50 °C); boostery W/W podnoszą temperaturę do 60 °C na potrzeby CWU. Czas szczytu i ΔT zasobników CWU oraz ceny zasobników i modułów CWU — jak w Wariancie 1. Bufor centralny liczony przy ΔT 10 K. * — moc boostera poniżej połowy najmniejszej jednostki Oasis (OAS102, 34,1 kW): jednostka mocno przewymiarowana, rozważ mniejszą PC W/W innego typoszeregu lub dobór na CWU max. Wycena bez sieci ciepłowniczej i węzłów cieplnych (zgodnie z zapytaniem).</div>
+  </div>
+
+  <div class="card">
+    <h2>11. Wariant 3 — kotłownia gazowa dla sieci</h2>
+    <div class="grid g3">
+      <div><label for="w3P">Moc kotłowni [kW]</label><input id="w3P" type="number" value="800" step="10"></div>
+      <div><label for="w3CkW">Kotłownia kompletna [zł/kW] <span class="hint">1000–1900</span></label><input id="w3CkW" type="number" value="1300" step="50"></div>
+      <div><label for="w3Pump">Układ pompowy sieci [zł] <span class="hint">100–250 tys.</span></label><input id="w3Pump" type="number" value="100000" step="10000"></div>
+      <div><label for="w3Inst">Montaż i infrastruktura [%]</label><input id="w3Inst" type="number" value="20" step="5"></div>
+    </div>
+    <div id="w3Out"></div>
+  </div>
+
+  <div class="card">
+    <h2>12. Porównanie wariantów</h2>
+    <div class="grid g3">
+      <div><label for="cmpHco">Czas pracy CO [h/rok]</label><input id="cmpHco" type="number" value="1800" step="50"></div>
+      <div><label for="cmpLoss">Straty sieci (W2/W3) [%]</label><input id="cmpLoss" type="number" value="8" step="1"></div>
+      <div><label for="cmpScop1">SCOP W1 (A/W55)</label><input id="cmpScop1" type="number" value="2.8" step="0.1"></div>
+      <div><label for="cmpScop2">SCOP W2 — źródło centralne</label><input id="cmpScop2" type="number" value="3.1" step="0.1"></div>
+      <div><label for="cmpCopB">COP boosterów (50→60 °C)</label><input id="cmpCopB" type="number" value="4.5" step="0.1"></div>
+      <div><label for="cmpEta">Sprawność kotłowni [%]</label><input id="cmpEta" type="number" value="93" step="1"></div>
+      <div><label for="cmpEl">Cena energii el. [zł/kWh]</label><input id="cmpEl" type="number" value="0.90" step="0.05"></div>
+      <div><label for="cmpGas">Cena gazu [zł/kWh]</label><input id="cmpGas" type="number" value="0.38" step="0.01"></div>
+    </div>
+    <div class="legend" style="margin-top:14px">
+      <span><span class="sw" style="background:var(--series-1)"></span>W1 — indywidualne PC powietrzne</span>
+      <span><span class="sw" style="background:var(--series-2)"></span>W2 — sieć NT + boostery</span>
+      <span><span class="sw" style="background:var(--series-3)"></span>W3 — kotłownia gazowa</span>
+    </div>
+    <div class="cols2" style="margin-top:4px">
+      <div><h2 style="font-size:13px;color:var(--text-secondary);margin-top:8px">CAPEX — budżet inwestycji</h2><svg id="capChart" width="100%" height="130" role="img" aria-label="Budżet inwestycji trzech wariantów"></svg></div>
+      <div><h2 style="font-size:13px;color:var(--text-secondary);margin-top:8px">Koszt energii — rocznie</h2><svg id="opxChart" width="100%" height="130" role="img" aria-label="Roczny koszt energii trzech wariantów"></svg></div>
+    </div>
+    <div id="cmpOut" style="margin-top:8px"></div>
+    <div class="note">Energia roczna: CO = ΣCO × godziny pracy; CWU = ΣCWU śr × 8760 h. Wartości budżetowe (±30 %) do porównania wariantów — nie zastępują OZC, audytu ani ofert wykonawczych.</div>
+  </div>
+
+  <div class="card">
+    <h2>13. Dokumentacja</h2>
+    <div class="grid g3">
+      <div><label for="docProj">Projekt</label><input id="docProj" type="text" value="Niskotemperaturowa sieć ciepłownicza — osiedle 5 budynków"></div>
+      <div><label for="docInv">Inwestor / Zamawiający</label><input id="docInv" type="text" value="TAURON"></div>
+      <div><label for="docAuth">Opracował</label><input id="docAuth" type="text" value="21 zmysłów"></div>
+      <div><label for="docNo">Nr dokumentu</label><input id="docNo" type="text" value="K-001"></div>
+    </div>
+    <div class="btnrow">
+      <button id="btnKarta">Karta doboru PC (Część I) — drukuj / PDF</button>
+      <button id="btnKonc">Raport koncepcji (Część II) — drukuj / PDF</button>
+    </div>
+    <div class="btnrow">
+      <button class="sec" id="btnRfqPl">Generuj zapytanie ofertowe (PL)</button>
+      <button class="sec" id="btnRfqEn">Generate RFQ (EN)</button>
+      <button class="sec" id="btnCopy">Kopiuj do schowka</button>
+    </div>
+    <textarea id="rfqText" readonly placeholder="Treść zapytania ofertowego pojawi się tutaj po kliknięciu „Generuj”…"></textarea>
+    <div class="note">„Drukuj / PDF” otwiera systemowe okno wydruku — wybierz „Zapisz jako PDF”. Dokumenty budowane są z aktualnych wartości programu; najlepszy wydruk w trybie jasnym.</div>
+  </div>
+</div>
+<div id="printArea"></div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const fmt = (x, d = 1) => x.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  const PRESETS = {
+    oas102: { name: 'OAS102', qh: 34.1, cop: 4.68, te: 7, tc: 45, vHot: 7, vCold: 7 },
+    oas103: { name: 'OAS103', qh: 41.3, cop: 5.1, te: 7, tc: 45, vHot: 8, vCold: 8 },
+    oas104: { name: 'OAS104', qh: 48.3, cop: 5.08, te: 7, tc: 45, vHot: 10, vCold: 10 },
+    oas105: { name: 'OAS105', qh: 56.2, cop: 5.1, te: 7, tc: 45, vHot: 11, vCold: 11 },
+    oas106: { name: 'OAS106', qh: 75.3, cop: 5.0, te: 7, tc: 45, vHot: 15, vCold: 15 },
+    oas107: { name: 'OAS107', qh: 87.3, cop: 5.05, te: 7, tc: 45, vHot: 17, vCold: 17 },
+    oas108: { name: 'OAS108', qh: 104.9, cop: 4.92, te: 7, tc: 45, vHot: 21, vCold: 21 },
+    oas109: { name: 'OAS109', qh: 110.4, cop: 4.9, te: 7, tc: 45, vHot: 22, vCold: 22 },
+    oas110: { name: 'OAS110', qh: 129.1, cop: 4.85, te: 7, tc: 45, vHot: 26, vCold: 26 },
+    oas111: { name: 'OAS111', qh: 151.5, cop: 4.67, te: 7, tc: 45, vHot: 30, vCold: 30 },
+    oas210: { name: 'OAS210', qh: 112.4, cop: 5.1, te: 7, tc: 45, vHot: 22, vCold: 22 },
+    oas212: { name: 'OAS212', qh: 150.6, cop: 5.0, te: 7, tc: 45, vHot: 30, vCold: 30 },
+    oas214: { name: 'OAS214', qh: 174.6, cop: 5.05, te: 7, tc: 45, vHot: 35, vCold: 35 },
+    oas216: { name: 'OAS216', qh: 209.8, cop: 4.92, te: 7, tc: 45, vHot: 42, vCold: 42 },
+    oas218: { name: 'OAS218', qh: 220.8, cop: 4.9, te: 7, tc: 45, vHot: 44, vCold: 44 },
+    oas220: { name: 'OAS220', qh: 258.2, cop: 4.85, te: 7, tc: 45, vHot: 52, vCold: 52 },
+    oas222: { name: 'OAS222', qh: 303.0, cop: 4.67, te: 7, tc: 45, vHot: 61, vCold: 61 },
+    oas315: { name: 'OAS315', qh: 168.6, cop: 5.1, te: 7, tc: 45, vHot: 34, vCold: 34 },
+    oas318: { name: 'OAS318', qh: 225.9, cop: 5.0, te: 7, tc: 45, vHot: 45, vCold: 45 },
+    oas321: { name: 'OAS321', qh: 261.9, cop: 5.05, te: 7, tc: 45, vHot: 52, vCold: 52 },
+    oas324: { name: 'OAS324', qh: 314.7, cop: 4.92, te: 7, tc: 45, vHot: 63, vCold: 63 },
+    oas327: { name: 'OAS327', qh: 331.2, cop: 4.9, te: 7, tc: 45, vHot: 66, vCold: 66 },
+    oas330: { name: 'OAS330', qh: 387.4, cop: 4.85, te: 7, tc: 45, vHot: 77, vCold: 77 },
+    oas333: { name: 'OAS333', qh: 454.5, cop: 4.67, te: 7, tc: 45, vHot: 91, vCold: 91 },
+    oas420: { name: 'OAS420', qh: 224.8, cop: 5.1, te: 7, tc: 45, vHot: 45, vCold: 45 },
+    oas424: { name: 'OAS424', qh: 301.2, cop: 5.0, te: 7, tc: 45, vHot: 60, vCold: 60 },
+    oas428: { name: 'OAS428', qh: 349.2, cop: 5.05, te: 7, tc: 45, vHot: 70, vCold: 70 },
+    oas432: { name: 'OAS432', qh: 419.6, cop: 4.92, te: 7, tc: 45, vHot: 84, vCold: 84 },
+    oas436: { name: 'OAS436', qh: 441.6, cop: 4.9, te: 7, tc: 45, vHot: 88, vCold: 88 },
+    oas440: { name: 'OAS440', qh: 516.5, cop: 4.85, te: 7, tc: 45, vHot: 103, vCold: 103 }
+  };
+
+  $('preset').addEventListener('change', () => {
+    const p = PRESETS[$('preset').value];
+    if (p) {
+      $('qhNom').value = p.qh; $('copNom').value = p.cop; $('teNom').value = p.te; $('tcNom').value = p.tc;
+      $('vHot').value = p.vHot; $('vCold').value = p.vCold; // magazyny dopasowane do mocy (ok. 2 h ładowania przy ΔT 10 K)
+      const num = document.getElementById('modelNum');
+      if (num) num.textContent = p.name;
+    }
+    recalc();
+  });
+
+  ['qhNom','copNom','teNom','tcNom','tHot','dtCond','tCold','dtEvap','vHot','tHotMin','vCold','tColdMax','demand','runHours']
+    .forEach(id => $(id).addEventListener('input', recalc));
+  ['qhNom','copNom','teNom','tcNom'].forEach(id => $(id).addEventListener('input', () => { $('preset').value = 'custom'; }));
+
+  function model(tHot, tCold) {
+    const qhNom = +$('qhNom').value, copNom = +$('copNom').value;
+    const teNom = +$('teNom').value, tcNom = +$('tcNom').value;
+    const carnotNom = (tcNom + 273.15) / Math.max(tcNom - teNom, 1);
+    const eta = copNom / carnotNom; // sprawność egzergetyczna
+    const lift = Math.max(tHot - tCold, 1);
+    const cop = Math.max(eta * (tHot + 273.15) / lift, 1.05);
+    const qcNom = qhNom * (1 - 1 / copNom);
+    const qc = qcNom * (1 + 0.03 * (tCold - teNom)) * (1 - 0.006 * (tHot - tcNom));
+    const pel = qc / (cop - 1);
+    const qh = qc + pel;
+    return { cop, qc, pel, qh, eta };
+  }
+
+  function envelopeWarnings(tHot, tCold) {
+    const out = [];
+    if (tHot > 65) out.push(['c', '✕', 'T zasilania > 65 °C — poza przyjętą kopertą pracy jednostek Oasis (R290); wymagana konsultacja z producentem.']);
+    else if (tHot > 60) out.push(['w', '!', 'T zasilania > 60 °C — powyżej punktu katalogowego (skraplacz 40/45 °C); wykonanie wysokotemperaturowe do potwierdzenia u producenta.']);
+    if (tCold < -7) out.push(['c', '✕', 'T wyjścia z parowacza < −7 °C — poza standardową kopertą pracy.']);
+    else if (tCold < 0) out.push(['w', '!', 'T < 0 °C — wymagany glikol i potwierdzenie wykonania niskotemperaturowego u producenta.']);
+    else if (tCold < 4) out.push(['w', '!', 'T < 4 °C — wymagane zabezpieczenie przeciwzamrożeniowe (glikol) po stronie parowacza.']);
+    if (tCold > 25) out.push(['c', '✕', 'T wyjścia z parowacza > 25 °C — poza kopertą pracy.']);
+    if (!out.length) out.push(['ok', '✓', 'Punkt pracy mieści się w przyjętej kopercie pracy (seria Refra Oasis, R290).']);
+    return out;
+  }
+
+  function tile(k, v, u) {
+    return `<div class="tile"><div class="k">${k}</div><div class="v">${v}<span class="u">${u}</span></div></div>`;
+  }
+
+  function recalc() {
+    const tHot = +$('tHot').value, tCold = +$('tCold').value;
+    const dtC = Math.max(+$('dtCond').value, 0.5), dtE = Math.max(+$('dtEvap').value, 0.5);
+    const m = model(tHot, tCold);
+
+    $('envWarnings').innerHTML = envelopeWarnings(tHot, tCold)
+      .map(([cls, ic, txt]) => `<div class="warn ${cls}"><span class="ic">${ic}</span><span>${txt}</span></div>`).join('');
+
+    const flowCond = m.qh / (1.163 * dtC);
+    const flowEvap = m.qc / (1.163 * dtE);
+
+    $('tiles').innerHTML =
+      tile('COP grzewczy', fmt(m.cop, 2), '–') +
+      tile('Moc grzewcza', fmt(m.qh), 'kW') +
+      tile('Moc chłodnicza', fmt(m.qc), 'kW') +
+      tile('Pobór elektryczny', fmt(m.pel), 'kW') +
+      tile('Przepływ — skraplacz', fmt(flowCond), 'm³/h') +
+      tile('Przepływ — parowacz', fmt(flowEvap), 'm³/h');
+
+    // Magazyn ciepła
+    const vH = +$('vHot').value, dtHot = Math.max(tHot - +$('tHotMin').value, 0.1);
+    const eH = vH * 1.163 * dtHot;
+    const tChargeH = eH / m.qh;
+    $('hotStore').innerHTML =
+      `<div class="kv"><span>Zakres temperatur</span><b>${fmt(+$('tHotMin').value,1)} → ${fmt(tHot,1)} °C (ΔT ${fmt(dtHot,1)} K)</b></div>` +
+      `<div class="kv"><span>Pojemność cieplna</span><b>${fmt(eH,0)} kWh</b></div>` +
+      `<div class="kv"><span>Czas pełnego ładowania</span><b>${fmt(tChargeH,1)} h</b></div>`;
+
+    // Magazyn chłodu
+    const vC = +$('vCold').value, dtCold = Math.max(+$('tColdMax').value - tCold, 0.1);
+    const eC = vC * 1.163 * dtCold;
+    const tChargeC = eC / m.qc;
+    const eCNeeded = eH * m.qc / m.qh; // chłód wyprodukowany podczas pełnego ładowania ciepła
+    const fit = eC >= eCNeeded;
+    $('coldStore').innerHTML =
+      `<div class="kv"><span>Zakres temperatur</span><b>${fmt(tCold,1)} → ${fmt(+$('tColdMax').value,1)} °C (ΔT ${fmt(dtCold,1)} K)</b></div>` +
+      `<div class="kv"><span>Pojemność chłodnicza</span><b>${fmt(eC,0)} kWh</b></div>` +
+      `<div class="kv"><span>Czas pełnego naładowania chłodem</span><b>${fmt(tChargeC,1)} h</b></div>` +
+      `<div class="kv"><span>Chłód z pełnego cyklu ładowania ciepła</span><b>${fmt(eCNeeded,0)} kWh</b></div>` +
+      `<div class="warn ${fit ? 'ok' : 'w'}" style="margin-top:8px"><span class="ic">${fit ? '✓' : '!'}</span><span>${
+        fit ? 'Magazyn chłodu pomieści chłód z pełnego cyklu ładowania magazynu ciepła.'
+            : 'Za mały magazyn chłodu dla pełnego cyklu: potrzeba ' + fmt(eCNeeded / (1.163 * dtCold), 1) + ' m³ przy tym ΔT (albo równoległy odbiór chłodu).'
+      }</span></div>`;
+
+    // Dobór mocy z zapotrzebowania
+    const demand = +$('demand').value, hrs = Math.max(+$('runHours').value, 0.1);
+    const reqQh = demand / hrs;
+    const nUnits = Math.ceil(reqQh / m.qh);
+    const vNeeded = (demand - m.qh * Math.min(hrs, 24)) > 0 ? null : demand / (1.163 * dtHot); // zbiornik na całą dobę? — pokaż zbiornik pokrywający dobowe zapotrzebowanie
+    $('sizing').innerHTML =
+      `<div class="kv"><span>Wymagana moc grzewcza (praca ${fmt(hrs,1)} h/d)</span><b>${fmt(reqQh,1)} kW</b></div>` +
+      `<div class="kv"><span>Liczba jednostek jak wyżej (${fmt(m.qh,1)} kW szt.)</span><b>${nUnits} szt.</b></div>` +
+      `<div class="kv"><span>Dobowa energia elektryczna</span><b>${fmt(demand / m.cop, 0)} kWh/d</b></div>` +
+      `<div class="kv"><span>Dobowy chłód „przy okazji”</span><b>${fmt(demand * m.qc / m.qh, 0)} kWh/d</b></div>` +
+      `<div class="kv"><span>Zbiornik ciepła na pełne dobowe zapotrzebowanie (ΔT ${fmt(dtHot,1)} K)</span><b>${fmt(demand / (1.163 * dtHot), 1)} m³</b></div>`;
+
+    drawBalance(m);
+    drawSchematic(m);
+    drawCopChart(tCold, tHot);
+    $('copChartSub').textContent = `Przy stałej temperaturze magazynu chłodu ${fmt(tCold,1)} °C. Punkt pracy zaznaczony markerem.`;
+  }
+
+
+  function drawSchematic(m) {
+    const svg = $('schematic');
+    if (!svg) return;
+    const W = Math.max(svg.clientWidth || 940, 720), H = 300;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const tHot = +$('tHot').value, tCold = +$('tCold').value;
+    const dtC = Math.max(+$('dtCond').value, 0.5), dtE = Math.max(+$('dtEvap').value, 0.5);
+    const tHotMin = +$('tHotMin').value, tColdMax = +$('tColdMax').value;
+    const vH = +$('vHot').value, vC = +$('vCold').value;
+    const flowCond = m.qh / (1.163 * dtC), flowEvap = m.qc / (1.163 * dtE);
+    const c1 = css('--series-1'), c2 = css('--series-2'), c3 = css('--series-3');
+    const ink = css('--text-primary'), sec = css('--text-secondary'), surf = css('--surface-1'), brd = css('--baseline');
+    const name = (PRESETS[$('preset').value] || {}).name || 'W/W';
+
+    const tankW = 120, tankH = 140, tankY = 75;
+    const coldX = 16, hotX = W - 16 - tankW;
+    const hpW = 220, hpX = W / 2 - hpW / 2, hpY = 62, hpH = 166;
+    const yTop = tankY + 32, yBot = tankY + tankH - 32;
+    const cx = hpX + hpW / 2, cy = hpY + hpH / 2 + 8;
+
+    const pipe = (x1, x2, y, col, mk, rev) =>
+      `<line x1="${rev ? x2 : x1}" y1="${y}" x2="${rev ? x1 : x2}" y2="${y}" stroke="${col}" stroke-width="3.5" marker-end="url(#${mk})"></line>`;
+    const lbl = (x, y, t, fill = sec, anchor = 'middle', size = 11, w = 400) =>
+      `<text x="${x}" y="${y}" font-size="${size}" text-anchor="${anchor}" fill="${fill}" font-weight="${w}">${t}</text>`;
+    const tank = (x, nm, v, tTop, tBot, col) => `
+      <rect x="${x}" y="${tankY}" width="${tankW}" height="${tankH}" rx="14" fill="color-mix(in srgb, ${col} 10%, ${surf})" stroke="${col}" stroke-width="1.6"></rect>
+      ${lbl(x + tankW / 2, tankY - 22, nm, ink, 'middle', 12.5, 650)}
+      ${lbl(x + tankW / 2, tankY - 8, fmt(v, 0) + ' m³', sec, 'middle', 11)}
+      ${lbl(x + tankW / 2, tankY + 22, fmt(tTop, 1) + ' °C', ink, 'middle', 12, 600)}
+      ${lbl(x + tankW / 2, tankY + tankH - 12, fmt(tBot, 1) + ' °C', ink, 'middle', 12, 600)}
+      <line x1="${x + 12}" x2="${x + tankW - 12}" y1="${tankY + tankH / 2}" y2="${tankY + tankH / 2}" stroke="${col}" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"></line>`;
+
+    const cL = coldX + tankW, cR = hpX, hL = hpX + hpW, hR = hotX;
+    const midC = (cL + cR) / 2, midH = (hL + hR) / 2;
+
+    svg.innerHTML = `
+      <defs>
+        <marker id="mB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="${c1}"/></marker>
+        <marker id="mO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="${c2}"/></marker>
+        <marker id="mG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="${c3}"/></marker>
+      </defs>
+      ${tank(coldX, 'Magazyn chłodu', vC, tColdMax, tCold, c1)}
+      ${tank(hotX, 'Magazyn ciepła', vH, tHot, tHotMin, c2)}
+
+      ${pipe(cL, cR - 5, yTop, c1, 'mB', false)}
+      ${pipe(cL + 5, cR, yBot, c1, 'mB', true)}
+      ${lbl(midC, yTop - 9, 'do parowacza · ' + fmt(tCold + dtE, 1) + ' °C')}
+      ${lbl(midC, yBot + 17, 'z parowacza · ' + fmt(tCold, 1) + ' °C')}
+      ${lbl(midC, (yTop + yBot) / 2 + 4, fmt(flowEvap, 1) + ' m³/h', ink, 'middle', 12, 600)}
+
+      ${pipe(hL, hR - 5, yTop, c2, 'mO', false)}
+      ${pipe(hL + 5, hR, yBot, c2, 'mO', true)}
+      ${lbl(midH, yTop - 9, 'ze skraplacza · ' + fmt(tHot, 1) + ' °C')}
+      ${lbl(midH, yBot + 17, 'do skraplacza · ' + fmt(tHot - dtC, 1) + ' °C')}
+      ${lbl(midH, (yTop + yBot) / 2 + 4, fmt(flowCond, 1) + ' m³/h', ink, 'middle', 12, 600)}
+
+      <rect x="${hpX}" y="${hpY}" width="${hpW}" height="${hpH}" rx="12" fill="${surf}" stroke="${brd}" stroke-width="1.6"></rect>
+      ${lbl(cx, hpY + 20, 'Pompa ciepła woda-woda', sec, 'middle', 11)}
+      ${lbl(cx, hpY + 38, name, ink, 'middle', 14, 700)}
+      ${lbl(cx, hpY + 56, 'COP ' + fmt(m.cop, 2), sec, 'middle', 11)}
+      <rect x="${hpX + 14}" y="${hpY + 66}" width="26" height="${hpH - 90}" rx="7" fill="color-mix(in srgb, ${c1} 14%, ${surf})" stroke="${c1}" stroke-width="1.4"></rect>
+      <text x="${hpX + 27}" y="${cy + 26}" font-size="10.5" fill="${ink}" text-anchor="start" transform="rotate(-90 ${hpX + 27} ${cy + 26})" dominant-baseline="middle">Parowacz</text>
+      <rect x="${hpX + hpW - 40}" y="${hpY + 66}" width="26" height="${hpH - 90}" rx="7" fill="color-mix(in srgb, ${c2} 14%, ${surf})" stroke="${c2}" stroke-width="1.4"></rect>
+      <text x="${hpX + hpW - 27}" y="${cy + 26}" font-size="10.5" fill="${ink}" text-anchor="start" transform="rotate(-90 ${hpX + hpW - 27} ${cy + 26})" dominant-baseline="middle">Skraplacz</text>
+      <line x1="${hpX + 40}" y1="${cy}" x2="${hpX + hpW - 40}" y2="${cy}" stroke="${brd}" stroke-width="1.6"></line>
+      <circle cx="${cx}" cy="${cy}" r="19" fill="${surf}" stroke="${ink}" stroke-width="1.6"></circle>
+      <path d="M ${cx - 13} ${cy - 13} L ${cx + 17} ${cy - 5} M ${cx - 13} ${cy + 13} L ${cx + 17} ${cy + 5}" stroke="${ink}" stroke-width="1.4" fill="none"></path>
+      ${lbl(hpX + 27, hpY + hpH + 16, fmt(m.qc, 1) + ' kW', ink, 'middle', 11.5, 600)}
+      ${lbl(hpX + hpW - 27, hpY + hpH + 16, fmt(m.qh, 1) + ' kW', ink, 'middle', 11.5, 600)}
+      <line x1="${cx}" y1="${H - 14}" x2="${cx}" y2="${hpY + hpH + 8}" stroke="${c3}" stroke-width="3" marker-end="url(#mG)"></line>
+      ${lbl(cx + 10, H - 18, fmt(m.pel, 1) + ' kW el.', ink, 'start', 11.5, 600)}
+    `;
+  }
+
+  function css(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
+
+  function drawBalance(m) {
+    const svg = $('balanceChart');
+    const W = svg.clientWidth || 900, H = 120;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const pad = 8, barH = 34, gap = 2;
+    const total = m.qh;
+    const scale = (W - 2 * pad) / total;
+    const wQc = m.qc * scale, wPel = m.pel * scale;
+    const ink = css('--text-primary'), sec = css('--text-secondary');
+    const y1 = 18, y2 = y1 + barH + 26;
+    svg.innerHTML = `
+      <text x="${pad}" y="${y1 - 5}" font-size="12" fill="${sec}">Wejście</text>
+      <rect x="${pad}" y="${y1}" width="${Math.max(wQc - gap, 1)}" height="${barH}" rx="4" fill="${css('--series-1')}"></rect>
+      <rect x="${pad + wQc + gap}" y="${y1}" width="${Math.max(wPel - gap, 1)}" height="${barH}" rx="4" fill="${css('--series-3')}"></rect>
+      <text x="${pad + wQc / 2}" y="${y1 + barH / 2 + 4}" font-size="12" text-anchor="middle" fill="${ink}">${fmt(m.qc)} kW</text>
+      <text x="${pad + wQc + gap + wPel / 2}" y="${y1 + barH / 2 + 4}" font-size="12" text-anchor="middle" fill="${ink}">${fmt(m.pel)} kW</text>
+      <text x="${pad}" y="${y2 - 5}" font-size="12" fill="${sec}">Wyjście</text>
+      <rect x="${pad}" y="${y2}" width="${W - 2 * pad}" height="${barH}" rx="4" fill="${css('--series-2')}"></rect>
+      <text x="${pad + (W - 2 * pad) / 2}" y="${y2 + barH / 2 + 4}" font-size="12" text-anchor="middle" fill="#ffffff">${fmt(m.qh)} kW ciepła</text>
+    `;
+  }
+
+  let copPts = [];
+  function drawCopChart(tCold, tHotCur) {
+    const svg = $('copChart');
+    const W = svg.clientWidth || 900, H = 260;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const mL = 46, mR = 16, mT = 14, mB = 34;
+    const x0 = 40, x1 = 65;
+    copPts = [];
+    for (let t = x0; t <= x1; t += 0.5) copPts.push({ t, cop: model(t, tCold).cop });
+    const ys = copPts.map(p => p.cop);
+    const yMin = Math.floor(Math.min(...ys) * 2) / 2 - 0.5, yMax = Math.ceil(Math.max(...ys) * 2) / 2 + 0.5;
+    const X = t => mL + (t - x0) / (x1 - x0) * (W - mL - mR);
+    const Y = c => mT + (yMax - c) / (yMax - yMin) * (H - mT - mB);
+    const grid = css('--grid'), mut = css('--muted'), base = css('--baseline');
+    let g = '';
+    for (let c = Math.ceil(yMin); c <= yMax; c += 1) {
+      g += `<line x1="${mL}" x2="${W - mR}" y1="${Y(c)}" y2="${Y(c)}" stroke="${grid}" stroke-width="1"></line>
+            <text x="${mL - 8}" y="${Y(c) + 4}" font-size="11" text-anchor="end" fill="${mut}" style="font-variant-numeric:tabular-nums">${c.toFixed(1)}</text>`;
+    }
+    for (let t = 40; t <= 65; t += 5) {
+      g += `<text x="${X(t)}" y="${H - mB + 18}" font-size="11" text-anchor="middle" fill="${mut}" style="font-variant-numeric:tabular-nums">${t}</text>`;
+    }
+    g += `<line x1="${mL}" x2="${W - mR}" y1="${H - mB}" y2="${H - mB}" stroke="${base}" stroke-width="1"></line>`;
+    // strefa >60°C (booster)
+    g += `<rect x="${X(60)}" y="${mT}" width="${X(65) - X(60)}" height="${H - mT - mB}" fill="${css('--status-warning')}" opacity="0.10"></rect>
+          <text x="${X(62.5)}" y="${mT + 14}" font-size="11" text-anchor="middle" fill="${css('--text-secondary')}">&gt;60 °C</text>`;
+    const path = copPts.map((p, i) => `${i ? 'L' : 'M'}${X(p.t)},${Y(p.cop)}`).join('');
+    g += `<path d="${path}" fill="none" stroke="${css('--series-1')}" stroke-width="2"></path>`;
+    const cur = model(tHotCur, tCold).cop;
+    if (tHotCur >= x0 && tHotCur <= x1) {
+      g += `<circle cx="${X(tHotCur)}" cy="${Y(cur)}" r="5" fill="${css('--series-1')}" stroke="${css('--surface-1')}" stroke-width="2"></circle>
+            <text x="${X(tHotCur)}" y="${Y(cur) - 10}" font-size="12" text-anchor="middle" fill="${css('--text-primary')}" font-weight="600">COP ${fmt(cur, 2)}</text>`;
+    }
+    g += `<line id="copCross" x1="0" x2="0" y1="${mT}" y2="${H - mB}" stroke="${base}" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"></line>
+          <circle id="copDot" r="4" fill="${css('--series-1')}" stroke="${css('--surface-1')}" stroke-width="2" visibility="hidden"></circle>
+          <text x="${mL}" y="${H - 4}" font-size="11" fill="${mut}">T zasilania magazynu ciepła [°C]</text>
+          <text x="12" y="${mT + 2}" font-size="11" fill="${mut}" transform="rotate(-90 12 ${mT + 2})" text-anchor="end">COP [–]</text>`;
+    svg.innerHTML = g;
+
+    svg.onmousemove = e => {
+      const r = svg.getBoundingClientRect();
+      const px = (e.clientX - r.left) * (W / r.width);
+      const t = Math.min(Math.max(x0 + (px - mL) / (W - mL - mR) * (x1 - x0), x0), x1);
+      const p = copPts.reduce((a, b) => Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a);
+      const cross = $('copCross'), dot = $('copDot'), tip = $('copTip');
+      cross.setAttribute('x1', X(p.t)); cross.setAttribute('x2', X(p.t)); cross.setAttribute('visibility', 'visible');
+      dot.setAttribute('cx', X(p.t)); dot.setAttribute('cy', Y(p.cop)); dot.setAttribute('visibility', 'visible');
+      tip.style.display = 'block';
+      tip.style.left = Math.min(X(p.t) / W * r.width + 12, r.width - 130) + 'px';
+      tip.style.top = (Y(p.cop) / H * r.height - 36) + 'px';
+      tip.innerHTML = `<b>${fmt(p.t, 1)} °C</b> → COP ${fmt(p.cop, 2)}`;
+    };
+    svg.onmouseleave = () => {
+      $('copCross').setAttribute('visibility', 'hidden');
+      $('copDot').setAttribute('visibility', 'hidden');
+      $('copTip').style.display = 'none';
+    };
+  }
+
+  window.addEventListener('resize', recalc);
+  recalc();
+})();
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const fmt = (x, d = 1) => x.toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const zl = x => Math.round(x).toLocaleString('pl-PL') + ' zł';
+
+  const B = [
+    { name: 'Budynek 1', co: 91, ca: 14, cm: 31 },
+    { name: 'Budynek 2', co: 75, ca: 12, cm: 26 },
+    { name: 'Budynek 3', co: 108, ca: 17, cm: 37 },
+    { name: 'Budynek 4/5', co: 191, ca: 27, cm: 61 },
+    { name: 'Budynek 6', co: 95, ca: 23, cm: 67 }
+  ];
+  const OAS = [['OAS102',34.1],['OAS103',41.3],['OAS104',48.3],['OAS105',56.2],['OAS106',75.3],['OAS107',87.3],['OAS108',104.9],['OAS109',110.4],['OAS110',129.1],['OAS111',151.5],['OAS210',112.4],['OAS212',150.6],['OAS214',174.6],['OAS216',209.8],['OAS218',220.8],['OAS220',258.2],['OAS222',303.0]];
+  const oas = p => { if (p < 34.1 / 2) return 'OAS102 *'; const m = OAS.find(o => o[1] >= p); return m ? m[0] : '> typoszereg'; };
+
+  const tb = document.querySelector('#bldTable tbody');
+  tb.innerHTML = B.map((b, i) => '<tr><td>' + b.name + '</td>' +
+    ['co','ca','cm'].map(f => '<td><input type="number" step="1" data-i="' + i + '" data-f="' + f + '" value="' + b[f] + '"></td>').join('') +
+    '<td id="ord' + i + '">–</td></tr>').join('');
+  tb.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
+    B[+inp.dataset.i][inp.dataset.f] = +inp.value || 0;
+    recalc2();
+  }));
+
+  ['w1Strat','w1Peak','w1Dt','w1CkW','w1CV','w1CCwu','w1Inst',
+   'w2P','w2CkW','w2BufMin','w2DtNet','w2Flow','w2Pump','w2Strat','w2BCkW','w2Inst',
+   'w3P','w3CkW','w3Pump','w3Inst',
+   'cmpHco','cmpLoss','cmpScop1','cmpScop2','cmpCopB','cmpEta','cmpEl','cmpGas']
+    .forEach(id => $(id).addEventListener('input', recalc2));
+
+  function bars(id, vals, fv) {
+    const svg = $(id);
+    const W = svg.clientWidth || 480, H = 130;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const cs = getComputedStyle(document.body);
+    const cols = ['--series-1','--series-2','--series-3'].map(v => cs.getPropertyValue(v).trim());
+    const ink = cs.getPropertyValue('--text-primary').trim(), sec = cs.getPropertyValue('--text-secondary').trim();
+    const max = Math.max(...vals, 1);
+    const bh = 26, gap = 12, x0 = 36;
+    svg.innerHTML = vals.map((v, i) => {
+      const y = 8 + i * (bh + gap);
+      const w = Math.max((W - x0 - 120) * v / max, 2);
+      return `<text x="${x0 - 8}" y="${y + bh / 2 + 4}" font-size="12" text-anchor="end" fill="${sec}">W${i + 1}</text>` +
+        `<rect x="${x0}" y="${y}" width="${w}" height="${bh}" rx="4" fill="${cols[i]}"></rect>` +
+        `<text x="${x0 + w + 8}" y="${y + bh / 2 + 4}" font-size="12" fill="${ink}" font-weight="600">${fv(v)}</text>`;
+    }).join('');
+  }
+
+  function recalc2() {
+    const s = {
+      co: B.reduce((a, b) => a + b.co, 0),
+      ca: B.reduce((a, b) => a + b.ca, 0),
+      cm: B.reduce((a, b) => a + b.cm, 0)
+    };
+    B.forEach((b, i) => { $('ord' + i).textContent = fmt(b.co + b.cm, 0); });
+    document.querySelector('#bldTable tfoot').innerHTML =
+      `<tr><td>Razem</td><td>${fmt(s.co,0)}</td><td>${fmt(s.ca,0)}</td><td>${fmt(s.cm,0)}</td><td>${fmt(s.co + s.cm,0)}</td></tr>`;
+
+    // ---- Wariant 1 ----
+    const st1 = $('w1Strat').value, pk = +$('w1Peak').value, dt1 = Math.max(+$('w1Dt').value, 5);
+    const c1k = +$('w1CkW').value, c1v = +$('w1CV').value, c1c = +$('w1CCwu').value, i1 = +$('w1Inst').value / 100;
+    let rows1 = '', totP1 = 0, totV1 = 0, tot1 = 0;
+    B.forEach(b => {
+      const p = b.co + (st1 === 'avg' ? b.ca : b.cm);
+      const v = st1 === 'avg' ? (b.cm - b.ca) * pk / (1.163 * dt1) : 0;
+      const k = p * c1k + v * c1v + b.cm * c1c;
+      totP1 += p; totV1 += v; tot1 += k;
+      rows1 += `<tr><td>${b.name}</td><td>${fmt(p,0)} kW</td><td>${v ? fmt(v,1) + ' m³' : '—'}</td><td>${zl(k)}</td></tr>`;
+    });
+    const cap1 = tot1 * (1 + i1);
+    $('w1Out').innerHTML = `<table class="res"><thead><tr><th>Budynek</th><th>Moc PC (A-7/W55)</th><th>Zasobnik CWU</th><th>Budżet netto</th></tr></thead><tbody>${rows1}</tbody>` +
+      `<tfoot><tr><td>Razem</td><td>${fmt(totP1,0)} kW</td><td>${fmt(totV1,1)} m³</td><td>${zl(tot1)}</td></tr>` +
+      `<tr><td colspan="3">Razem z montażem i infrastrukturą (+${fmt(i1 * 100,0)} %)</td><td>${zl(cap1)}</td></tr></tfoot></table>`;
+
+    // ---- Wariant 2 ----
+    const P2 = +$('w2P').value, c2k = +$('w2CkW').value, bufMin = +$('w2BufMin').value;
+    const dtN = Math.max(+$('w2DtNet').value, 1), fl = +$('w2Flow').value, pump2 = +$('w2Pump').value;
+    const st2 = $('w2Strat').value, c2b = +$('w2BCkW').value, i2 = +$('w2Inst').value / 100;
+    const pNet = 1.163 * fl * dtN;
+    const simult = s.co + s.ca;
+    const bufC = P2 * (bufMin / 60) / (1.163 * 10);
+    let rows2 = '', totB2 = 0, totV2 = 0, kB2 = 0;
+    B.forEach(b => {
+      const p = st2 === 'avg' ? b.ca : b.cm;
+      const v = st2 === 'avg' ? (b.cm - b.ca) * pk / (1.163 * dt1) : 0;
+      const k = p * c2b + v * c1v + b.cm * c1c;
+      totB2 += p; totV2 += v; kB2 += k;
+      rows2 += `<tr><td>${b.name}</td><td>${fmt(p,0)} kW</td><td>${oas(p)}</td><td>${v ? fmt(v,1) + ' m³' : '—'}</td><td>${zl(k)}</td></tr>`;
+    });
+    const kC2 = P2 * c2k + bufC * c1v + pump2;
+    const cap2 = (kC2 + kB2) * (1 + i2);
+    $('w2Out').innerHTML =
+      `<div class="kv"><span>Zdolność transportowa sieci (${fmt(fl,0)} m³/h, ΔT ${fmt(dtN,0)} K)</span><b>${fmt(pNet,0)} kW</b></div>` +
+      `<div class="kv"><span>Zapotrzebowanie jednoczesne (ΣCO + ΣCWU śr)</span><b>${fmt(simult,0)} kW</b></div>` +
+      `<div class="kv"><span>Bufor centralny (${fmt(bufMin,0)} min pełnej mocy)</span><b>${fmt(bufC,1)} m³</b></div>` +
+      `<div class="kv"><span>Część centralna: PC ${fmt(P2,0)} kW + bufor + układ pompowy</span><b>${zl(kC2)}</b></div>` +
+      (pNet < simult
+        ? `<div class="warn w"><span class="ic">!</span><span>Przepływ ${fmt(fl,0)} m³/h przy ΔT ${fmt(dtN,0)} K przenosi ${fmt(pNet,0)} kW — mniej niż zapotrzebowanie jednoczesne ${fmt(simult,0)} kW. Zwiększ przepływ lub ΔT sieci, albo przewidź akumulację w budynkach.</span></div>`
+        : `<div class="warn ok"><span class="ic">✓</span><span>Zdolność transportowa sieci pokrywa zapotrzebowanie jednoczesne.</span></div>`) +
+      (P2 < simult ? `<div class="warn w"><span class="ic">!</span><span>Moc centralna ${fmt(P2,0)} kW jest mniejsza niż zapotrzebowanie jednoczesne ${fmt(simult,0)} kW — deficyt pokrywa bufor/akumulacja.</span></div>` : '') +
+      `<table class="res"><thead><tr><th>Budynek</th><th>Booster W/W (→60 °C)</th><th>Model Oasis</th><th>Zasobnik CWU</th><th>Budżet netto</th></tr></thead><tbody>${rows2}</tbody>` +
+      `<tfoot><tr><td>Razem boostery</td><td>${fmt(totB2,0)} kW</td><td></td><td>${fmt(totV2,1)} m³</td><td>${zl(kB2)}</td></tr>` +
+      `<tr><td colspan="4">Razem wariant 2 netto (centrala + budynki)</td><td>${zl(kC2 + kB2)}</td></tr>` +
+      `<tr><td colspan="4">Razem z montażem i infrastrukturą (+${fmt(i2 * 100,0)} %)</td><td>${zl(cap2)}</td></tr></tfoot></table>`;
+
+    // ---- Wariant 3 ----
+    const P3 = +$('w3P').value, c3k = +$('w3CkW').value, pump3 = +$('w3Pump').value, i3 = +$('w3Inst').value / 100;
+    const k3 = P3 * c3k + pump3;
+    const cap3 = k3 * (1 + i3);
+    $('w3Out').innerHTML =
+      `<div class="kv"><span>Moc kotłowni vs zapotrzebowanie jednoczesne</span><b>${fmt(P3,0)} / ${fmt(simult,0)} kW</b></div>` +
+      `<div class="kv"><span>Budżet netto (kotłownia + układ pompowy)</span><b>${zl(k3)}</b></div>` +
+      `<div class="kv"><span>Budżet z montażem i infrastrukturą (+${fmt(i3 * 100,0)} %)</span><b>${zl(cap3)}</b></div>` +
+      (P3 < simult
+        ? `<div class="warn w"><span class="ic">!</span><span>Moc ${fmt(P3,0)} kW poniżej zapotrzebowania jednoczesnego ${fmt(simult,0)} kW — przyjęto współczynnik jednoczesności; zweryfikuj z profilem odbioru.</span></div>`
+        : `<div class="warn ok"><span class="ic">✓</span><span>Moc kotłowni pokrywa zapotrzebowanie jednoczesne.</span></div>`);
+
+    // ---- Porównanie ----
+    const hco = +$('cmpHco').value, loss = +$('cmpLoss').value / 100;
+    const scop1 = Math.max(+$('cmpScop1').value, 0.5), scop2 = Math.max(+$('cmpScop2').value, 0.5);
+    const copB = Math.max(+$('cmpCopB').value, 1.1), eta = Math.max(+$('cmpEta').value / 100, 0.3);
+    const pEl = +$('cmpEl').value, pGas = +$('cmpGas').value;
+    const eCO = s.co * hco / 1000, eCW = s.ca * 8760 / 1000, eTot = eCO + eCW; // MWh
+    const el1 = eTot / scop1;
+    const el2 = (eCO * (1 + loss) + eCW * (1 - 1 / copB) * (1 + loss)) / scop2 + eCW / copB;
+    const gas3 = eTot * (1 + loss) / eta;
+    const op1 = el1 * 1000 * pEl, op2 = el2 * 1000 * pEl, op3 = gas3 * 1000 * pGas;
+    $('cmpOut').innerHTML =
+      `<div class="kv"><span>Ciepło rocznie: CO ${fmt(eCO,0)} MWh + CWU ${fmt(eCW,0)} MWh</span><b>${fmt(eTot,0)} MWh</b></div>` +
+      `<div class="kv"><span>W1 — energia elektryczna</span><b>${fmt(el1,0)} MWh/rok → ${zl(op1)}/rok</b></div>` +
+      `<div class="kv"><span>W2 — energia elektryczna (źródło + boostery)</span><b>${fmt(el2,0)} MWh/rok → ${zl(op2)}/rok</b></div>` +
+      `<div class="kv"><span>W3 — gaz</span><b>${fmt(gas3,0)} MWh/rok → ${zl(op3)}/rok</b></div>`;
+    bars('capChart', [cap1, cap2, cap3], v => fmt(v / 1e6, 2) + ' mln zł');
+    bars('opxChart', [op1, op2, op3], v => fmt(v / 1e3, 0) + ' tys. zł/rok');
+  }
+
+
+  // ---------- Dokumentacja ----------
+  const DPR = id => (document.getElementById(id) || {}).value || '';
+  function staticize(el) {
+    const clone = el.cloneNode(true);
+    const live = el.querySelectorAll('input, select');
+    clone.querySelectorAll('input, select').forEach((c, i) => {
+      const s = document.createElement('b');
+      s.textContent = c.tagName === 'SELECT' ? ((live[i].selectedOptions[0] || {}).text || '') : live[i].value;
+      c.replaceWith(s);
+    });
+    return clone;
+  }
+  function paramsList(card) {
+    let out = '';
+    card.querySelectorAll('.grid > div').forEach(d => {
+      const l = d.querySelector('label'), f = d.querySelector('input, select');
+      if (!l || !f) return;
+      const v = f.tagName === 'SELECT' ? (f.selectedOptions[0] || {}).text : f.value;
+      out += `<tr><td>${l.textContent}</td><td><b>${v}</b></td></tr>`;
+    });
+    return `<table class="rpt-t">${out}</table>`;
+  }
+  const outerEl = el => el ? el.outerHTML : '';
+  function head(title) {
+    const logo = document.querySelector('.wrap img');
+    return `<div class="rpt-head">${logo ? `<img src="${logo.src}" style="height:34px">` : ''}<div><div class="rpt-title">${title}</div><div class="rpt-meta">Projekt: <b>${DPR('docProj')}</b> · Inwestor: <b>${DPR('docInv')}</b><br>Opracował: <b>${DPR('docAuth')}</b> · Nr: <b>${DPR('docNo')}</b> · Data: <b>${new Date().toLocaleDateString('pl-PL')}</b></div></div></div>`;
+  }
+  const rsec = (t, inner) => `<div class="rpt-sec"><div class="rpt-h">${t}</div>${inner}</div>`;
+  function show(inner) {
+    $('printArea').innerHTML = `<div class="rpt">${inner}<div class="rpt-foot">Wygenerowano programem doboru — ${DPR('docAuth')}, ${new Date().toLocaleString('pl-PL')}. Wartości budżetowe (±30 %) — do potwierdzenia ofertami; dokument nie zastępuje OZC ani projektu wykonawczego.</div></div>`;
+    window.print();
+  }
+  const wrapCards = () => document.querySelectorAll('.wrap > .card');
+
+  $('btnKarta').addEventListener('click', () => {
+    const c = wrapCards();
+    show(
+      head('Karta doboru pompy ciepła woda-woda') +
+      rsec('1. Jednostka i punkt pracy', paramsList(c[0]) + $('envWarnings').innerHTML) +
+      rsec('2. Wyniki w punkcie pracy', outerEl($('tiles'))) +
+      rsec('3. Schemat układu', outerEl($('schematic'))) +
+      rsec('4. Magazyn ciepła', $('hotStore').innerHTML) +
+      rsec('5. Magazyn chłodu', $('coldStore').innerHTML) +
+      rsec('6. Charakterystyka COP', outerEl($('copChart'))) +
+      rsec('7. Założenia', '<p>' + ((document.querySelector('details p') || {}).innerHTML || '') + '</p>')
+    );
+  });
+
+  $('btnKonc').addEventListener('click', () => {
+    const c = wrapCards();
+    show(
+      head('Koncepcja zasilania osiedla — analiza wariantowa') +
+      rsec('1. Zestawienie mocy budynków [kW]', staticize($('bldTable')).outerHTML) +
+      rsec('2. Wariant 1 — indywidualne powietrzne pompy ciepła', paramsList(c[8]) + $('w1Out').innerHTML) +
+      rsec('3. Wariant 2 — centralne źródło + sieć NT 50 °C + boostery W/W', paramsList(c[9]) + $('w2Out').innerHTML) +
+      rsec('4. Wariant 3 — kotłownia gazowa', paramsList(c[10]) + $('w3Out').innerHTML) +
+      rsec('5. Porównanie wariantów (CAPEX / koszt energii)', paramsList(c[11]) + outerEl($('capChart')) + outerEl($('opxChart')) + $('cmpOut').innerHTML) +
+      rsec('6. Źródła założeń cenowych', '<p>Widełki cen jednostkowych oparto na: limitach kosztów kwalifikowanych programów NFOŚiGW, wskaźnikach kosztorysowych (Sekocenbud BCO), rozstrzygnięciach przetargów publicznych (e-Zamówienia, TED), benchmarkach TNO/DEA dla źródeł sieciowych oraz katalogu Refra „Oasis Chillers and Heat Pumps” v1.2. Wartości budżetowe — do potwierdzenia ofertami.</p>')
+    );
+  });
+
+  function bldText(sep) {
+    return ['Budynek' + sep + 'CO [kW]' + sep + 'CWU śr [kW]' + sep + 'CWU max [kW]']
+      .concat(B.map(b => [b.name, b.co, b.ca, b.cm].join(sep))).join('\n');
+  }
+  function rfqPl() {
+    return [
+      DPR('docNo') + ' — ' + new Date().toLocaleDateString('pl-PL'),
+      '',
+      'ZAPYTANIE OFERTOWE — ' + DPR('docProj'),
+      'Zamawiający: ' + DPR('docAuth') + ' (projekt realizowany dla: ' + DPR('docInv') + ')',
+      '',
+      'Prosimy o wstępną informację cenową (oferta budżetowa, ±20 %) dla osiedla pięciu budynków wielorodzinnych. Zapotrzebowanie mocy [kW]:',
+      '',
+      bldText(' | '),
+      '',
+      'WARIANT 1 — indywidualne powietrzne pompy ciepła dla każdego budynku (CO + CWU); moce wg tabeli.',
+      'WARIANT 2 — centralne źródło z powietrznych pomp ciepła ' + DPR('w2P') + ' kW (A7/W55) współpracujące z siecią NT o zasilaniu maks. 50 °C: układ pomp ciepła, zbiorniki buforowe, układ pompowy sieci (' + DPR('w2Flow') + ' m³/h); dla każdego budynku: pompa ciepła W/W podnosząca temperaturę z sieci do 60 °C, zbiorniki buforowe, układ przygotowania CWU. Zakres bez sieci ciepłowniczej i węzłów cieplnych.',
+      'WARIANT 3 — kotłownia gazowa ' + DPR('w3P') + ' kW dla sieci o przepływie maks. ' + DPR('w2Flow') + ' m³/h.',
+      '',
+      'Prosimy o: ceny netto urządzeń odrębnie od montażu, dobór jednostek po Państwa stronie, orientacyjne terminy dostaw oraz warunki gwarancji i serwisu.',
+      '',
+      'Kontakt: ' + DPR('docAuth')
+    ].join('\n');
+  }
+  function rfqEn() {
+    return [
+      DPR('docNo') + ' — ' + new Date().toLocaleDateString('en-GB'),
+      '',
+      'REQUEST FOR QUOTATION — ' + DPR('docProj'),
+      'Issued by: ' + DPR('docAuth') + ' (project for: ' + DPR('docInv') + ')',
+      '',
+      'We kindly request indicative (budget) pricing, ±20 %, for a residential estate of five multi-family buildings. Heat demand [kW]:',
+      '',
+      bldText(' | '),
+      '',
+      'OPTION 1 — individual air-source heat pumps per building (space heating + DHW); capacities as per table.',
+      'OPTION 2 — central air-source heat pump plant ' + DPR('w2P') + ' kW (A7/W55) serving a low-temperature network (max. supply 50 °C): heat pump system, buffer tanks, network pumping station (' + DPR('w2Flow') + ' m³/h); per building: water-to-water booster heat pump raising the temperature to 60 °C, buffer tanks, DHW preparation. Scope excludes the network itself and substations.',
+      'OPTION 3 — gas boiler plant ' + DPR('w3P') + ' kW for the network (max. flow ' + DPR('w2Flow') + ' m³/h).',
+      '',
+      'Please provide: net equipment prices separately from installation, unit selection on your side, indicative lead times, warranty and service terms.',
+      '',
+      'Contact: ' + DPR('docAuth')
+    ].join('\n');
+  }
+  $('btnRfqPl').addEventListener('click', () => { $('rfqText').value = rfqPl(); });
+  $('btnRfqEn').addEventListener('click', () => { $('rfqText').value = rfqEn(); });
+  $('btnCopy').addEventListener('click', () => {
+    const t = $('rfqText');
+    if (!t.value) return;
+    t.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value);
+    else document.execCommand('copy');
+  });
+
+  window.addEventListener('resize', recalc2);
+  recalc2();
+})();
+</script>
+<a class="entalvia-powrot" href="/">← Entalvia</a>
+</body>
+</html>

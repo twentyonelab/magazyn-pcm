@@ -1178,9 +1178,12 @@ code {
    hasła, a tu hasła nie ma: do bramy prowadzi przycisk w górnej belce.
    BRAMA (app.entalvia.eu) zostaje przy układzie dwukolumnowym: opis po lewej,
    pole hasła po prawej. */
+/* Strona o produkcie jest SZERSZA od bramy: mieści pod hasłem dwie
+   wizualizacje obok siebie. Przy 46 rem laptop po prawej schodził do
+   szerokości znaczka i przestawał cokolwiek pokazywać. */
 .start--produkt .start__tresc {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 46rem;
+  max-width: 68rem;
 }
 
 /* Górna belka strony o produkcie — logotyp po lewej, wejście po prawej.
@@ -1197,6 +1200,15 @@ code {
   gap: 1rem;
 }
 
+/* Dwa wejścia obok siebie: monitoring (pierwsze, pełne) i symulator
+   (drugie, obrysowane). Hierarchia mówi, że pomiar jest tu główną rzeczą,
+   a symulacja narzędziem obok — a nie że jedno zastępuje drugie. */
+.start__wejscia {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .start__wejscie {
   display: inline-flex;
   align-items: center;
@@ -1208,10 +1220,78 @@ code {
   font-size: 0.92rem;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .start__wejscie:hover {
   background: var(--akcent-mocny);
+}
+
+.start__wejscie--wtorne {
+  background: transparent;
+  color: var(--ink-soft);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.start__wejscie--wtorne:hover {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-mocna);
+}
+
+/* --- Wizualizacje pod hasłem (strona o produkcie) ------------------------
+   Dwie kolumny: magazyn i aplikacja. Warstwy nośników leżą na sobie
+   (grid, ta sama komórka) i przełączają się kryciem — dzięki temu wysokość
+   sekcji jest stała i hasło nad nią nie podskakuje przy zmianie słowa. */
+
+.start__wizualizacje {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 2rem);
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+  width: 100%;
+}
+
+.wiz {
+  display: grid;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.wiz__obraz {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.wiz__obraz.is-teraz {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wiz__obraz {
+    transition: none;
+  }
+}
+
+/* Na wąskim ekranie kolumny idą jedna pod drugą — laptop przy 380 px
+   szerokości jest nieczytelny, a magazyn zostaje rozpoznawalny. */
+@media (max-width: 720px) {
+  .start__wizualizacje {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .start__wejscia {
+    gap: 0.4rem;
+  }
+
+  .start__wejscie {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.84rem;
+  }
 }
 
 .start__stopka--produkt {

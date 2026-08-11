@@ -62,6 +62,35 @@ const KARUZELA_MS = 4200;
 /** Adres, pod którym stoi sama aplikacja. */
 const ADRES_APLIKACJI = 'https://app.entalvia.eu';
 
+/**
+ * Symulator doboru — statyczna strona obok aplikacji, nie osobny serwis.
+ * Leży w `web/public/`, więc adres jest względny i działa pod każdą domeną.
+ */
+const ADRES_SYMULATORA = '/symulator.html';
+
+/**
+ * WIZUALIZACJE PRZY HAŚLE — po jednej parze na nośnik.
+ *
+ * Lewa strona to sam magazyn, prawa to aplikacja na laptopie. Para zmienia
+ * się razem ze słowem w haśle, więc „Chłód" pokazuje moduł w błękicie
+ * i aplikację w barwach chłodu, a „Ciepło" — pomarańcz po obu stronach.
+ * Dzięki temu zdanie, barwa i obraz mówią jedno, zamiast trzech rzeczy naraz.
+ */
+const WIZUALIZACJE: Record<string, { magazyn: string; aplikacja: string; opisM: string; opisA: string }> = {
+  'Ciepło': {
+    magazyn: 'magazyn-cieplo.webp',
+    aplikacja: 'aplikacja-cieplo.webp',
+    opisM: 'Moduł magazynu ciepła Entalvia',
+    opisA: 'Aplikacja monitorująca — widok magazynu ciepła',
+  },
+  'Chłód': {
+    magazyn: 'magazyn-chlod.webp',
+    aplikacja: 'aplikacja-chlod.webp',
+    opisM: 'Moduł magazynu chłodu Entalvia',
+    opisA: 'Aplikacja monitorująca — widok magazynu chłodu',
+  },
+};
+
 /** Host strony o produkcie — bez `www`, które prowadzi tam samo. */
 const HOSTY_PRODUKTU = ['entalvia.eu', 'www.entalvia.eu'];
 
@@ -128,9 +157,18 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
       {rola === 'produkt' ? (
         <header className="start__belka">
           <img className="start__logo" src={plik('entalvia.png')} alt="Entalvia™" />
-          <a className="start__wejscie" href={ADRES_APLIKACJI}>
-            Aplikacja
-          </a>
+          {/* DWA WEJŚCIA, DWA RÓŻNE NARZĘDZIA. „Monitoring pomiarów" prowadzi
+              do aplikacji przy stanowisku — pokazuje, co JEST. „Symulator
+              doboru" liczy, co BYŁOBY przy zadanych parametrach. Nazwy mówią
+              o tej różnicy wprost; poprzednia „Aplikacja" nie mówiła o niczym. */}
+          <nav className="start__wejscia">
+            <a className="start__wejscie" href={ADRES_APLIKACJI}>
+              Monitoring pomiarów
+            </a>
+            <a className="start__wejscie start__wejscie--wtorne" href={ADRES_SYMULATORA}>
+              Symulator doboru
+            </a>
+          </nav>
         </header>
       ) : null}
       {/* Poświata w tle NIE jest tu rysowana — siedzi na `body::after` i idzie
@@ -172,6 +210,39 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             w Gliwicach.
           </p>
         </section>
+
+        {/* WIZUALIZACJE — tylko na stronie o produkcie. Para obrazów idzie za
+            słowem w haśle: po lewej sam magazyn, po prawej aplikacja na
+            laptopie. Obie warstwy leżą na sobie i przełączają się kryciem,
+            więc wysokość sekcji nie skacze przy zmianie nośnika. */}
+        {rola === 'produkt' ? (
+          <section className="start__wizualizacje" aria-hidden="true">
+            {(['magazyn', 'aplikacja'] as const).map((strona) => (
+              <div key={strona} className={`wiz wiz--${strona}`}>
+                {NOSNIKI.map((n, i) => {
+                  const w = WIZUALIZACJE[n.slowo];
+                  if (!w) return null;
+                  return (
+                    <img
+                      key={n.slowo}
+                      className={`wiz__obraz${i === nosnik ? ' is-teraz' : ''}`}
+                      src={plik(strona === 'magazyn' ? w.magazyn : w.aplikacja)}
+                      alt={strona === 'magazyn' ? w.opisM : w.opisA}
+                      loading="lazy"
+                      /* Brak pliku ma zniknąć, a nie pokazać pękniętą ikonę:
+                         rendery wgrywa się osobno od kodu i strona musi
+                         wyglądać poprawnie także w chwili między jednym
+                         a drugim wdrożeniem. */
+                      onError={(event) => {
+                        event.currentTarget.closest('.start__wizualizacje')?.remove();
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         {rola === 'aplikacja' ? (
         <section className="start__brama">
