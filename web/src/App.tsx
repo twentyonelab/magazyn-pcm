@@ -26,7 +26,7 @@ import { type Lokalizacja } from './map/lokalizacje.js';
 import type { Kierunek } from './soc.js';
 import { BladWidoku } from './components/BladWidoku.js';
 import { PlakietkaPokazowa } from './components/PlakietkaPokazowa.js';
-import { Logowanie } from './components/Logowanie.js';
+import { Logowanie, powierzchniaProduktu } from './components/Logowanie.js';
 import { PasekStanu } from './components/PasekStanu.js';
 import { PlakietkaObiektu } from './components/PlakietkaObiektu.js';
 import { PrzelacznikMotywu } from './components/PrzelacznikMotywu.js';
@@ -144,8 +144,18 @@ function plik(nazwa: string): string {
   return `${import.meta.env.BASE_URL}${nazwa}`;
 }
 
-/** Strona o produkcie — cel logotypu w górnej belce. */
-const ADRES_STRONY = 'https://entalvia.eu';
+/**
+ * Strona o produkcie — cel logotypu w górnej belce.
+ *
+ * Na prawdziwych domenach to osobny host. Na localhost i na adresie Railway
+ * osobnej domeny nie ma, więc wskazujemy tę samą aplikację z `?produkt` —
+ * inaczej sprawdzenie tej ścieżki lokalnie wyrzucałoby na produkcję i nie
+ * mówiłoby nic o zmianie, którą się właśnie testuje.
+ */
+function adresStrony(): string {
+  const host = window.location.hostname.toLowerCase();
+  return host === 'app.entalvia.eu' ? 'https://entalvia.eu' : '/?produkt';
+}
 
 /*
  * BILANS ZDJĘTY Z MENU 2026-08-04 (na razie).
@@ -250,6 +260,22 @@ export function App() {
   };
 
   /*
+   * ADRES ROZSTRZYGA, CO POKAZUJEMY — PRZED PYTANIEM O SESJĘ.
+   *
+   * entalvia.eu jest stroną o produkcie ZAWSZE, także dla kogoś zalogowanego.
+   * Wcześniej ten warunek stał niżej i zależał od `link === 'unauthorized'`,
+   * więc po zalogowaniu ta domena pokazywała monitoring: klik w logotyp
+   * wyglądał na nieskuteczny, choć odnośnik prowadził poprawnie — po prostu
+   * cel rysował aplikację (zgłoszone 2026-08-11).
+   *
+   * Stoi PRZED ekranem ciszy, bo ta strona nie potrzebuje żadnych danych
+   * z serwera: nie ma na niej ani jednej liczby z instalacji.
+   */
+  if (powierzchniaProduktu()) {
+    return <Logowanie onSuccess={data.reload} />;
+  }
+
+  /*
    * ZANIM WIADOMO, CZY BRAMA JEST WŁĄCZONA, NIE POKAZUJEMY NIC Z APLIKACJI.
    *
    * Stan łącza startuje jako `connecting`, więc do pierwszej odpowiedzi serwera
@@ -302,7 +328,7 @@ export function App() {
               między monitoringiem a symulatorem. To osobna domena, więc
               adres bezwzględny; w sieci laboratorium bez internetu odnośnik
               po prostu nie zadziała i nic się nie psuje. */}
-          <a href={ADRES_STRONY} aria-label="Entalvia — strona główna">
+          <a href={adresStrony()} aria-label="Entalvia — strona główna">
             <img className="brand__logo" src={plik('entalvia.png')} alt="Entalvia™" />
           </a>
           {/* Wersja pod nazwą — mała, bo to metryczka, nie tytuł. Numer siedzi

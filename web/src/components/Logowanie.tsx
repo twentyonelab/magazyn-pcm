@@ -122,16 +122,31 @@ const HOSTY_PRODUKTU = ['entalvia.eu', 'www.entalvia.eu'];
  * stronę o produkcie z dowolnego adresu; przydaje się do podglądu, dopóki
  * domeny nie są przepięte.
  */
-function rolaAdresu(): 'produkt' | 'aplikacja' {
+/**
+ * Czy pod tym adresem ma stać STRONA O PRODUKCIE — niezależnie od sesji.
+ *
+ * TO JEST WŁAŚCIWE ROZSTRZYGNIĘCIE I DECYDUJE O NIM HOST, NIE STAN LOGOWANIA.
+ * Do 2026-08-11 stronę produktu rysowaliśmy tylko wtedy, gdy serwer odmawiał
+ * dostępu (`link === 'unauthorized'`). Skutek: po zalogowaniu entalvia.eu
+ * pokazywała monitoring, więc klik w logotyp „wracał" do aplikacji, z której
+ * użytkownik właśnie chciał wyjść. Adres ma znaczyć zawsze to samo:
+ *
+ *   entalvia.eu       strona o produkcie, z wyborem narzędzia
+ *   app.entalvia.eu   monitoring (albo brama, gdy nie ma sesji)
+ *
+ * `?wejscie` jest jedynym wyjątkiem — serwer dopisuje go, kierując tu kogoś,
+ * kto sięgnął po zasób za hasłem, i wtedy potrzebne jest pole hasła.
+ * `?produkt` wymusza tę stronę z dowolnego adresu (podgląd z localhost).
+ */
+export function powierzchniaProduktu(): boolean {
   const parametry = new URLSearchParams(window.location.search);
-  /* `?wejscie` ma pierwszeństwo przed hostem: serwer dopisuje go, kierując
-     tu kogoś, kto sięgnął po zasób za bramą (symulator). Na entalvia.eu
-     trzeba wtedy pokazać pole hasła, a nie stronę o produkcie. */
-  if (parametry.has('wejscie')) return 'aplikacja';
-  if (parametry.has('produkt')) return 'produkt';
-  return HOSTY_PRODUKTU.includes(window.location.hostname.toLowerCase())
-    ? 'produkt'
-    : 'aplikacja';
+  if (parametry.has('wejscie')) return false;
+  if (parametry.has('produkt')) return true;
+  return HOSTY_PRODUKTU.includes(window.location.hostname.toLowerCase());
+}
+
+function rolaAdresu(): 'produkt' | 'aplikacja' {
+  return powierzchniaProduktu() ? 'produkt' : 'aplikacja';
 }
 
 /** Dokąd wrócić po zalogowaniu — adres zapamiętany przez serwer przy bramie. */
@@ -232,7 +247,15 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
           {/* Logotyp wraca na ekran główny — to tu jest wybór między
               monitoringiem a symulatorem, więc znak firmowy prowadzi
               do punktu wyjścia, a nie donikąd. */}
-          <a className="start__logo-link" href="/" aria-label="Entalvia — ekran główny">
+          {/* `?produkt` zostaje w adresie na localhost, gdzie osobnej domeny
+              nie ma — bez tego klik w logotyp wypadałby ze strony produktu
+              wprost do aplikacji. Na entalvia.eu parametru nie ma i cel jest
+              po prostu korzeniem. */}
+          <a
+            className="start__logo-link"
+            href={new URLSearchParams(window.location.search).has('produkt') ? '/?produkt' : '/'}
+            aria-label="Entalvia — ekran główny"
+          >
             <img className="start__logo" src={plik('entalvia.png')} alt="Entalvia™" />
           </a>
           {/* DWA WEJŚCIA, DWA RÓŻNE NARZĘDZIA. „Monitoring pomiarów" prowadzi
