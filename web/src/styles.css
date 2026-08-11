@@ -1275,16 +1275,30 @@ code {
   margin-top: 0.9rem;
 }
 
+/* RÓWNE RAMKI, PEŁNE KADRY.
+   Rendery mają różne proporcje (moduł 16:9, laptop 4:3), a przycinanie ich
+   do wspólnej ramki obcinało brzegi — to zdjęcia produktowe, na których ma
+   być widać cały przedmiot. Ramka trzyma więc stałą proporcję 3:2, a obraz
+   wpisuje się w nią przez `contain`: oba kafle są równe, żaden kadr nie
+   ginie, a nadmiar wypełnia tło strony. */
+/* RAMKA MUSI BYĆ POZYCJONOWANA, NIE SIATKOWA.
+   Przy `display: grid` wiersz dobiera wysokość do zawartości, a `height: 100%`
+   na obrazie odwołuje się z powrotem do tego wiersza — zależność kołowa, którą
+   przeglądarka rozstrzyga na korzyść treści. Skutkiem ramka laptopa wychodziła
+   528×396 zamiast 528×352 i kafle znów były nierówne. Bezwzględne umieszczenie
+   obrazów w ramce o zadanej proporcji zrywa to sprzężenie. */
 .wiz {
-  display: grid;
+  position: relative;
+  aspect-ratio: 3 / 2;
   border-radius: 18px;
-  overflow: hidden;
 }
 
 .wiz__obraz {
-  grid-area: 1 / 1;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
   display: block;
   /* Zaokrąglenie NA SAMYM OBRAZIE, nie tylko na obudowie: przy przejściu
      kryciem widać obie warstwy naraz i przycięcie rodzica gubi róg tej
