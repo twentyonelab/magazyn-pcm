@@ -1159,9 +1159,19 @@ code {
 .start__akapit {
   margin: 1.25rem 0 0;
   max-width: 40rem;
-  font-size: 1rem;
+  /* Tekst kurczy się razem z oknem, żeby zrobić miejsce wizualizacjom —
+     one mają zostać widoczne w całości na każdej szerokości, a akapit jest
+     tym, co bez szkody może zejść o kilka punktów. */
+  font-size: clamp(0.9rem, 0.82rem + 0.4vw, 1rem);
   line-height: 1.6;
   color: var(--ink-soft);
+}
+
+/* Zdanie otwierające pełni funkcję śródtytułu — mocniejsze i w barwie
+   tekstu głównego, żeby wybijało się z akapitu opisowego. */
+.start__akapit strong {
+  font-weight: 600;
+  color: var(--ink);
 }
 
 /* Pasek trzech faktów (12 sond / 5 s / 2 materiały), nadpis z nazwami
@@ -1286,11 +1296,18 @@ code {
    na obrazie odwołuje się z powrotem do tego wiersza — zależność kołowa, którą
    przeglądarka rozstrzyga na korzyść treści. Skutkiem ramka laptopa wychodziła
    528×396 zamiast 528×352 i kafle znów były nierówne. Bezwzględne umieszczenie
-   obrazów w ramce o zadanej proporcji zrywa to sprzężenie. */
+   obrazów w ramce o zadanej proporcji zrywa to sprzężenie.
+
+   PLIKI SĄ DOPEŁNIONE DO 3:2 barwą własnej krawędzi (patrz `narzedzia`), więc
+   wypełniają ramkę co do piksela. Dlatego `cover`, nie `contain`: przy
+   `contain` obraz nie dotykał rogów i zaokrąglenie w ogóle nie było widoczne,
+   mimo że stało w arkuszu. Żaden kadr przez to nie ginie — dopełnienie zrównało
+   proporcje wcześniej, na etapie eksportu. */
 .wiz {
   position: relative;
   aspect-ratio: 3 / 2;
-  border-radius: 18px;
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .wiz__obraz {
@@ -1298,12 +1315,12 @@ code {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
-  /* Zaokrąglenie NA SAMYM OBRAZIE, nie tylko na obudowie: przy przejściu
-     kryciem widać obie warstwy naraz i przycięcie rodzica gubi róg tej
-     spodniej w chwili, gdy jest jeszcze częściowo widoczna. */
-  border-radius: 18px;
+  /* Promień także na obrazie, nie tylko na ramce: przy przenikaniu widać obie
+     warstwy naraz, a `overflow` rodzica przycina je z opóźnieniem jednej
+     klatki — bez tego róg spodniej warstwy mruga w chwili zmiany nośnika. */
+  border-radius: var(--radius);
   opacity: 0;
   transition: opacity 900ms ease;
 }

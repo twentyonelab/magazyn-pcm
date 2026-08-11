@@ -310,11 +310,11 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
               wersja zaczynała od „materiału zmiennofazowego" i budowy złoża,
               czyli od rzeczy, która obchodzi inżyniera, a nie kupującego. */}
           <p className="start__akapit">
-            Entalvia magazynuje energię cieplną w przemianie fazowej — nie w podgrzanej wodzie.
-            Ten sam zapas ciepła albo chłodu mieści się w kilkukrotnie mniejszej objętości
-            i utrzymuje stałą temperaturę roboczą, zamiast stygnąć od pierwszej minuty.
-            Ładujesz wtedy, gdy energia jest tania albo własna, oddajesz wtedy, gdy jest
-            potrzebna.
+            <strong>Entalvia to magazyny ciepła i chłodu złożone z baterii termicznych.</strong>{' '}
+            Baterie kumulują energię w przemianie fazowej. Ten sam zapas ciepła albo chłodu
+            mieści się w kilkukrotnie mniejszej objętości i utrzymuje stałą temperaturę
+            roboczą, zamiast tracić parametr od pierwszej minuty. Ładujesz wtedy, gdy energia
+            jest tania albo pochodzi z własnego źródła, oddajesz wtedy, gdy jest potrzebna.
           </p>
 
           <p className="start__akapit start__akapit--wtorny">
