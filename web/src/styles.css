@@ -1182,7 +1182,7 @@ code {
   /* Tekst kurczy się razem z oknem, żeby zrobić miejsce wizualizacjom —
      one mają zostać widoczne w całości na każdej szerokości, a akapit jest
      tym, co bez szkody może zejść o kilka punktów. */
-  font-size: clamp(0.82rem, 0.76rem + 0.3vw, 0.94rem);
+  font-size: clamp(0.7rem, 0.64rem + 0.3vw, 0.815rem);
   line-height: 1.6;
   color: var(--ink-soft);
 }
@@ -1214,6 +1214,11 @@ code {
 .start--produkt .start__tresc {
   grid-template-columns: minmax(0, 1fr);
   max-width: 68rem;
+  /* Odstęp między akapitem a wizualizacjami składa się z TEGO odstępu siatki
+     (wspólnego dla całej treści) oraz marginesu samej sekcji obrazów. Przy
+     4 rem dominował ten pierwszy i suma wynosiła 83 px; 2,25 rem daje ok.
+     55 px, czyli o jedną trzecią mniej. */
+  row-gap: clamp(1rem, 2.8vw, 2.25rem);
 }
 
 /* Odkąd belka stoi w układzie, strona o produkcie układa się pionowo:
@@ -1302,7 +1307,7 @@ code {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(0.75rem, 2vw, 1.5rem);
-  margin-top: clamp(1rem, 2.5vw, 1.75rem);
+  margin-top: clamp(0.67rem, 1.67vw, 1.17rem);
   width: 100%;
   justify-items: center;
 }
