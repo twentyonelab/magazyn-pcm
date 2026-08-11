@@ -51,9 +51,14 @@ function plik(nazwa: string): string {
  * Oba słowa są w mianowniku i pasują do „da się odłożyć na później" bez
  * zmiany reszty zdania — dlatego karuzela jest w ogóle możliwa.
  */
-const NOSNIKI: { slowo: string; barwa: string }[] = [
-  { slowo: 'Ciepło', barwa: 'var(--cieplo)' },
-  { slowo: 'Chłód', barwa: 'var(--chlod)' },
+/*
+ * Każdy nośnik niesie DWIE barwy, bo słowo jest pisane gradientem — tym samym
+ * przejściem, którym monitoring maluje pasek naładowania. `barwa` zostaje jako
+ * kolor zapasowy dla przeglądarek bez `background-clip: text`.
+ */
+const NOSNIKI: { slowo: string; barwa: string; jasny: string }[] = [
+  { slowo: 'Ciepło', barwa: 'var(--cieplo)', jasny: 'var(--cieplo-jasny)' },
+  { slowo: 'Chłód', barwa: 'var(--chlod)', jasny: 'var(--chlod-jasny)' },
 ];
 
 /** Co tyle słowo się przestawia. Dość długo, żeby dało się przeczytać zdanie. */
@@ -290,7 +295,13 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
                 <span
                   key={n.slowo}
                   className={`start__nosnik${i === nosnik ? ' is-teraz' : ''}`}
-                  style={{ color: n.barwa }}
+                  style={
+                    {
+                      color: n.barwa,
+                      '--nosnik-glowny': n.barwa,
+                      '--nosnik-jasny': n.jasny,
+                    } as React.CSSProperties
+                  }
                   /* Czytnik ekranu ma przeczytać JEDNO zdanie, nie oba słowa
                      naraz — więc niewidoczne słowo jest dla niego ukryte. */
                   aria-hidden={i !== nosnik}

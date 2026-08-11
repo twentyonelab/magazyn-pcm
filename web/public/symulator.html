@@ -17,7 +17,8 @@
     --border: rgba(11,11,11,0.10);
     --series-1: #4d7a91;  /* chłód — barwa aplikacji */
     --series-2: #d85a30;  /* ciepło — barwa aplikacji */
-    --series-3: #1baf7a;  /* energia elektryczna */
+    --series-3: #eda100;  /* energia elektryczna — żółty */
+    --series-4: #6b6b68;
     --status-warning: #fab219;
     --status-critical: #d03b3b;
     --status-good: #0ca30c;
@@ -50,7 +51,8 @@
       --border: rgba(255,255,255,0.10);
       --series-1: #8fb0c0;
       --series-2: #f0997b;
-      --series-3: #199e70;
+      --series-3: #fac75a;
+      --series-4: #9a9a94;
     }
   }
   :root[data-theme="dark"] .viz-root {
@@ -275,6 +277,26 @@
   .viz-root .warn, .viz-root .note, .viz-root .hint { border-radius: 12px; }
   .viz-root .chartbox { border-radius: 18px; }
   .viz-root table.res input { border-radius: 8px; }
+
+  /* Przyciski główne na czarno. Stały na zmiennej series-1, czyli na barwie
+     CHŁODU — a to znaczenie jest w tym narzędziu zajęte: ten sam odcień
+     opisuje magazyn chłodu na wykresach i w schemacie. Element sterowania
+     nie może nosić barwy, która gdzie indziej koduje wielkość fizyczną. */
+  .viz-root .btnrow button:not(.sec) {
+    background: #1c1c1b;
+    color: #fff;
+    border-radius: 999px;
+    padding: 10px 18px;
+  }
+  .viz-root .btnrow button.sec {
+    border-radius: 999px;
+    padding: 10px 18px;
+    border-color: var(--border);
+  }
+  :root[data-theme="dark"] .viz-root .btnrow button:not(.sec) {
+    background: #f4f4ee;
+    color: #12120f;
+  }
 </style>
 </head>
 <body class="viz-root">
@@ -513,7 +535,7 @@
     <div class="grid g3">
       <div><label for="docProj">Projekt</label><input id="docProj" type="text" value="Niskotemperaturowa sieć ciepłownicza — osiedle 5 budynków"></div>
       <div><label for="docInv">Inwestor / Zamawiający</label><input id="docInv" type="text" value="TAURON"></div>
-      <div><label for="docAuth">Opracował</label><input id="docAuth" type="text" value="21 zmysłów"></div>
+      <div><label for="docAuth">Opracował</label><input id="docAuth" type="text" value="21 zmysłów LAB"></div>
       <div><label for="docNo">Nr dokumentu</label><input id="docNo" type="text" value="K-001"></div>
     </div>
     <div class="btnrow">
@@ -1121,13 +1143,32 @@
     if (!zapisany()) zastosuj(systemowy());
   });
 
+  /*
+   * PO ZMIANIE MOTYWU TRZEBA PRZERYSOWAĆ RYSUNKI.
+   *
+   * Schemat i wykresy są rysowane w SVG, a barwy czytają wprost ze zmiennych
+   * CSS w chwili rysowania (funkcja css). Sama zmiana motywu przemalowuje
+   * tylko HTML — rysunki zostają w barwach sprzed przełączenia. Stąd czarne
+   * bryły schematu na jasnym tle (zgłoszone 2026-08-11): strona wczytała się
+   * w motywie ciemnym systemu, a po przejściu na jasny nikt ich nie odświeżył.
+   */
+  function przerysuj() {
+    try { if (typeof recalc === 'function') recalc(); } catch (e) {}
+    try { if (typeof recalc2 === 'function') recalc2(); } catch (e) {}
+  }
+
   if (przycisk) {
     przycisk.addEventListener('click', function () {
       var nowy = korzen.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       try { localStorage.setItem(KLUCZ, nowy); } catch (e) { /* tryb prywatny */ }
       zastosuj(nowy);
+      przerysuj();
     });
   }
+
+  // Także przy starcie: motyw ustawiamy przed pierwszym rysowaniem, ale gdy
+  // wybór z pamięci różni się od systemowego, rysunki powstały już wcześniej.
+  przerysuj();
 })();
 </script>
 </body>

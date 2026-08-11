@@ -1154,6 +1154,17 @@ code {
   vertical-align: baseline;
 }
 
+/*
+ * NOŚNIK PISANY GRADIENTEM, nie jednolitą barwą — tym samym przejściem,
+ * którym monitoring maluje pasek naładowania (`jasny → główny`, patrz
+ * `.ladunek__wypelnienie`). Dzięki temu słowo w haśle i pasek pod zbiornikiem
+ * mówią jednym kodem barwnym.
+ *
+ * `color: transparent` z przycięciem tła do liter wymaga fallbacku: gdy
+ * `background-clip: text` nie zadziała, tekst byłby niewidoczny. Dlatego
+ * barwa nośnika stoi jako `color` NAJPIERW, a przezroczystość włącza się
+ * dopiero w `@supports`.
+ */
 .start__nosnik {
   grid-area: 1 / 1;
   opacity: 0;
@@ -1161,6 +1172,15 @@ code {
   transition:
     opacity 0.55s ease,
     transform 0.55s ease;
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .start__nosnik {
+    background-image: linear-gradient(100deg, var(--nosnik-jasny), var(--nosnik-glowny) 62%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
 .start__nosnik.is-teraz {
