@@ -35,7 +35,7 @@
       --border: rgba(255,255,255,0.10);
       --series-1: #8fb0c0;
       --series-2: #f0997b;
-      --series-3: #199e70;
+      --series-3: #fac75a;
     }
 
   @media (prefers-color-scheme: dark) {
@@ -65,9 +65,9 @@
     --grid: #2c2c2a;
     --baseline: #383835;
     --border: rgba(255,255,255,0.10);
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
+    --series-1: #8fb0c0;
+    --series-2: #f0997b;
+    --series-3: #fac75a;
   }
   * { box-sizing: border-box; }
   body {
@@ -777,6 +777,12 @@
 
   function drawBalance(m) {
     const svg = $('balanceChart');
+    // Gradienty muszą stać W TYM SAMYM svg, w którym są używane.
+    const pas = (id, zm) => '<linearGradient id="' + id + '" x1="0" x2="1">'
+      + '<stop offset="0" stop-color="' + css(zm) + '" stop-opacity="0.5"/>'
+      + '<stop offset="1" stop-color="' + css(zm) + '"/></linearGradient>';
+    const grad = '<defs>' + pas('gQc','--series-1') + pas('gQh','--series-2')
+      + pas('gPel','--series-3') + '</defs>';
     const W = svg.clientWidth || 900, H = 120;
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     const pad = 8, barH = 34, gap = 2;
@@ -785,14 +791,14 @@
     const wQc = m.qc * scale, wPel = m.pel * scale;
     const ink = css('--text-primary'), sec = css('--text-secondary');
     const y1 = 18, y2 = y1 + barH + 26;
-    svg.innerHTML = `
+    svg.innerHTML = `${grad}
       <text x="${pad}" y="${y1 - 5}" font-size="12" fill="${sec}">Wejście</text>
-      <rect x="${pad}" y="${y1}" width="${Math.max(wQc - gap, 1)}" height="${barH}" rx="4" fill="${css('--series-1')}"></rect>
-      <rect x="${pad + wQc + gap}" y="${y1}" width="${Math.max(wPel - gap, 1)}" height="${barH}" rx="4" fill="${css('--series-3')}"></rect>
+      <rect x="${pad}" y="${y1}" width="${Math.max(wQc - gap, 1)}" height="${barH}" rx="4" fill="url(#gQc)"></rect>
+      <rect x="${pad + wQc + gap}" y="${y1}" width="${Math.max(wPel - gap, 1)}" height="${barH}" rx="4" fill="url(#gPel)"></rect>
       <text x="${pad + wQc / 2}" y="${y1 + barH / 2 + 4}" font-size="12" text-anchor="middle" fill="${ink}">${fmt(m.qc)} kW</text>
       <text x="${pad + wQc + gap + wPel / 2}" y="${y1 + barH / 2 + 4}" font-size="12" text-anchor="middle" fill="${ink}">${fmt(m.pel)} kW</text>
       <text x="${pad}" y="${y2 - 5}" font-size="12" fill="${sec}">Wyjście</text>
-      <rect x="${pad}" y="${y2}" width="${W - 2 * pad}" height="${barH}" rx="4" fill="${css('--series-2')}"></rect>
+      <rect x="${pad}" y="${y2}" width="${W - 2 * pad}" height="${barH}" rx="4" fill="url(#gQh)"></rect>
       <text x="${pad + (W - 2 * pad) / 2}" y="${y2 + barH / 2 + 4}" font-size="12" text-anchor="middle" fill="#ffffff">${fmt(m.qh)} kW ciepła</text>
     `;
   }
@@ -1152,9 +1158,21 @@
    * bryły schematu na jasnym tle (zgłoszone 2026-08-11): strona wczytała się
    * w motywie ciemnym systemu, a po przejściu na jasny nikt ich nie odświeżył.
    */
+  /*
+   * PRZERYSOWANIE PRZEZ ZDARZENIE, NIE PRZEZ WYWOLANIE FUNKCJI.
+   *
+   * 'recalc' i 'recalc2' siedza w domknieciu skryptu symulatora i nie sa
+   * widoczne z zewnatrz — proba 'typeof recalc === "function"' cicho
+   * zwracala "undefined" i nie robila NIC. Zamiast tego szturchamy jedno
+   * pole z kazdej grupy zdarzeniem 'input', na ktore te funkcje juz nasluchuja.
+   * Wartosc pola sie nie zmienia, wiec wynik obliczen tez nie — przerysowaniu
+   * podlegaja same barwy.
+   */
   function przerysuj() {
-    try { if (typeof recalc === 'function') recalc(); } catch (e) {}
-    try { if (typeof recalc2 === 'function') recalc2(); } catch (e) {}
+    ['tHot', 'cmpEl'].forEach(function (id) {
+      var pole = document.getElementById(id);
+      if (pole) pole.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 
   if (przycisk) {

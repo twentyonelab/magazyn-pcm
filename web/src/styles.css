@@ -1172,6 +1172,8 @@ code {
   transition:
     opacity 0.55s ease,
     transform 0.55s ease;
+  /* Barwa zapasowa — obowiązuje, dopóki nie wejdzie gradient niżej. */
+  color: var(--nosnik-glowny);
 }
 
 @supports (background-clip: text) or (-webkit-background-clip: text) {
@@ -1180,6 +1182,9 @@ code {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    /* WebKit potrzebuje OSOBNEJ własności — samo `color: transparent` bywa
+       tam ignorowane przy przycinaniu tła do liter. */
+    -webkit-text-fill-color: transparent;
   }
 }
 

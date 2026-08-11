@@ -295,9 +295,14 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
                 <span
                   key={n.slowo}
                   className={`start__nosnik${i === nosnik ? ' is-teraz' : ''}`}
+                  /* TYLKO ZMIENNE, BEZ `color`. Styl wpisany w element bije
+                     każdą regułę arkusza, więc `color` postawiony tutaj
+                     nadpisywał `color: transparent` potrzebny do przycięcia
+                     gradientu do liter — napis wychodził jednolity, mimo że
+                     gradient był poprawnie policzony pod spodem. Barwa zapasowa
+                     stoi teraz w arkuszu, przed blokiem `@supports`. */
                   style={
                     {
-                      color: n.barwa,
                       '--nosnik-glowny': n.barwa,
                       '--nosnik-jasny': n.jasny,
                     } as React.CSSProperties
