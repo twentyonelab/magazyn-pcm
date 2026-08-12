@@ -30,7 +30,7 @@
  * wyliczyć wszystko, co wiadomo.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { login } from '../api.js';
 import { WERSJA } from '../wersja.js';
 
@@ -56,9 +56,31 @@ function plik(nazwa: string): string {
  * przejściem, którym monitoring maluje pasek naładowania. `barwa` zostaje jako
  * kolor zapasowy dla przeglądarek bez `background-clip: text`.
  */
-const NOSNIKI: { slowo: string; barwa: string; jasny: string }[] = [
-  { slowo: 'Ciepło', barwa: 'var(--cieplo)', jasny: 'var(--cieplo-jasny)' },
-  { slowo: 'Chłód', barwa: 'var(--chlod)', jasny: 'var(--chlod-jasny)' },
+const NOSNIKI: { slowo: string; reszta: ReactNode; barwa: string; jasny: string }[] = [
+  {
+    slowo: 'Ciepło',
+    reszta: (
+      <>
+        możesz zachować
+        <br />
+        na dłużej.
+      </>
+    ),
+    barwa: 'var(--cieplo)',
+    jasny: 'var(--cieplo-jasny)',
+  },
+  {
+    slowo: 'Chłód',
+    reszta: (
+      <>
+        da się
+        <br />
+        odłożyć na później.
+      </>
+    ),
+    barwa: 'var(--chlod)',
+    jasny: 'var(--chlod-jasny)',
+  },
 ];
 
 /** Co tyle słowo się przestawia. Dość długo, żeby dało się przeczytać zdanie. */
@@ -286,15 +308,22 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
             <img className="start__logo" src={plik('entalvia.png')} alt="Entalvia™" />
           ) : null}
           <h1 className="start__haslo">
-            {/* Wszystkie słowa leżą w JEDNEJ komórce siatki, więc komórka ma
-                szerokość najszerszego z nich i „da się" nie przeskakuje w boki
-                przy zmianie. Dlatego siatka, a nie pozycjonowanie absolutne:
-                to ona liczy tę szerokość sama. */}
+            {/* CAŁE ZDANIE ZMIENIA SIĘ Z NOŚNIKIEM, nie samo słowo: chłód
+                „da się odłożyć na później", ciepło „możesz zachować na dłużej".
+                Obie frazy leżą w JEDNEJ komórce siatki, więc komórka ma
+                wysokość i szerokość dłuższej z nich, a nagłówek nie skacze
+                przy zmianie. Dlatego siatka, a nie pozycjonowanie
+                bezwzględne — to ona liczy te rozmiary sama. */}
             <span className="start__karuzela">
               {NOSNIKI.map((n, i) => (
                 <span
                   key={n.slowo}
-                  className={`start__nosnik${i === nosnik ? ' is-teraz' : ''}`}
+                  className={`start__fraza${i === nosnik ? ' is-teraz' : ''}`}
+                  /* Czytnik ekranu ma przeczytać JEDNO zdanie, nie oba naraz. */
+                  aria-hidden={i !== nosnik}
+                >
+                  <span
+                    className="start__nosnik"
                   /* TYLKO ZMIENNE, BEZ `color`. Styl wpisany w element bije
                      każdą regułę arkusza, więc `color` postawiony tutaj
                      nadpisywał `color: transparent` potrzebny do przycięcia
@@ -307,17 +336,13 @@ export function Logowanie({ onSuccess }: { onSuccess: () => void }) {
                       '--nosnik-jasny': n.jasny,
                     } as React.CSSProperties
                   }
-                  /* Czytnik ekranu ma przeczytać JEDNO zdanie, nie oba słowa
-                     naraz — więc niewidoczne słowo jest dla niego ukryte. */
-                  aria-hidden={i !== nosnik}
-                >
-                  {n.slowo}
+                  >
+                    {n.slowo}
+                  </span>{' '}
+                  {n.reszta}
                 </span>
               ))}
-            </span>{' '}
-            da się
-            <br />
-            odłożyć na później.
+            </span>
           </h1>
 
           {/* PROPOZYCJA WARTOŚCI, NIE OPIS TECHNICZNY. Pierwszy akapit mówi,
