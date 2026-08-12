@@ -308,6 +308,67 @@
     background: #f4f4ee;
     color: #12120f;
   }
+
+  /* --- Kroki: numer nad nazwą zakładki -------------------------------- */
+  .viz-root .tabs button {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    line-height: 1.25;
+    padding: 7px 18px;
+  }
+  .viz-root .tabs button .krok {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    font-weight: 400;
+  }
+  /* Zakładka czynna na czarno, nie na barwie chłodu — ten odcień koduje
+     w tym narzędziu magazyn chłodu i nie może opisywać stanu sterowania. */
+  .viz-root .tabs button.active {
+    background: #1c1c1b;
+    border-color: #1c1c1b;
+  }
+  .viz-root .tabs button:hover { border-color: var(--text-secondary); }
+  :root[data-theme="dark"] .viz-root .tabs button.active {
+    background: #f4f4ee;
+    border-color: #f4f4ee;
+    color: #12120f;
+  }
+
+  /* --- Nawigacja krokami na dole panelu ------------------------------- */
+  .viz-root .kroki-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 4px;
+  }
+  .viz-root .kroki-nav button {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 20px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .viz-root .kroki-nav button:hover { color: var(--text-primary); }
+  .viz-root .kroki-nav button.dalej {
+    background: #1c1c1b;
+    border-color: #1c1c1b;
+    color: #fff;
+    font-weight: 600;
+    margin-left: auto;      /* „dalej” zawsze przy prawej krawędzi */
+  }
+  :root[data-theme="dark"] .viz-root .kroki-nav button.dalej {
+    background: #f4f4ee;
+    border-color: #f4f4ee;
+    color: #12120f;
+  }
 </style>
 </head>
 <body class="viz-root">
@@ -332,10 +393,10 @@
     </div>
   </div>
   <nav class="tabs">
-    <button data-tab="t1" class="active">Dobór maszyny</button>
-    <button data-tab="t2">Warianty osiedla</button>
-    <button data-tab="t3">Porównanie</button>
-    <button data-tab="t4">Dokumentacja</button>
+    <button data-tab="t1" class="active"><span class="krok">krok 1</span>Dobór maszyny</button>
+    <button data-tab="t2"><span class="krok">krok 2</span>Warianty osiedla</button>
+    <button data-tab="t3"><span class="krok">krok 3</span>Porównanie</button>
+    <button data-tab="t4"><span class="krok">krok 4</span>Dokumentacja</button>
   </nav>
   <section class="tab-panel active" id="t1">
   <p class="sub">Wstępny dobór inżynierski dla pomp ciepła wodno-wodnych Refra Oasis na R290 (OAS102–OAS440, 34–516&nbsp;kW). Punkt pracy domyślny: magazyn ciepła +58&nbsp;°C, magazyn chłodu +8&nbsp;°C. Wyniki zweryfikuj w programie doboru producenta.</p>
@@ -1384,6 +1445,55 @@
   // Także przy starcie: motyw ustawiamy przed pierwszym rysowaniem, ale gdy
   // wybór z pamięci różni się od systemowego, rysunki powstały już wcześniej.
   przerysuj();
+
+  /*
+   * NAWIGACJA KROKAMI NA DOLE PANELU.
+   *
+   * Budowana z DOM, nie wstrzykiwana w HTML: znalezienie końca każdej sekcji
+   * wyrażeniem regularnym wymagałoby liczenia zagnieżdżonych znaczników, a te
+   * zmieniają się z każdą wersją pliku źródłowego. Tutaj wystarczy sam
+   * identyfikator panelu, który jest stabilny.
+   *
+   * Przyciski nie duplikują logiki przełączania — klikają zakładkę u góry,
+   * więc jest jedno miejsce, które decyduje, co znaczy „pokaż krok N".
+   */
+  var KROKI = ['t1', 't2', 't3', 't4'];
+
+  function idzDo(i) {
+    var zakladka = document.querySelector('.tabs button[data-tab="' + KROKI[i] + '"]');
+    if (!zakladka) return;
+    zakladka.click();
+    // Po zmianie kroku wracamy na górę — inaczej użytkownik ląduje w środku
+    // nowej sekcji, w miejscu, w którym skończył poprzednią.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  KROKI.forEach(function (id, i) {
+    var panel = document.getElementById(id);
+    if (!panel) return;
+
+    var rzad = document.createElement('div');
+    rzad.className = 'kroki-nav';
+
+    if (i > 0) {
+      var wstecz = document.createElement('button');
+      wstecz.type = 'button';
+      wstecz.textContent = '← Wstecz';
+      wstecz.addEventListener('click', function () { idzDo(i - 1); });
+      rzad.appendChild(wstecz);
+    }
+
+    if (i < KROKI.length - 1) {
+      var dalej = document.createElement('button');
+      dalej.type = 'button';
+      dalej.className = 'dalej';
+      dalej.textContent = 'Dalej: krok ' + (i + 2) + ' →';
+      dalej.addEventListener('click', function () { idzDo(i + 1); });
+      rzad.appendChild(dalej);
+    }
+
+    if (rzad.children.length) panel.appendChild(rzad);
+  });
 })();
 </script>
 </body>
