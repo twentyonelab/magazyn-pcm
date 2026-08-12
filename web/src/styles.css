@@ -1188,12 +1188,14 @@ code {
  * dopiero w `@supports`.
  */
 .start__nosnik {
-  grid-area: 1 / 1;
-  opacity: 0;
-  transform: translateY(-0.18em);
-  transition:
-    opacity 0.55s ease,
-    transform 0.55s ease;
+  /* BEZ WŁASNEJ ANIMACJI — przenika teraz cała fraza wokół tego słowa.
+     Zostało tu `opacity: 0` z poprzedniej wersji, a klasa `is-teraz`
+     przeniosła się na frazę, więc nic już tej przezroczystości nie zdejmowało
+     i słowo znikało całkiem (zgłoszone 2026-08-12).
+
+     `inline-block` jest konieczny: element liniowy nie ma własnego obszaru
+     tła, więc przycięcie gradientu do liter nie miałoby na czym działać. */
+  display: inline-block;
   /* Barwa zapasowa — obowiązuje, dopóki nie wejdzie gradient niżej. */
   color: var(--nosnik-glowny);
 }
@@ -1283,6 +1285,9 @@ code {
   flex-direction: column;
   align-items: center;
   justify-content: safe center;
+  /* Miejsce na belkę wyjętą z układu (`position: fixed` wyżej). Bez tego
+     nagłówek wjeżdżałby pod logotyp. */
+  padding-top: clamp(7rem, 10vh, 8.5rem);
 }
 
 /* Górna belka strony o produkcie — logotyp po lewej, wejścia po prawej.
@@ -1300,20 +1305,24 @@ code {
    odsuwa od siebie treść i nie nachodzi na nagłówek przy niskim oknie —
    to był poprzedni błąd, którego nie chcę wprowadzać drugi raz. */
 .start__belka {
-  position: sticky;
+  /* POZYCJONOWANIE WZGLĘDEM OKNA, nie kontenera. `sticky` przykleja się do
+     krawędzi rodzica, a ten ma własne wypełnienie — belka stawała 20 px
+     niżej zamiast w samym rogu. Miejsce pod nią rezerwuje `padding-top`
+     na `.start--produkt`, więc nie nachodzi na nagłówek; to ten sam błąd,
+     który popełniłem wcześniej przy `absolute` i nie chcę go powtórzyć. */
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 5;
-  width: 100vw;
-  max-width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  width: auto;
+  max-width: none;
   padding: clamp(0.75rem, 2vw, 1.5rem) clamp(1rem, 3vw, 3rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem 1.5rem;
-  flex-wrap: wrap;
-  margin-bottom: clamp(1.5rem, 5vw, 3.5rem);
+  flex-wrap: wrap;
 }
 
 .start__logo-link {
