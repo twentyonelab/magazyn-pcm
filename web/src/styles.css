@@ -1134,6 +1134,18 @@ code {
   letter-spacing: -0.03em;
   line-height: 1.04;
   color: var(--ink);
+  /*
+   * WIERSZE RÓWNAJĄ SIĘ DŁUGOŚCIĄ — przeglądarka dzieli zdanie tak, żeby
+   * oba wiersze wyszły zbliżone, zamiast wypełniać pierwszy do oporu.
+   * Zastępuje twarde `<br>`, przy którym „Ciepło da się" było o połowę
+   * krótsze od „zachować na dłużej", a przy zmianie szerokości okna podział
+   * i tak przestawał pasować. Liczy się osobno dla każdego z dwóch zdań.
+   *
+   * `max-width` w jednostce `ch` jest tu konieczny: bez ograniczenia zdanie
+   * mieści się w jednym wierszu na szerokim ekranie i nie ma czego równać.
+   */
+  text-wrap: balance;
+  max-width: 19ch;
 }
 
 /* KARUZELA NOŚNIKA — „Ciepło" przestawia się na „Chłód".
@@ -1322,7 +1334,7 @@ code {
   align-items: center;
   justify-content: space-between;
   gap: 1rem 1.5rem;
-  flex-wrap: wrap;
+  flex-wrap: wrap;
 }
 
 .start__logo-link {

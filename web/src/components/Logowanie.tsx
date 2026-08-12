@@ -57,27 +57,22 @@ function plik(nazwa: string): string {
  * kolor zapasowy dla przeglądarek bez `background-clip: text`.
  */
 const NOSNIKI: { slowo: string; reszta: ReactNode; barwa: string; jasny: string }[] = [
+  /*
+   * BEZ TWARDEGO ŁAMANIA WIERSZA. Podział liczy `text-wrap: balance`
+   * w arkuszu — przy sztywnym `<br>` jeden wiersz wychodził wyraźnie
+   * krótszy od drugiego („Ciepło da się" wobec „zachować na dłużej"),
+   * a balansowanie robi to osobno dla każdego zdania i przy każdej
+   * szerokości okna.
+   */
   {
     slowo: 'Ciepło',
-    reszta: (
-      <>
-        możesz zachować
-        <br />
-        na dłużej.
-      </>
-    ),
+    reszta: 'da się zachować na dłużej.',
     barwa: 'var(--cieplo)',
     jasny: 'var(--cieplo-jasny)',
   },
   {
     slowo: 'Chłód',
-    reszta: (
-      <>
-        da się
-        <br />
-        odłożyć na później.
-      </>
-    ),
+    reszta: 'da się odłożyć na później.',
     barwa: 'var(--chlod)',
     jasny: 'var(--chlod-jasny)',
   },
