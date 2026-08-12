@@ -66,7 +66,7 @@ const NOSNIKI: { slowo: string; reszta: ReactNode; barwa: string; jasny: string 
    */
   {
     slowo: 'Ciepło',
-    reszta: 'da się zachować na dłużej.',
+    reszta: 'można zachować na dłużej.',
     barwa: 'var(--cieplo)',
     jasny: 'var(--cieplo-jasny)',
   },
