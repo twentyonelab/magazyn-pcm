@@ -1373,6 +1373,109 @@ code {
   color: var(--ink);
 }
 
+/* --- Prawy narożnik belki: wejścia + wybór języka ------------------------ */
+
+/* Jeden rząd, jeden odstęp. Wejścia i przełącznik języka mają ten sam kształt
+   („fasolka"), więc bez wspólnego kontenera rozjeżdżałyby się w pionie przy
+   zawijaniu — belka ma `flex-wrap`, a nav i przycisk zawijałyby się osobno. */
+.start__prawa {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Kotwica dla listy — bez tego lista ustawiłaby się względem całej belki
+   i przy wąskim oknie wychodziła poza prawą krawędź ekranu. */
+.jezyk {
+  position: relative;
+}
+
+/* Dziedziczy wygląd po `.start__wejscie`; tu zostaje tylko to, czego
+   `<button>` nie dostaje po `<a>`: własny krój pisma, brak obramowania
+   przeglądarki i kursor. */
+.jezyk__przycisk {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  /* Szerokość nie może zależeć od kodu języka — „PL" i „EN" mają tę samą
+     liczbę znaków, ale nie tę samą szerokość, a pełzający o piksel przycisk
+     przy zmianie języka wygląda jak usterka. */
+  min-width: 4.6rem;
+  justify-content: space-between;
+}
+
+.jezyk__strzalka {
+  width: 10px;
+  height: 6px;
+  flex: none;
+  transition: transform 180ms ease;
+}
+
+.jezyk__przycisk[aria-expanded='true'] .jezyk__strzalka {
+  transform: rotate(180deg);
+}
+
+/* Lista pod przyciskiem, wyrównana do PRAWEJ krawędzi — przełącznik stoi
+   w prawym narożniku okna, więc lista rozwijana w lewo jest jedyną, która
+   nie wychodzi poza ekran. */
+.jezyk__lista {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 6;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  min-width: 100%;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  -webkit-backdrop-filter: var(--szklo-rozmycie);
+  backdrop-filter: var(--szklo-rozmycie);
+  border: var(--szklo-krawedz);
+  box-shadow: var(--shadow-sm);
+}
+
+.jezyk__opcja {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 4px);
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.jezyk__opcja:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+/* Wybrany język poznaje się po WADZE PISMA i tuszu, nie po tle — tło niosłoby
+   ten sam sygnał co najechanie kursorem i oba stany byłyby nie do odróżnienia. */
+.jezyk__opcja.is-teraz {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.jezyk__kod {
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.jezyk__opcja.is-teraz .jezyk__kod {
+  color: var(--ink-soft);
+}
+
 /* Ekran ciszy przed rozstrzygnięciem bramy — patrz App.tsx.
    Sama płaszczyzna w barwie tła, żeby nic nie mrugnęło. */
 .start--cisza {
@@ -1472,6 +1575,38 @@ code {
   .start__wejscie {
     padding: 0.5rem 0.85rem;
     font-size: 0.84rem;
+  }
+
+  .jezyk__przycisk {
+    min-width: 0;
+  }
+
+  /* TRZY FASOLKI NIE MIESZCZĄ SIĘ W DWÓCH WIERSZACH SAME Z SIEBIE.
+     Belka i tak łamie się na wąskim ekranie, a miejsce pod nią rezerwuje
+     stały `padding-top` na `.start--produkt` — policzony na DWA wiersze.
+     Trzeci wiersz nie miał więc gdzie stanąć i przełącznik języka lądował
+     na nagłówku.
+
+     `display: contents` rozpuszcza kontener prawej strony, więc nawigacja
+     i przełącznik stają się elementami samej belki i można im nadać
+     kolejność: wąski przełącznik idzie do pierwszego wiersza, przy logotyp,
+     a dwa szerokie wejścia dostają cały drugi wiersz dla siebie. */
+  .start__prawa {
+    display: contents;
+  }
+
+  .start__logo-link {
+    order: 1;
+  }
+
+  .jezyk {
+    order: 2;
+  }
+
+  .start__wejscia {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: flex-start;
   }
 }
 
